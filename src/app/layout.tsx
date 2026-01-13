@@ -31,7 +31,7 @@ export const metadata: Metadata = {
   openGraph: {
     type: "website",
     locale: "fr_FR",
-    url: "https://elisabatchcooking.fr",
+    url: "https://elisabatchcooking.com",
     title: "Elisa Batch Cooking | Votre Cheffe à Domicile à Annecy",
     description: "Des repas sains et faits maison pour toute la semaine, préparés chez vous. Gagnez du temps et mangez mieux.",
     siteName: "Elisa Batch Cooking",
