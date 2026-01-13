@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Check, Flame, Lightbulb, Info, ArrowRight, ArrowLeft, Receipt, HelpCircle, Wallet, Calendar, ShoppingBag, Utensils } from "lucide-react";
+import { Check, Flame, Lightbulb, ArrowRight, ArrowLeft, Receipt, Wallet, ShoppingBag, Utensils } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { PRICING_CONFIG, usePricingCalculation, getGroceryUnitCost } from "@/components/simulator/usePricingLogic";
 import { Badge } from "@/components/ui/badge";
@@ -15,7 +15,6 @@ import {
     DialogDescription,
     DialogHeader,
     DialogTitle,
-    DialogTrigger,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 

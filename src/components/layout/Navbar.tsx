@@ -3,17 +3,14 @@
 import * as React from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { Menu, Home, Calculator, Wallet, User, MessageSquare, Instagram, Facebook, ArrowRight, X } from "lucide-react";
+import { Menu, Home, Calculator, Wallet, User, MessageSquare, ArrowRight } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
     Sheet,
     SheetContent,
     SheetTrigger,
-    SheetHeader,
-    SheetTitle,
 } from "@/components/ui/sheet";
-import { cn } from "@/lib/utils";
 
 const NAV_LINKS = [
     { name: "Accueil", href: "/", icon: Home },
