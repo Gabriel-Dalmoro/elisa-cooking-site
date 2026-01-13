@@ -37,7 +37,7 @@ export const metadata: Metadata = {
     siteName: "Elisa Batch Cooking",
     images: [
       {
-        url: "/images/hero-food.png",
+        url: "/images/og-image.png",
         width: 1200,
         height: 630,
         alt: "Elisa Batch Cooking - Cuisine Saine à Domicile",
@@ -48,7 +48,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "Elisa Batch Cooking | Votre Cheffe à Domicile à Annecy",
     description: "Des repas sains et faits maison pour toute la semaine, préparés chez vous.",
-    images: ["/images/hero-food.png"],
+    images: ["/images/og-image.png"],
   },
   robots: {
     index: true,
