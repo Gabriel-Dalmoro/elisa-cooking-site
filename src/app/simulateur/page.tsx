@@ -78,7 +78,8 @@ export default function SimulatorPage() {
             };
 
             // Send to n8n webhook
-            const response = await fetch('http://localhost:5678/webhook-test/lead-submit', {
+            const webhookUrl = process.env.NEXT_PUBLIC_N8N_WEBHOOK_URL || 'http://localhost:5678/webhook-test/lead-submit';
+            const response = await fetch(webhookUrl, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload)
