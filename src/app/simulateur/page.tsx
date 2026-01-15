@@ -31,7 +31,7 @@ export default function SimulatorPage() {
         name: "",
         email: "",
         phone: "",
-        city: ""
+        address: ""
     });
 
     const calculation = usePricingCalculation(tierId, people, isSubscribed, frequency);
@@ -43,19 +43,59 @@ export default function SimulatorPage() {
     // Get current tier label for display
     const currentTier = Object.values(PRICING_CONFIG.TIERS).find(t => t.id === tierId) || PRICING_CONFIG.TIERS.FAMILY;
 
-    const handleFormSubmit = (e: React.FormEvent) => {
+    const handleFormSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        const finalConfig = {
-            tier: currentTier,
-            people,
-            isSubscribed,
-            calculation,
-            user: formData
-        };
-        console.log("Booking Configuration:", finalConfig);
-        // Here you would typically send this to your backend
-        setIsModalOpen(false);
-        alert("Merci ! Votre demande de devis a été envoyée (consultez la console).");
+
+        try {
+            // Formatting Helpers for n8n/Email template
+            const frequencyMap: Record<string, string> = {
+                weekly: "Hebdomadaire",
+                biweekly: "Bi-mensuel",
+                monthly: "Mensuel"
+            };
+            const frequencyLabel = isSubscribed ? frequencyMap[frequency] : "Une seule fois";
+
+            const engagementLabel = isSubscribed
+                ? "Abonnement ( -15% )"
+                : "Commande Ponctuelle";
+
+            const packLabel = currentTier.label;
+
+            const payload = {
+                client_name: formData.name,
+                client_email: formData.email,
+                client_phone: formData.phone,
+                client_address: formData.address,
+                meals_count: currentTier.meals,
+                people_count: people,
+                is_subscribed: isSubscribed,
+                frequency_label: frequencyLabel,
+                engagement_type: engagementLabel,
+                total_price: calculation.finalPocketCost,
+                billed_total: calculation.amountToPayElisa,
+                grocery_min: calculation.groceryRange.min,
+                grocery_max: calculation.groceryRange.max
+            };
+
+            // Send to n8n webhook
+            const response = await fetch('http://localhost:5678/webhook-test/lead-submit', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            if (response.ok) {
+                setIsModalOpen(false);
+                alert("Merci ! Votre demande de devis a été envoyée avec succès.");
+                // Reset form
+                setFormData({ name: "", email: "", phone: "", address: "" });
+            } else {
+                throw new Error('Webhook error');
+            }
+        } catch (error) {
+            console.error("Error submitting form:", error);
+            alert("Une erreur est survenue. Veuillez réessayer plus tard.");
+        }
     };
 
     return (
@@ -215,10 +255,10 @@ export default function SimulatorPage() {
                                     >
                                         <div className={cn("p-6 md:p-10 rounded-[2.5rem] shadow-xl border transition-all duration-500 relative overflow-hidden", isSubscribed ? "bg-emerald-50/50 border-emerald-200 shadow-emerald-900/5" : "bg-white border-stone-100")}>
                                             <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-100/30 rounded-full -mr-16 -mt-16 blur-3xl opacity-50" />
-                                            <div className="bg-stone-100/80 p-2 rounded-full flex relative mb-8 shadow-inner border border-stone-200/50">
-                                                <motion.div className="absolute top-2 bottom-2 w-[calc(50%-8px)] rounded-full shadow-lg z-0" animate={{ x: isSubscribed ? "100%" : "0%", backgroundColor: isSubscribed ? "#10b981" : "#FFFFFF" }} transition={{ type: "spring", stiffness: 400, damping: 30 }} />
-                                                <button onClick={() => setIsSubscribed(false)} className={cn("flex-1 py-4 text-xs font-black uppercase tracking-widest rounded-full relative z-10 transition-colors duration-300", !isSubscribed ? "text-stone-900" : "text-stone-400")}>Unique</button>
-                                                <button onClick={() => setIsSubscribed(true)} className={cn("flex-1 py-4 text-xs font-black uppercase tracking-widest rounded-full relative z-10 flex items-center justify-center gap-2 transition-colors duration-300", isSubscribed ? "text-white" : "text-stone-400")}>Abonnement <span className={cn("bg-brand-rose text-white px-2 py-0.5 rounded-full text-[9px] font-black shadow-md", isSubscribed ? "bg-stone-900" : "")}>-15%</span></button>
+                                            <div className="bg-stone-100/80 p-1.5 md:p-2 rounded-full flex relative mb-8 shadow-inner border border-stone-200/50">
+                                                <motion.div className="absolute top-1.5 bottom-1.5 w-[calc(50%-6px)] md:w-[calc(50%-8px)] rounded-full shadow-lg z-0" animate={{ x: isSubscribed ? "100%" : "0%", backgroundColor: isSubscribed ? "#10b981" : "#FFFFFF" }} transition={{ type: "spring", stiffness: 400, damping: 30 }} />
+                                                <button onClick={() => setIsSubscribed(false)} className={cn("flex-1 py-3 md:py-4 text-[10px] md:text-xs font-black uppercase tracking-widest rounded-full relative z-10 transition-colors duration-300", !isSubscribed ? "text-stone-900" : "text-stone-400")}>Unique</button>
+                                                <button onClick={() => setIsSubscribed(true)} className={cn("flex-1 py-3 md:py-4 text-[10px] md:text-xs font-black uppercase tracking-widest rounded-full relative z-10 flex items-center justify-center gap-1.5 md:gap-2 transition-colors duration-300", isSubscribed ? "text-white" : "text-stone-400")}>Abonnement <span className={cn("bg-brand-rose text-white px-1.5 py-0.5 rounded-full text-[8px] md:text-[9px] font-black shadow-md", isSubscribed ? "bg-stone-900" : "")}>-15%</span></button>
                                             </div>
                                             <div className="space-y-4 relative z-10 text-stone-900">
                                                 <h4 className="text-lg md:text-xl font-bold mb-1">{isSubscribed ? "L'Option Sérénité" : "Une prestation ponctuelle"}</h4>
@@ -227,7 +267,7 @@ export default function SimulatorPage() {
                                                 {isSubscribed && (
                                                     <div className="pt-6 border-t border-emerald-100/50 space-y-4">
                                                         <p className="text-[10px] font-black uppercase tracking-widest text-emerald-600/70">Fréquence des visites</p>
-                                                        <div className="flex gap-2">
+                                                        <div className="grid grid-cols-3 gap-1.5 md:gap-2">
                                                             {[
                                                                 { id: 'weekly', label: 'Hebdo' },
                                                                 { id: 'biweekly', label: 'Bimensuel' },
@@ -237,7 +277,7 @@ export default function SimulatorPage() {
                                                                     key={freq.id}
                                                                     onClick={() => setFrequency(freq.id as any)}
                                                                     className={cn(
-                                                                        "flex-1 py-3 px-2 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all",
+                                                                        "py-3 px-1 rounded-xl text-[9px] md:text-[10px] font-black uppercase tracking-widest transition-all",
                                                                         frequency === freq.id
                                                                             ? "bg-emerald-500 text-white shadow-md shadow-emerald-200"
                                                                             : "bg-white text-stone-400 border border-stone-100 hover:border-emerald-200"
@@ -345,9 +385,9 @@ export default function SimulatorPage() {
                                                     <span className="text-stone-400 font-bold text-[10px] uppercase tracking-widest">/ visite</span>
                                                 </div>
                                                 <div className="flex flex-wrap items-center justify-center gap-2 mt-4">
-                                                    <Badge className="bg-emerald-50 text-emerald-600 border-none text-[8px] font-black uppercase tracking-widest px-2 py-0.5">-50% Crédit d'Impôt</Badge>
+                                                    <Badge className="bg-emerald-50 text-emerald-600 border-none text-[8px] font-black uppercase tracking-widest px-2 py-0.5">Avantage Fiscal de 50%</Badge>
                                                 </div>
-                                                <p className="text-[9px] text-stone-400 font-medium mt-3 italic">* Crédit d'impôt récupéré lors de votre déclaration annuelle.</p>
+                                                <p className="text-[9px] text-stone-400 font-medium mt-3 italic">* Crédit d'impôt récupéré lors de votre déclaration annuelle (Dispositif SAP).</p>
                                             </div>
                                         </div>
                                     </div>
@@ -405,7 +445,7 @@ export default function SimulatorPage() {
                                 </div>
                                 <div className="bg-brand-rose/5 p-6 rounded-3xl border border-brand-rose/10">
                                     <p className="text-[11px] leading-relaxed text-brand-rose/80 font-medium italic text-center">
-                                        "Le crédit d'impôt de 50% vous sera restitué par l'administration fiscale lors de votre déclaration annuelle. Le montant 'À payer à Elisa' correspond à votre règlement lors de la prestation."
+                                        "Le crédit d'impôt de 50% vous sera restitué par l'administration fiscale lors de votre déclaration annuelle (en attendant l'activation de l'avance immédiate). Le montant 'À payer à Elisa' correspond à votre règlement lors de la prestation."
                                     </p>
                                 </div>
                             </motion.div>
@@ -488,14 +528,14 @@ export default function SimulatorPage() {
                                 />
                             </div>
                             <div className="space-y-2">
-                                <Label htmlFor="city" className="text-[11px] font-black uppercase text-stone-500 ml-1">Ville</Label>
+                                <Label htmlFor="address" className="text-[11px] font-black uppercase text-stone-500 ml-1">Adresse complète</Label>
                                 <Input
-                                    id="city"
+                                    id="address"
                                     required
-                                    placeholder="Ex: Paris"
+                                    placeholder="Ex: 15 rue de la Paix, Annecy"
                                     className="rounded-xl border-stone-100 bg-stone-100/50 h-12 focus:ring-brand-rose text-stone-900 placeholder:text-stone-400"
-                                    value={formData.city}
-                                    onChange={(e) => setFormData({ ...formData, city: e.target.value })}
+                                    value={formData.address}
+                                    onChange={(e) => setFormData({ ...formData, address: e.target.value })}
                                 />
                             </div>
                         </div>

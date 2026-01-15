@@ -23,21 +23,18 @@ export function Footer() {
                             </span>
                         </Link>
                         <div className="flex flex-col gap-4">
-                            <a href="tel:+33600000000" className="flex items-center gap-3 hover:text-brand-rose transition-colors">
+                            <a href="tel:+33652077203" className="flex items-center gap-3 hover:text-brand-rose transition-colors">
                                 <Phone className="h-5 w-5 text-brand-gold" />
-                                <span>06 00 00 00 00</span>
+                                <span>06 52 07 72 03</span>
                             </a>
-                            <a href="mailto:contact@chefelisa.fr" className="flex items-center gap-3 hover:text-brand-rose transition-colors">
+                            <a href="mailto:contactchefelisa@gmail.com" className="flex items-center gap-3 hover:text-brand-rose transition-colors">
                                 <Mail className="h-5 w-5 text-brand-gold" />
-                                <span>contact@chefelisa.fr</span>
+                                <span>contactchefelisa@gmail.com</span>
                             </a>
                         </div>
                         <div className="flex gap-4">
-                            <Link href="#" className="h-10 w-10 flex items-center justify-center rounded-full bg-white shadow-sm hover:text-brand-rose transition-all">
+                            <Link href="https://www.instagram.com/elisabatchcooking/" target="_blank" className="h-10 w-10 flex items-center justify-center rounded-full bg-white shadow-sm hover:text-brand-rose transition-all">
                                 <Instagram className="h-5 w-5" />
-                            </Link>
-                            <Link href="#" className="h-10 w-10 flex items-center justify-center rounded-full bg-white shadow-sm hover:text-brand-rose transition-all">
-                                <Facebook className="h-5 w-5" />
                             </Link>
                         </div>
                     </div>
@@ -49,6 +46,7 @@ export function Footer() {
                         </h3>
                         <nav className="flex flex-col gap-3">
                             <Link href="/" className="hover:text-brand-rose transition-colors">Accueil</Link>
+                            <Link href="/menu" className="hover:text-brand-rose transition-colors">Le Menu</Link>
                             <Link href="/simulateur" className="hover:text-brand-rose transition-colors">Tarifs</Link>
                             <Link href="/credit-impot" className="hover:text-brand-rose transition-colors">Crédit d'impôt</Link>
                             <Link href="/a-propos" className="hover:text-brand-rose transition-colors">À propos</Link>
@@ -67,7 +65,7 @@ export function Footer() {
                             <Link href="/politique-de-confidentialite" className="hover:text-brand-rose transition-colors">Politique de Confidentialité</Link>
                         </nav>
                         <p className="mt-4 text-xs leading-relaxed opacity-70">
-                            © {new Date().getFullYear()} Chef Elisa. Tous droits réservés. <br />
+                            © {new Date().getFullYear()} Elisa Batch Cooking. Tous droits réservés. <br />
                             Service à la personne - Agrément SAP.
                         </p>
                     </div>

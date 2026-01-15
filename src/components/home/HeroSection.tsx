@@ -20,7 +20,7 @@ export function HeroSection() {
                         <div className="mt-8 flex flex-col sm:flex-row items-center lg:items-start gap-3">
                             <CheckCircle2 className="h-6 w-6 flex-shrink-0 text-brand-gold" />
                             <p className="text-lg leading-relaxed text-stone-600 sm:text-xl">
-                                Bénéficiez de <span className="font-semibold text-stone-900">50% de déduction d'impôt immédiate</span> sur mes services.
+                                Savourez une cuisine d'exception chez vous, avec <span className="font-semibold text-stone-900">50% d'avantage fiscal</span>.
                             </p>
                         </div>
 

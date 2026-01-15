@@ -166,11 +166,11 @@ export default function CreditImpotPage() {
                                             Prochainement
                                         </div>
                                         <h2 className="text-3xl md:text-4xl font-bold mb-6 italic">
-                                            L'Avance Immédiate : Ne payez que 50% dès le départ.
+                                            L'Avance Immédiate : Le 50% déduit dès le départ.
                                         </h2>
                                         <p className="text-stone-300 text-lg leading-relaxed mb-8">
-                                            Je suis actuellement en cours d'habilitation pour l'API 'Avance Immédiate' de l'URSSAF.
-                                            D'ici quelques semaines, vous ne paierez que le reste à charge, sans attendre le remboursement !
+                                            Je suis en cours d'activation pour l'avance immédiate du crédit d'impôt.
+                                            D'ici peu, vous pourrez déduire vos 50% d'avantage fiscal directement sur vos factures !
                                         </p>
                                     </div>
                                     <div className="w-full md:w-1/3 opacity-40 blur-[2px] pointer-events-none scale-95 transition-all">

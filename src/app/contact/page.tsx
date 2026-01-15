@@ -35,15 +35,15 @@ export default function ContactPage() {
         {
             icon: Mail,
             label: "Email",
-            value: "contact@chefelisa.fr",
-            href: "mailto:contact@chefelisa.fr",
+            value: "contactchefelisa@gmail.com",
+            href: "mailto:contactchefelisa@gmail.com",
             color: "brand-rose"
         },
         {
             icon: Phone,
             label: "Téléphone",
-            value: "06 00 00 00 00",
-            href: "tel:+33600000000",
+            value: "06 52 07 72 03",
+            href: "tel:+33652077203",
             color: "brand-gold"
         },
         {
@@ -153,11 +153,8 @@ export default function ContactPage() {
                         </motion.div>
 
                         <div className="flex gap-4 px-4">
-                            <Link href="#" className="h-12 w-12 flex items-center justify-center rounded-full bg-white shadow-sm border border-stone-100 text-stone-600 hover:text-brand-rose hover:shadow-lg transition-all">
+                            <Link href="https://www.instagram.com/elisabatchcooking/" target="_blank" className="h-12 w-12 flex items-center justify-center rounded-full bg-white shadow-sm border border-stone-100 text-stone-600 hover:text-brand-rose hover:shadow-lg transition-all">
                                 <Instagram className="h-5 w-5" />
-                            </Link>
-                            <Link href="#" className="h-12 w-12 flex items-center justify-center rounded-full bg-white shadow-sm border border-stone-100 text-stone-600 hover:text-brand-rose hover:shadow-lg transition-all">
-                                <Facebook className="h-5 w-5" />
                             </Link>
                         </div>
                     </div>
