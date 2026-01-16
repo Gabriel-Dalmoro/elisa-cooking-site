@@ -12,7 +12,17 @@ import {
     Sparkles,
     ArrowRight,
     Info,
-    HeartPulse
+    HeartPulse,
+    Heart,
+    Rocket,
+    BookOpen,
+    Moon,
+    Languages,
+    Banknote,
+    Smile,
+    Music,
+    Cloud,
+    Briefcase
 } from 'lucide-react';
 import { TimeSavings } from './usePricingLogic';
 import { Card } from '@/components/ui/card';
@@ -30,6 +40,72 @@ const MAX_TIMES = {
     groceryRun: 60,
     packing: 15,
     cooking: 360
+};
+
+const SUGGESTIONS = [
+    { text: "Passer plus de temps en famille", icon: Heart },
+    { text: "Lancer votre side-project", icon: Rocket },
+    { text: "Lire ce livre qui vous attend", icon: BookOpen },
+    { text: "Faire une sieste royale", icon: Moon },
+    { text: "Apprendre une nouvelle langue", icon: Languages },
+    { text: "Gagner plus d'argent", icon: Banknote },
+    { text: "Apprendre à jouer de la guitare", icon: Music },
+    { text: "Méditer sans culpabiliser", icon: Cloud },
+    { text: "Enfin lancer votre business", icon: Briefcase },
+    { text: "Apprendre à jongler avec des avocats", icon: Smile },
+    { text: "Compter les grains de riz dans le placard", icon: Search },
+];
+
+const SuggestionRotator = ({ className }: { className?: string }) => {
+    const [index, setIndex] = React.useState(0);
+
+    React.useEffect(() => {
+        const timer = setInterval(() => {
+            setIndex((prev) => (prev + 1) % SUGGESTIONS.length);
+        }, 5000);
+        return () => clearInterval(timer);
+    }, []);
+
+    const { text, icon: Icon } = SUGGESTIONS[index];
+
+    return (
+        <div className={cn("pointer-events-none flex flex-col items-center md:items-end gap-3", className)}>
+            <div className="space-y-1 text-center md:text-right">
+                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-brand-gold mb-1">Utilisez ce temps pour...</p>
+            </div>
+
+            <div className="relative flex flex-col items-center md:items-end gap-3">
+                <AnimatePresence mode="wait">
+                    <motion.div
+                        key={`icon-${index}`}
+                        initial={{ opacity: 0, x: 20, scale: 0.8 }}
+                        animate={{ opacity: 1, x: 0, scale: 1 }}
+                        exit={{ opacity: 0, x: -20, scale: 0.8 }}
+                        transition={{ type: "spring", damping: 20, stiffness: 120 }}
+                        className="relative"
+                    >
+                        <div className="absolute inset-0 bg-brand-gold/30 blur-2xl rounded-full" />
+                        <div className="relative h-14 w-14 rounded-2xl bg-white shadow-xl border border-stone-100 flex items-center justify-center text-brand-rose">
+                            <Icon className="h-7 w-7" />
+                        </div>
+                    </motion.div>
+                </AnimatePresence>
+
+                <AnimatePresence mode="wait">
+                    <motion.p
+                        key={`text-${index}`}
+                        initial={{ opacity: 0, x: 20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        exit={{ opacity: 0, x: -20 }}
+                        transition={{ type: "spring", damping: 20, stiffness: 100 }}
+                        className="text-sm font-black text-stone-900 tracking-tight leading-tight max-w-[180px] text-center md:text-right"
+                    >
+                        {text}
+                    </motion.p>
+                </AnimatePresence>
+            </div>
+        </div>
+    );
 };
 
 export const CategoryItem = ({
@@ -195,19 +271,23 @@ export default function TimeSavingsVisualizer({ savings, meals }: TimeSavingsVis
                         </p>
                     </div>
 
-                    <div className="relative group">
-                        <div className="absolute inset-0 bg-brand-rose/20 blur-3xl rounded-full scale-75 group-hover:scale-100 transition-transform duration-700" />
-                        <div className="relative h-32 w-32 md:h-40 md:w-40 rounded-full bg-white border-8 border-brand-rose/5 flex flex-col items-center justify-center shadow-2xl">
-                            <Clock className="h-6 w-6 text-brand-rose mb-1" />
-                            <motion.p
-                                key={savings.total}
-                                initial={{ scale: 1.2, opacity: 0 }}
-                                animate={{ scale: 1, opacity: 1 }}
-                                className="text-4xl md:text-5xl font-black tracking-tighter leading-none text-stone-900"
-                            >
-                                {savings.total.split(' ')[0]}
-                            </motion.p>
-                            <p className="text-xs font-black uppercase tracking-widest text-brand-gold mt-1">Heures</p>
+                    <div className="flex flex-col md:flex-row items-center gap-8 md:gap-16">
+                        <SuggestionRotator className="hidden xl:block w-48" />
+
+                        <div className="relative group">
+                            <div className="absolute inset-0 bg-brand-rose/20 blur-3xl rounded-full scale-75 group-hover:scale-100 transition-transform duration-700" />
+                            <div className="relative h-32 w-32 md:h-40 md:w-40 rounded-full bg-white border-8 border-brand-rose/5 flex flex-col items-center justify-center shadow-2xl">
+                                <Clock className="h-6 w-6 text-brand-rose mb-1" />
+                                <motion.p
+                                    key={savings.total}
+                                    initial={{ scale: 1.2, opacity: 0 }}
+                                    animate={{ scale: 1, opacity: 1 }}
+                                    className="text-4xl md:text-5xl font-black tracking-tighter leading-none text-stone-900"
+                                >
+                                    {savings.total.split(' ')[0]}
+                                </motion.p>
+                                <p className="text-xs font-black uppercase tracking-widest text-brand-gold mt-1">Heures</p>
+                            </div>
                         </div>
                     </div>
                 </div>

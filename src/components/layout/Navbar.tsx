@@ -85,7 +85,7 @@ export function Navbar() {
                                 className="rounded-full bg-brand-rose hover:bg-brand-rose/90 text-white text-xs font-bold px-6 h-10 shadow-md group transition-all"
                             >
                                 <Link href="/simulateur">
-                                    Estimation
+                                    Simuler mon tarif
                                     <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
                                 </Link>
                             </Button>
@@ -155,7 +155,7 @@ export function Navbar() {
                                             className="w-full rounded-2xl py-4 h-auto bg-brand-rose hover:bg-brand-rose/90 text-white shadow-xl shadow-brand-rose/20 text-base font-bold group border-none"
                                         >
                                             <Link href="/simulateur" onClick={() => setIsOpen(false)}>
-                                                Simulation gratuite
+                                                Simuler mon tarif
                                                 <ArrowRight className="ml-2 h-5 w-5 transition-transform group-hover:translate-x-1" />
                                             </Link>
                                         </Button>
