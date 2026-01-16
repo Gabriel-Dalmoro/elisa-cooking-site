@@ -2,9 +2,10 @@
 
 import React, { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Check, Flame, Lightbulb, ArrowRight, ArrowLeft, Receipt, Wallet, ShoppingBag, Utensils } from "lucide-react";
+import { Check, Flame, Lightbulb, ArrowRight, ArrowLeft, Receipt, Wallet, ShoppingBag, Utensils, MapPin } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { PRICING_CONFIG, usePricingCalculation, getGroceryUnitCost } from "@/components/simulator/usePricingLogic";
+import { AddressAutocomplete } from "@/components/booking/AddressAutocomplete";
 import { Badge } from "@/components/ui/badge";
 import { Slider } from "@/components/ui/slider";
 import { Label } from "@/components/ui/label";
@@ -17,6 +18,7 @@ import {
     DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 
 export default function SimulatorPage() {
     const [step, setStep] = useState(0);
@@ -25,20 +27,24 @@ export default function SimulatorPage() {
     const [isSubscribed, setIsSubscribed] = useState(true);
     const [frequency, setFrequency] = useState<'weekly' | 'biweekly' | 'monthly'>('weekly');
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [isEligible, setIsEligible] = useState(true);
+    const [addressDetails, setAddressDetails] = useState<{ address: string; distance: number | null; coords: [number, number] } | null>(null);
+
+
 
     // Form states
     const [formData, setFormData] = useState({
         name: "",
         email: "",
         phone: "",
-        address: ""
+        message: "",
     });
 
     const calculation = usePricingCalculation(tierId, people, isSubscribed, frequency);
     const groceryUnit = getGroceryUnitCost(people);
 
-    const nextStep = () => setStep((s) => Math.min(s + 1, 3));
-    const prevStep = () => setStep((s) => Math.max(s - 1, 0));
+    const nextStep = () => setStep((s: number) => Math.min(s + 1, 3));
+    const prevStep = () => setStep((s: number) => Math.max(s - 1, 0));
 
     // Get current tier label for display
     const currentTier = Object.values(PRICING_CONFIG.TIERS).find(t => t.id === tierId) || PRICING_CONFIG.TIERS.FAMILY;
@@ -65,7 +71,8 @@ export default function SimulatorPage() {
                 client_name: formData.name,
                 client_email: formData.email,
                 client_phone: formData.phone,
-                client_address: formData.address,
+                client_address: addressDetails?.address || "",
+                service_distance: addressDetails?.distance,
                 meals_count: currentTier.meals,
                 people_count: people,
                 is_subscribed: isSubscribed,
@@ -74,7 +81,10 @@ export default function SimulatorPage() {
                 total_price: calculation.finalPocketCost,
                 billed_total: calculation.amountToPayElisa,
                 grocery_min: calculation.groceryRange.min,
-                grocery_max: calculation.groceryRange.max
+                grocery_max: calculation.groceryRange.max,
+                address_status: isEligible ? "Inside Zone" : "Outside Zone",
+                distance_km: addressDetails?.distance,
+                custom_message: formData.message
             };
 
             // Send to n8n webhook
@@ -89,9 +99,12 @@ export default function SimulatorPage() {
                 setIsModalOpen(false);
                 alert("Merci ! Votre demande de devis a été envoyée avec succès.");
                 // Reset form
-                setFormData({ name: "", email: "", phone: "", address: "" });
+                setFormData({ name: "", email: "", phone: "", message: "" });
+                setAddressDetails(null);
+                setIsEligible(true);
             } else {
-                throw new Error('Webhook error');
+                console.error("Webhook response not OK:", response.status, response.statusText);
+                alert("Une erreur est survenue lors de l'envoi de votre demande. Veuillez réessayer plus tard.");
             }
         } catch (error) {
             console.error("Error submitting form:", error);
@@ -488,56 +501,71 @@ export default function SimulatorPage() {
                         <div className="absolute bottom-0 left-0 w-32 h-32 bg-brand-gold/5 rounded-full blur-2xl -ml-16 -mb-16 -z-10" />
 
                         <DialogHeader className="text-left">
-                            <div className="inline-flex items-center gap-2 px-3 py-1 bg-emerald-50 text-emerald-600 rounded-full text-[10px] font-black uppercase tracking-widest mb-4 border border-emerald-100">
+                            <div className="inline-flex items-center gap-2 px-3 py-1 bg-emerald-50 text-emerald-600 rounded-full text-[10px] font-black uppercase tracking-widest mb-4 border border-emerald-100 w-fit">
                                 <Check className="h-3 w-3" /> Presque fini !
                             </div>
-                            <DialogTitle className="text-3xl md:text-4xl font-black text-stone-900 tracking-tight leading-tight mb-2">
+                            <DialogTitle className="text-3xl md:text-4xl font-black text-stone-900 tracking-tight leading-tight mb-4">
                                 Recevez votre <span className="text-brand-rose">devis personnalisé</span>
                             </DialogTitle>
-                            <DialogDescription className="text-stone-500 text-base md:text-lg mb-6">
-                                Chef Elisa a préparé votre menu pour <span className="text-stone-900 font-bold">{currentTier.meals} recettes</span> et <span className="text-stone-900 font-bold">{people} convives</span>.
-                            </DialogDescription>
                         </DialogHeader>
 
-                        <div className="mt-8 bg-stone-50 border border-stone-100 rounded-[1.5rem] p-5 shadow-sm">
-                            <div className="flex items-center justify-between mb-1">
-                                <p className="text-[10px] font-black uppercase tracking-widest text-stone-400">Votre Sélection</p>
-                                <Badge className="bg-brand-rose/10 text-brand-rose border-none text-[9px] font-black uppercase tracking-widest px-2 py-0.5">
-                                    {!isSubscribed ? "Unique" : frequency === 'weekly' ? "Hebdo" : frequency === 'biweekly' ? "Bimensuel" : "Mensuel"}
+                        <div className="bg-stone-50 border border-stone-100 rounded-[2rem] p-6 shadow-sm mb-4">
+                            <div className="flex items-center justify-between mb-4">
+                                <p className="text-[11px] font-black uppercase tracking-widest text-stone-400">Votre Configuration</p>
+                                <Badge className="bg-brand-rose text-white border-none text-[9px] font-black uppercase tracking-widest px-2.5 py-1 shadow-md shadow-brand-rose/10">
+                                    {!isSubscribed ? "Engagement Unique" : frequency === 'weekly' ? "Hebdomadaire" : frequency === 'biweekly' ? "Bi-mensuel" : "Mensuel"}
                                 </Badge>
                             </div>
-                            <div className="flex items-center gap-3">
-                                <div className="h-10 w-10 rounded-xl bg-white border border-stone-100 flex items-center justify-center text-brand-rose shadow-sm">
+                            <div className="flex items-center gap-4">
+                                <div className="h-12 w-12 rounded-2xl bg-white border border-stone-100 flex items-center justify-center text-brand-rose shadow-sm">
                                     <Utensils className="h-5 w-5" />
                                 </div>
-                                <span className="text-lg font-bold text-stone-900">{currentTier.meals} Recettes <span className="text-stone-300 mx-1">•</span> {people} Personnes</span>
+                                <div className="space-y-0.5">
+                                    <span className="text-xl font-black text-stone-900 block leading-none">
+                                        {currentTier.meals} Recettes <span className="text-stone-300 font-light mx-1">•</span> {people} Personnes
+                                    </span>
+                                    <p className="text-[11px] text-stone-500 font-medium">Préparé par Chef Elisa chez vous.</p>
+                                </div>
                             </div>
                         </div>
                     </div>
 
                     <form onSubmit={handleFormSubmit} className="px-8 md:px-10 pb-10 space-y-5">
-                        <div className="grid grid-cols-2 gap-4">
-                            <div className="space-y-2">
-                                <Label htmlFor="name" className="text-[11px] font-black uppercase text-stone-500 ml-1">Nom Complet</Label>
-                                <Input
-                                    id="name"
-                                    required
-                                    placeholder="Ex: Jean Dupont"
-                                    className="rounded-xl border-stone-100 bg-stone-100/50 h-12 focus:ring-brand-rose text-stone-900 placeholder:text-stone-400"
-                                    value={formData.name}
-                                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                        <div className="space-y-4">
+                            <div className="space-y-2 px-1">
+                                <Label className="text-[11px] font-black uppercase text-stone-500 ml-1">Adresse de livraison</Label>
+                                <AddressAutocomplete
+                                    onEligibilityChange={(eligible, data) => {
+                                        setIsEligible(eligible);
+                                        if (data) setAddressDetails(data);
+                                    }}
                                 />
                             </div>
-                            <div className="space-y-2">
-                                <Label htmlFor="address" className="text-[11px] font-black uppercase text-stone-500 ml-1">Adresse complète</Label>
-                                <Input
-                                    id="address"
-                                    required
-                                    placeholder="Ex: 15 rue de la Paix, Annecy"
-                                    className="rounded-xl border-stone-100 bg-stone-100/50 h-12 focus:ring-brand-rose text-stone-900 placeholder:text-stone-400"
-                                    value={formData.address}
-                                    onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-                                />
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div className="space-y-2">
+                                    <Label htmlFor="name" className="text-[11px] font-black uppercase text-stone-500 ml-1">Nom Complet</Label>
+                                    <Input
+                                        id="name"
+                                        required
+                                        placeholder="Ex: Jean Dupont"
+                                        className="rounded-xl border-stone-100 bg-stone-100/50 h-12 focus:ring-brand-rose text-stone-900 placeholder:text-stone-400"
+                                        value={formData.name}
+                                        onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label htmlFor="phone" className="text-[11px] font-black uppercase text-stone-500 ml-1">Téléphone</Label>
+                                    <Input
+                                        id="phone"
+                                        type="tel"
+                                        required
+                                        placeholder="06 12 34 56 78"
+                                        className="rounded-xl border-stone-100 bg-stone-100/50 h-12 focus:ring-brand-rose text-stone-900 placeholder:text-stone-400"
+                                        value={formData.phone}
+                                        onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                                    />
+                                </div>
                             </div>
                         </div>
                         <div className="space-y-2">
@@ -552,21 +580,38 @@ export default function SimulatorPage() {
                                 onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                             />
                         </div>
-                        <div className="space-y-2">
-                            <Label htmlFor="phone" className="text-[11px] font-black uppercase text-stone-500 ml-1">Téléphone</Label>
-                            <Input
-                                id="phone"
-                                type="tel"
-                                required
-                                placeholder="06 12 34 56 78"
-                                className="rounded-xl border-stone-100 bg-stone-100/50 h-12 focus:ring-brand-rose text-stone-900 placeholder:text-stone-400"
-                                value={formData.phone}
-                                onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                            />
-                        </div>
+
+                        <AnimatePresence>
+                            {!isEligible && addressDetails && (
+                                <motion.div
+                                    initial={{ height: 0, opacity: 0 }}
+                                    animate={{ height: "auto", opacity: 1 }}
+                                    exit={{ height: 0, opacity: 0 }}
+                                    className="space-y-2 overflow-hidden"
+                                >
+                                    <Label htmlFor="message" className="text-[11px] font-black uppercase text-stone-500 ml-1">Un petit mot pour Elisa ?</Label>
+                                    <Textarea
+                                        id="message"
+                                        placeholder="Dites-moi en plus sur votre projet pour voir si un déplacement exceptionnel est possible..."
+                                        className="rounded-xl border-stone-100 bg-stone-100/50 min-h-[100px] focus:ring-brand-rose text-stone-900 placeholder:text-stone-400"
+                                        value={formData.message}
+                                        onChange={(e) => setFormData({ ...formData, message: e.target.value })}
+                                    />
+                                </motion.div>
+                            )}
+                        </AnimatePresence>
 
                         <div className="pt-4">
-                            <Button type="submit" className="w-full rounded-full py-8 h-auto text-xl bg-stone-900 hover:bg-stone-800 text-white shadow-2xl shadow-stone-900/20 group relative overflow-hidden">
+                            <Button
+                                type="submit"
+                                disabled={!addressDetails}
+                                className={cn(
+                                    "w-full rounded-full py-8 h-auto text-xl shadow-2xl transition-all group relative overflow-hidden",
+                                    addressDetails
+                                        ? "bg-stone-900 hover:bg-stone-800 text-white shadow-stone-900/20"
+                                        : "bg-stone-100 text-stone-300 cursor-not-allowed border-none"
+                                )}
+                            >
                                 <motion.div
                                     className="absolute inset-0 bg-brand-rose/10"
                                     initial={{ x: "-100%" }}
@@ -574,8 +619,8 @@ export default function SimulatorPage() {
                                     transition={{ type: "tween" }}
                                 />
                                 <span className="relative z-10 flex items-center justify-center">
-                                    Recevoir mon devis gratuit
-                                    <ArrowRight className="ml-2 h-6 w-6 transition-transform group-hover:translate-x-1" />
+                                    {addressDetails ? "Recevoir mon devis gratuit" : "Veuillez saisir votre adresse"}
+                                    {addressDetails && <ArrowRight className="ml-2 h-6 w-6 transition-transform group-hover:translate-x-1" />}
                                 </span>
                             </Button>
                             <div className="flex items-center justify-center gap-2 mt-4">
