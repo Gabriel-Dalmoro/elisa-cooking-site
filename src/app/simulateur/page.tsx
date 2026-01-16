@@ -60,6 +60,7 @@ export default function SimulatorPage() {
             const engagementLabel = isSubscribed ? "Abonnement ( -15% )" : "Commande Ponctuelle";
 
             const payload = {
+                type: 'simulator_lead',
                 client_name: formData.name,
                 client_email: formData.email,
                 client_phone: formData.phone,
@@ -70,14 +71,12 @@ export default function SimulatorPage() {
                 is_subscribed: isSubscribed,
                 frequency_label: frequencyLabel,
                 engagement_type: engagementLabel,
-                total_price: calculation.finalPocketCost,
-                billed_total: calculation.amountToPayElisa,
-                grocery_min: calculation.groceryRange.min,
-                grocery_max: calculation.groceryRange.max,
-                address_status: isEligible ? "Inside Zone" : "Outside Zone",
-                distance_km: addressDetails?.distance,
-                custom_message: formData.message,
-                has_sweet_addon: hasSweetAddon
+                has_sweet_addon: hasSweetAddon ? "Oui (Butter Mood)" : "Non",
+                total_price: `${Math.round(calculation.finalPocketCost)}€`,
+                billed_total: `${Math.round(calculation.amountToPayElisa)}€`,
+                grocery_min: `${Math.round(calculation.groceryRange.min)}€`,
+                grocery_max: `${Math.round(calculation.groceryRange.max)}€`,
+                custom_message: formData.message
             };
 
             const webhookUrl = process.env.NEXT_PUBLIC_N8N_WEBHOOK_URL || 'http://localhost:5678/webhook-test/lead-submit';
@@ -93,6 +92,7 @@ export default function SimulatorPage() {
                 setFormData({ name: "", email: "", phone: "", message: "" });
                 setAddressDetails(null);
                 setIsEligible(true);
+                setHasSweetAddon(false);
             } else {
                 alert("Une erreur est survenue lors de l'envoi de votre demande.");
             }
