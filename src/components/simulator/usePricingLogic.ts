@@ -13,28 +13,28 @@ export interface PricingTier {
 
 export const PRICING_CONFIG = {
     TIERS: {
-        STARTER: {
-            id: 'starter',
-            label: "Formation Express",
-            basePrice: 140,
+        THREE: {
+            id: 'three',
+            label: "3 Recettes",
+            basePrice: 120,
             meals: 3
         },
-        FAMILY: {
-            id: 'family',
-            label: "Pack Famille",
-            basePrice: 220,
+        FIVE: {
+            id: 'five',
+            label: "5 Recettes",
+            basePrice: 200,
             meals: 5,
             isRecommended: true,
-            description: "Le best-seller pour les familles de 4 personnes."
+            description: "Notre best-seller pour une semaine sereine."
         },
-        FEAST: {
-            id: 'feast',
-            label: "Grandes Tablées",
-            basePrice: 350,
-            meals: 8
+        SIX: {
+            id: 'six',
+            label: "6 Recettes",
+            basePrice: 240,
+            meals: 6
         }
     } as Record<string, PricingTier>,
-    EXTRA_PERSON_FEE: 20,
+    EXTRA_PERSON_FEE: 10,
     MAX_PEOPLE: 8,
     SUB_DISCOUNT: 0.15,
 };
