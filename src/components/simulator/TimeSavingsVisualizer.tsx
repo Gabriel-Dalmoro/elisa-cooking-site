@@ -271,8 +271,8 @@ export default function TimeSavingsVisualizer({ savings, meals }: TimeSavingsVis
                         </p>
                     </div>
 
-                    <div className="flex flex-col md:flex-row items-center gap-8 md:gap-16">
-                        <SuggestionRotator className="hidden xl:block w-48" />
+                    <div className="flex flex-col md:flex-row items-center gap-12 md:gap-16">
+                        <SuggestionRotator className="w-full md:w-48" />
 
                         <div className="relative group">
                             <div className="absolute inset-0 bg-brand-rose/20 blur-3xl rounded-full scale-75 group-hover:scale-100 transition-transform duration-700" />
