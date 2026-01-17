@@ -16,8 +16,10 @@ export async function getWeeklyMenu(): Promise<WeeklyMenu | null> {
         const auth = new google.auth.GoogleAuth({
             credentials: {
                 client_email: process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL,
-                // Correctly format private key for Vercel (handle escaped newlines)
-                private_key: (process.env.GOOGLE_PRIVATE_KEY || '').replace(/\\n/g, '\n'),
+                // Clean the private key: remove quotes, handle escaped newlines
+                private_key: (process.env.GOOGLE_PRIVATE_KEY || '')
+                    .replace(/^["']|["']$/g, "") // Remove surrounding quotes
+                    .replace(/\\n/g, "\n"),      // Fix escaped newlines
             },
             scopes: ['https://www.googleapis.com/auth/spreadsheets.readonly'],
         });
