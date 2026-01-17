@@ -1,4 +1,5 @@
 "use client";
+import Link from "next/link";
 
 import React, { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -239,6 +240,18 @@ export default function SimulatorPage() {
                                                     </div>
                                                 </button>
                                             </motion.div>
+
+                                            <div className="flex justify-center -mt-2">
+                                                <Link
+                                                    href="/menu"
+                                                    target="_blank"
+                                                    className="group inline-flex items-center gap-2 px-4 py-2 rounded-full bg-stone-50 border border-stone-100 text-xs md:text-sm text-stone-500 font-medium hover:bg-white hover:border-brand-rose/20 hover:text-brand-rose hover:shadow-md transition-all"
+                                                >
+                                                    <span className="bg-white p-1 rounded-full shadow-sm group-hover:scale-110 transition-transform">📖</span>
+                                                    <span>Voir un exemple de menu et nos douceurs</span>
+                                                    <ArrowRight className="h-3 w-3 opacity-0 -ml-2 group-hover:opacity-100 group-hover:ml-0 transition-all" />
+                                                </Link>
+                                            </div>
 
                                             <div className="flex justify-end">
                                                 <Button

@@ -2,6 +2,7 @@ import { getWeeklyMenu } from '@/lib/googleSheets';
 import { ChefHat, Calendar, Utensils, ArrowRight } from 'lucide-react';
 import Link from 'next/link';
 import { RecipeCard } from '@/components/menu/RecipeCard';
+import { SweetMenu } from '@/components/menu/SweetMenu';
 
 // Revalidation period: 1 hour
 export const revalidate = 3600;
@@ -54,6 +55,9 @@ export default async function MenuPage() {
                         <RecipeCard key={index} recipe={recipe} index={index} />
                     ))}
                 </div>
+
+                {/* Sweet Menu Add-on */}
+                <SweetMenu />
 
                 {/* Final CTA */}
                 <div className="mt-20 text-center bg-stone-900 rounded-[2.5rem] p-10 md:p-16 relative overflow-hidden shadow-2xl">

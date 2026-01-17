@@ -4,13 +4,13 @@ import Image from "next/image";
 import { motion } from "framer-motion";
 
 const GALLERY_IMAGES = [
-    { src: "/images/gallery-1.png", alt: "Gourmet Dessert", span: "md:col-span-1 md:row-span-1" },
-    { src: "/images/gallery-2.png", alt: "Fresh Salad", span: "md:col-span-2 md:row-span-2" },
-    { src: "/images/gallery-3.png", alt: "Homemade Pasta", span: "md:col-span-1 md:row-span-1" },
-    { src: "/images/gallery-4.png", alt: "Artisan Breads", span: "md:col-span-1 md:row-span-1" },
-    { src: "/images/gallery-5.png", alt: "Grilled Salmon", span: "md:col-span-1 md:row-span-2" },
-    { src: "/images/gallery-6.png", alt: "Colorful Macarons", span: "md:col-span-2 md:row-span-1" },
-    { src: "/images/gallery-8.png", alt: "Rustic Fruit Tart", span: "md:col-span-1 md:row-span-1" },
+    { src: "/images/bright-table-feast.jpg", alt: "Table Gourmande", span: "md:col-span-1 md:row-span-1" },
+    { src: "/images/gallery-2.png", alt: "Fraîcheur & Saveurs", span: "md:col-span-2 md:row-span-2" },
+    { src: "/images/gallery-3.png", alt: "Fait Maison", span: "md:col-span-1 md:row-span-1" },
+    { src: "/images/cookies-rack.jpg", alt: "Douceurs du Chef", span: "md:col-span-1 md:row-span-1" },
+    { src: "/images/rustic-kitchen-cooking.jpg", alt: "Atmosphère Authentique", span: "md:col-span-1 md:row-span-2" },
+    { src: "/images/gallery-5.png", alt: "Cuisine Équilibrée", span: "md:col-span-2 md:row-span-1" },
+    { src: "/images/fresh-vegetables-market.jpg", alt: "Produits de Saison", span: "md:col-span-1 md:row-span-1" },
 ];
 
 export function PhotoGallery() {
