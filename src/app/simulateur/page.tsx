@@ -71,7 +71,7 @@ export default function SimulatorPage() {
                 is_subscribed: isSubscribed,
                 frequency_label: frequencyLabel,
                 engagement_type: engagementLabel,
-                has_sweet_addon: hasSweetAddon ? "Oui (Butter Mood)" : "Non",
+                has_sweet_addon: hasSweetAddon ? "Oui" : "Non",
                 total_price: `${Math.round(calculation.finalPocketCost)}€`,
                 billed_total: `${Math.round(calculation.amountToPayElisa)}€`,
                 grocery_min: `${Math.round(calculation.groceryRange.min)}€`,

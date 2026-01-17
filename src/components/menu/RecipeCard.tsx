@@ -20,24 +20,26 @@ const getSmartIcon = (name: string, type: string) => {
     const lowerName = name.toLowerCase();
     const lowerType = type.toLowerCase();
 
-    // 1. Priority by Explicit Type from Google Sheets
-    if (lowerType === 'fish' || lowerType === 'poisson') return Fish;
-    if (lowerType === 'meats' || lowerType === 'viande') return Beef;
-    if (lowerType === 'vegan') return Leaf;
-    if (lowerType === 'vegetarian' || lowerType === 'végétarien') return Salad;
-
-    // 2. Secondary Keyword Mapping (Deals with specific ingredients)
+    // 1. Specific Keyword Mapping (Ingredients take priority over general Category)
     if (lowerName.includes('poulet') || lowerName.includes('dinde') || lowerName.includes('volaille')) return Drumstick;
-    if (lowerName.includes('saumon') || lowerName.includes('crevette') || lowerName.includes('cabillaud') || lowerName.includes('merlu')) return Fish;
-    if (lowerName.includes('bœuf') || lowerName.includes('steak') || lowerName.includes('haché') || lowerName.includes('veau')) return Beef;
+    if (lowerName.includes('saumon') || lowerName.includes('crevette') || lowerName.includes('cabillaud') || lowerName.includes('merlu') || lowerName.includes('truite')) return Fish;
+    if (lowerName.includes('bœuf') || lowerName.includes('steak') || lowerName.includes('haché') || lowerName.includes('veau') || lowerName.includes('canard')) return Beef;
     if (lowerName.includes('pâtes') || lowerName.includes('spaghetti') || lowerName.includes('linguine') || lowerName.includes('tagliatelle')) return Wheat;
     if (lowerName.includes('soupe') || lowerName.includes('velouté') || lowerName.includes('bouillon')) return Soup;
     if (lowerName.includes('salade') || lowerName.includes('bowl') || lowerName.includes('césar')) return Salad;
     if (lowerName.includes('riz') || lowerName.includes('risotto')) return Wheat;
-    if (lowerName.includes('mijotté') || lowerName.includes('ragoût') || lowerName.includes('daube')) return Flame;
+    if (lowerName.includes('mijotté') || lowerName.includes('ragoût') || lowerName.includes('daube') || lowerName.includes('curry') || lowerName.includes('dahl')) return Flame;
     if (lowerName.includes('œuf') || lowerName.includes('omelette') || lowerName.includes('brouillés')) return Egg;
-    if (lowerName.includes('dessert') || lowerName.includes('chocolat') || lowerName.includes('gâteau')) return Cookie;
+    // Savory baked goods -> Wheat or Pizza (for pies/tarts)
+    if (lowerName.includes('tarte') || lowerName.includes('quiche') || lowerName.includes('pizza') || lowerName.includes('cake')) return Pizza;
+    if (lowerName.includes('crumble') || lowerName.includes('gratin')) return Flame; // Crumbles/Gratins imply oven/hot
     if (lowerName.includes('petit-déjeuner') || lowerName.includes('brunch')) return Coffee;
+
+    // 2. Fallback to Explicit Type from Google Sheets
+    if (lowerType === 'fish' || lowerType === 'poisson') return Fish;
+    if (lowerType === 'meats' || lowerType === 'viande') return Beef;
+    if (lowerType === 'vegan') return Leaf;
+    if (lowerType === 'vegetarian' || lowerType === 'végétarien') return Salad;
 
     return ChefHat; // Elegant fallback
 };
@@ -59,7 +61,7 @@ export function RecipeCard({ recipe, index }: RecipeCardProps) {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: index * 0.1 }}
             whileHover={{ y: -8, transition: { duration: 0.2 } }}
-            className="group relative bg-white border border-stone-100/80 rounded-[2rem] p-8 shadow-sm hover:shadow-2xl hover:shadow-brand-rose/5 transition-all duration-500 overflow-hidden flex flex-col min-h-[220px]"
+            className="group relative bg-white border border-stone-100/80 rounded-[2rem] p-8 shadow-sm hover:shadow-2xl hover:shadow-brand-rose/5 transition-all duration-500 overflow-hidden flex flex-col min-h-[320px]"
         >
             <div className="flex items-center justify-between mb-6">
                 <div className="h-14 w-14 rounded-2xl bg-brand-rose/5 flex items-center justify-center text-brand-rose group-hover:bg-brand-rose group-hover:text-white transition-all duration-500 shadow-sm">
@@ -71,7 +73,7 @@ export function RecipeCard({ recipe, index }: RecipeCardProps) {
                 </span>
             </div>
 
-            <h3 className="text-xl font-bold text-stone-900 leading-tight mb-4 group-hover:text-brand-rose transition-colors line-clamp-3">
+            <h3 className="text-base font-bold text-stone-900 leading-snug mb-4 group-hover:text-brand-rose transition-colors line-clamp-4">
                 {recipe.name}
             </h3>
 
