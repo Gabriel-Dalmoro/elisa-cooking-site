@@ -42,8 +42,6 @@ export const PRICING_CONFIG = {
             label: "5 Recettes",
             basePrice: 200,
             meals: 5,
-            isRecommended: true,
-            description: "Notre best-seller pour une semaine sereine.",
             savings: {
                 planning: 35,
                 shoppingList: 15,
@@ -58,6 +56,8 @@ export const PRICING_CONFIG = {
             label: "6 Recettes",
             basePrice: 240,
             meals: 6,
+            isRecommended: true,
+            description: "Notre formule idéale pour une semaine complète.",
             savings: {
                 planning: 40,
                 shoppingList: 20,
@@ -87,7 +87,7 @@ export function usePricingCalculation(
     frequency: 'weekly' | 'biweekly' | 'monthly' = 'weekly'
 ) {
     return useMemo(() => {
-        const tier = Object.values(PRICING_CONFIG.TIERS).find(t => t.id === tierId) || PRICING_CONFIG.TIERS.FAMILY;
+        const tier = Object.values(PRICING_CONFIG.TIERS).find(t => t.id === tierId) || PRICING_CONFIG.TIERS.SIX;
 
         // 1. Service Base Price (Base + Extra People)
         const serviceBase = tier.basePrice + (Math.max(0, people - 1) * PRICING_CONFIG.EXTRA_PERSON_FEE);

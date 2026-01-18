@@ -24,7 +24,7 @@ import TimeSavingsVisualizer, { TimeSavingsBreakdown } from "@/components/simula
 
 export default function SimulatorPage() {
     const [step, setStep] = useState(0);
-    const [tierId, setTierId] = useState("five");
+    const [tierId, setTierId] = useState("six");
     const [people, setPeople] = useState(4);
     const [isSubscribed, setIsSubscribed] = useState(true);
     const [frequency, setFrequency] = useState<'weekly' | 'biweekly' | 'monthly'>('weekly');
@@ -47,7 +47,7 @@ export default function SimulatorPage() {
     const nextStep = () => setStep((s: number) => Math.min(s + 1, 3));
     const prevStep = () => setStep((s: number) => Math.max(s - 1, 0));
 
-    const currentTier = Object.values(PRICING_CONFIG.TIERS).find(t => t.id === tierId) || PRICING_CONFIG.TIERS.FIVE;
+    const currentTier = Object.values(PRICING_CONFIG.TIERS).find(t => t.id === tierId) || PRICING_CONFIG.TIERS.SIX;
 
     const handleFormSubmit = async (e: React.FormEvent) => {
         e.preventDefault();

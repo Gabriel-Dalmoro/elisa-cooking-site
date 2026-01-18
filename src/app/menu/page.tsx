@@ -68,7 +68,7 @@ export default async function MenuPage() {
                             Libérez vos <span className="text-brand-rose">soirées.</span>
                         </h2>
                         <p className="text-stone-400 text-base md:text-lg max-w-lg mx-auto mb-8">
-                            Repartez avec 8 plats prêts à être réchauffés.
+                            Repartez avec 6 plats prêts à être réchauffés.
                             Finie la corvée des courses et de la cuisine !
                         </p>
                         <Link href="/simulateur">
