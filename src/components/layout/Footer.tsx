@@ -75,6 +75,20 @@ export function Footer() {
                         </p>
                     </div>
                 </div>
+
+                <div className="mt-8 pt-4 border-t border-stone-200 text-center text-xs text-stone-400">
+                    <p>
+                        Site web par{' '}
+                        <a
+                            href="https://gabrieldalmoro.com/fr"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="hover:text-brand-rose transition-colors font-medium"
+                        >
+                            GabrielDalmoro.com
+                        </a>
+                    </p>
+                </div>
             </div>
         </footer>
     );
