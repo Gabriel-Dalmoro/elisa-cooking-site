@@ -21,33 +21,38 @@ const fontHandwriting = Caveat({
 
 export const metadata: Metadata = {
   title: {
-    default: "Elisa Batch Cooking | Votre Cheffe à Domicile à Annecy",
+    default: "Elisa Batch Cooking | Cheffe à Domicile & Traiteur à Annecy",
     template: "%s | Elisa Batch Cooking"
   },
-  description: "Simplifiez votre quotidien avec Elisa Batch Cooking. Des plats sains, savoureux et faits maison, préparés directement chez vous à Annecy. 50% de crédit d'impôt immédiat.",
-  keywords: ["batch cooking", "chef à domicile", "Annecy", "cuisine saine", "repas préparés", "aide à domicile", "crédit d'impôt service à la personne"],
+  description: "Simplifiez votre quotidien avec Elisa, votre cheffe à domicile à Annecy. Batch Cooking : des plats sains, frais et faits maison pour toute la semaine. 50% de crédit d'impôt immédiat.",
+  keywords: ["batch cooking annecy", "chef à domicile annecy", "traiteur annecy", "repas préparés", "cuisine saine", "livraison repas annecy", "service à la personne annecy", "elisa batch cooking"],
   authors: [{ name: "Elisa Batch Cooking" }],
   creator: "Elisa Batch Cooking",
+  icons: {
+    icon: "/icon.png",
+    shortcut: "/favicon.ico",
+    apple: "/icon.png",
+  },
   openGraph: {
     type: "website",
     locale: "fr_FR",
     url: "https://elisabatchcooking.com",
-    title: "Elisa Batch Cooking | Votre Cheffe à Domicile à Annecy",
-    description: "Des repas sains et faits maison pour toute la semaine, préparés chez vous. Gagnez du temps et mangez mieux.",
+    title: "Elisa Batch Cooking | Cheffe à Domicile à Annecy - Repas Sains",
+    description: "Gagnez du temps : une semaine de repas sains et faits maison, cuisinés directement chez vous à Annecy. Service déclaré SAP (50% crédit d'impôt).",
     siteName: "Elisa Batch Cooking",
     images: [
       {
         url: "/images/og-image.png",
         width: 1200,
         height: 630,
-        alt: "Elisa Batch Cooking - Cuisine Saine à Domicile",
+        alt: "Elisa Batch Cooking - Votre Cheffe à Domicile à Annecy",
       },
     ],
   },
   twitter: {
     card: "summary_large_image",
     title: "Elisa Batch Cooking | Votre Cheffe à Domicile à Annecy",
-    description: "Des repas sains et faits maison pour toute la semaine, préparés chez vous.",
+    description: "Des repas sains et faits maison pour toute la semaine, préparés chez vous par Elisa.",
     images: ["/images/og-image.png"],
   },
   robots: {
@@ -71,22 +76,39 @@ export default function RootLayout({
               "@context": "https://schema.org",
               "@type": "Service",
               "name": "Elisa Batch Cooking",
+              "image": [
+                "https://elisabatchcooking.com/images/hero-food.png",
+                "https://elisabatchcooking.com/images/og-image.png"
+              ],
               "serviceType": "Batch Cooking & Chef à domicile",
               "provider": {
                 "@type": "LocalBusiness",
                 "name": "Elisa Batch Cooking",
+                "image": "https://elisabatchcooking.com/images/logo.jpg",
+                "telephone": "+33652077203",
+                "priceRange": "€€",
                 "address": {
                   "@type": "PostalAddress",
                   "addressLocality": "Annecy",
                   "addressRegion": "Haute-Savoie",
+                  "postalCode": "74000",
                   "addressCountry": "FR"
-                }
+                },
+                "geo": {
+                  "@type": "GeoCoordinates",
+                  "latitude": 45.8992,
+                  "longitude": 6.1294
+                },
+                "sameAs": [
+                  "https://www.instagram.com/elisabatchcooking/",
+                  "https://wa.me/33652077203"
+                ]
               },
               "areaServed": {
                 "@type": "City",
                 "name": "Annecy"
               },
-              "description": "Service de Batch Cooking et Chef à domicile à Annecy. Repas sains et faits maison préparés chez vous."
+              "description": "Service de Batch Cooking et Chef à domicile à Annecy. Repas sains et faits maison préparés chez vous. Agrément Service à la Personne."
             })
           }}
         />

@@ -10,11 +10,10 @@ export function HeroSection() {
                 <div className="grid grid-cols-1 items-center gap-12 lg:grid-cols-2 lg:gap-16">
                     {/* Left Content (Text) */}
                     <div className="py-12 lg:py-24 flex flex-col items-center lg:items-start text-center lg:text-left">
-                        <h1 className="text-4xl font-extrabold tracking-tight text-stone-900 sm:text-5xl lg:text-6xl">
-                            Vous gagnez du{" "}
-                            <span className="text-brand-rose">temps</span>,
-                            <br />
-                            je m'occupe de tout.
+                        <h1 className="text-4xl font-extrabold tracking-tight text-stone-900 sm:text-5xl lg:text-6xl flex flex-col gap-2">
+                            <span className="sr-only">Elisa Batch Cooking : Votre Cheffe à Domicile à Annecy</span>
+                            <span>Vous gagnez du <span className="text-brand-rose">temps</span>,</span>
+                            <span>je m'occupe de tout.</span>
                         </h1>
 
                         <div className="mt-8 flex flex-col sm:flex-row items-center lg:items-start gap-3">
