@@ -1,5 +1,6 @@
 "use client";
 import Link from "next/link";
+import { useSearchParams } from 'next/navigation';
 
 import React, { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -41,6 +42,7 @@ export default function SimulatorPage() {
         message: "",
     });
 
+    const searchParams = useSearchParams();
     const calculation = usePricingCalculation(tierId, people, isSubscribed, frequency);
     const groceryUnit = getGroceryUnitCost(people);
 
@@ -80,7 +82,23 @@ export default function SimulatorPage() {
                 custom_message: formData.message
             };
 
-            const webhookUrl = process.env.NEXT_PUBLIC_N8N_WEBHOOK_URL || 'https://n8n-production-ced7.up.railway.app/webhook/lead-submit';
+            // const webhookUrl = process.env.NEXT_PUBLIC_N8N_WEBHOOK_URL || 'https://n8n-production-ced7.up.railway.app/webhook/lead-submit';
+
+            // Detect if ?mode=test or ?debug=true is in the browser URL
+            // 1. Detect the mode from the URL (?mode=test or ?debug=true)
+            const isTestMode = searchParams.get('mode') === 'test' || searchParams.get('debug') === 'true';
+
+            // 2. Define your endpoints
+            const productionUrl = process.env.NEXT_PUBLIC_N8N_WEBHOOK_URL || 'https://n8n-production-ced7.up.railway.app/webhook/lead-submit';
+            const testUrl = 'https://n8n-production-ced7.up.railway.app/webhook-test/lead-submit';
+
+            const webhookUrl = isTestMode ? testUrl : productionUrl;
+
+            // 3. DEBUG: This will show you in the F12 console exactly which URL is being hit
+            console.log(`🚀 Form submission mode: ${isTestMode ? 'TEST' : 'PRODUCTION'}`);
+            console.log(`🔗 Target URL: ${webhookUrl}`);
+
+
             const response = await fetch(webhookUrl, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
