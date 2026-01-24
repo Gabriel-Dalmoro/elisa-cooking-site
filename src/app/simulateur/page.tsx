@@ -23,7 +23,9 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import TimeSavingsVisualizer, { TimeSavingsBreakdown } from "@/components/simulator/TimeSavingsVisualizer";
 
-export default function SimulatorPage() {
+import { Suspense } from 'react';
+
+function SimulatorBase() {
     const [step, setStep] = useState(0);
     const [tierId, setTierId] = useState("six");
     const [people, setPeople] = useState(4);
@@ -736,5 +738,17 @@ export default function SimulatorPage() {
                 </DialogContent>
             </Dialog>
         </main>
+    );
+}
+
+export default function SimulatorPage() {
+    return (
+        <Suspense fallback={
+            <div className="min-h-screen bg-stone-50 flex items-center justify-center">
+                <div className="animate-pulse text-stone-400 font-medium">Chargement du simulateur...</div>
+            </div>
+        }>
+            <SimulatorBase />
+        </Suspense>
     );
 }
