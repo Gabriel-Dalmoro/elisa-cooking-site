@@ -129,4 +129,20 @@
   body {
     @apply bg-background text-foreground;
   }
+
+  header.fixed {
+    transition: top 0.3s ease-in-out;
+  }
+
+  body.has-promo header.fixed {
+    top: calc(5rem + 1.5rem) !important;
+    /* Desktop: 80px banner + 24px gap */
+  }
+
+  @media (max-width: 1023px) {
+    body.has-promo header.fixed {
+      top: 12.75rem !important;
+      /* Mobile/Tablet: 180px banner (11.25rem) + 24px gap (1.5rem) */
+    }
+  }
 }

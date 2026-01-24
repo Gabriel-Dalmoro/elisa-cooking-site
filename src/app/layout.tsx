@@ -3,6 +3,11 @@ import { Geist, Geist_Mono, Caveat } from "next/font/google";
 import "./globals.css";
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
+import { PromoBanner } from "@/components/layout/PromoBanner";
+import { Suspense } from "react";
+import { getSiteConfig } from "@/lib/googleSheets";
+import { cn } from "@/lib/utils";
+
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -61,11 +66,14 @@ export const metadata: Metadata = {
   },
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const config = await getSiteConfig();
+  const hasPromo = config?.promoActive && (!config.promoExpiry || new Date(config.promoExpiry) > new Date());
+
   return (
     <html lang="fr" className="scroll-smooth">
       <head>
@@ -114,10 +122,16 @@ export default function RootLayout({
         />
       </head>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} ${fontHandwriting.variable} antialiased selection:bg-brand-rose/20`}
+        className={`${geistSans.variable} ${geistMono.variable} ${fontHandwriting.variable} antialiased selection:bg-brand-rose/20 ${hasPromo ? 'has-promo' : ''}`}
       >
+        {hasPromo && (
+          <Suspense fallback={null}>
+            <PromoBanner config={config!} />
+          </Suspense>
+        )}
         <Navbar />
-        <div className="pt-20">
+        <div className={cn("transition-all duration-300", hasPromo ? "pt-[20rem] lg:pt-40" : "pt-20")}>
+
           {children}
         </div>
         <Footer />
@@ -125,3 +139,4 @@ export default function RootLayout({
     </html>
   );
 }
+

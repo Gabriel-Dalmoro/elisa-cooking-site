@@ -1,9 +1,13 @@
 import Link from "next/link";
 import Image from "next/image";
-import { CheckCircle2 } from "lucide-react";
+import { getSiteConfig } from "@/lib/googleSheets";
+import { CheckCircle2, Flame, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
-export function HeroSection() {
+export async function HeroSection() {
+    const config = await getSiteConfig();
+    const isPromoActive = config?.promoActive && (!config.promoExpiry || new Date(config.promoExpiry) > new Date());
+
     return (
         <section className="relative overflow-hidden bg-stone-50">
             <div className="container mx-auto px-4 sm:px-6 lg:px-8">
@@ -23,7 +27,13 @@ export function HeroSection() {
                             </p>
                         </div>
 
-                        <div className="mt-10">
+                        <div className="mt-10 flex flex-col items-center lg:items-start gap-4">
+                            {isPromoActive && (
+                                <div className="flex items-center gap-2 px-4 py-1.5 bg-brand-rose/10 text-brand-rose rounded-full text-xs font-black uppercase tracking-widest shadow-sm animate-pulse">
+                                    <Flame className="h-3 w-3 fill-current" />
+                                    <span>{config?.promoLabel || 'Flash Sale'} : -{config?.promoDiscount}%</span>
+                                </div>
+                            )}
                             <Button
                                 asChild
                                 size="lg"
@@ -32,6 +42,8 @@ export function HeroSection() {
                                 <Link href="/simulateur">Simuler mon tarif</Link>
                             </Button>
                         </div>
+
+
 
                         <div className="mt-8 flex items-center gap-4 text-sm font-medium text-stone-400">
                             <span className="h-px w-8 bg-stone-200" />
