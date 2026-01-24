@@ -84,19 +84,30 @@ export function usePricingCalculation(
     tierId: string,
     people: number,
     isSubscribed: boolean,
-    frequency: 'weekly' | 'biweekly' | 'monthly' = 'weekly'
+    frequency: 'weekly' | 'biweekly' | 'monthly' = 'weekly',
+    flashSaleDiscount: number = 0 // New parameter (0-100)
 ) {
     return useMemo(() => {
         const tier = Object.values(PRICING_CONFIG.TIERS).find(t => t.id === tierId) || PRICING_CONFIG.TIERS.SIX;
 
         // 1. Service Base Price (Base + Extra People)
-        const serviceBase = tier.basePrice + (Math.max(0, people - 1) * PRICING_CONFIG.EXTRA_PERSON_FEE);
+        const originalServicePrice = tier.basePrice + (Math.max(0, people - 1) * PRICING_CONFIG.EXTRA_PERSON_FEE);
 
-        // 2. Subscription Discount
-        const serviceDiscount = isSubscribed ? serviceBase * PRICING_CONFIG.SUB_DISCOUNT : 0;
+        // 2. Discount Logic: Flash Sale (Unique only) OR Subscription (Fixed 15%)
+        let flashSaleAmount = 0;
+        let serviceDiscount = 0;
+
+        if (isSubscribed) {
+            // Standard -15% for subscription
+            serviceDiscount = originalServicePrice * PRICING_CONFIG.SUB_DISCOUNT;
+        } else {
+            // Flash sale only applies to Unique (One-time) purchases
+            flashSaleAmount = (originalServicePrice * flashSaleDiscount) / 100;
+        }
 
         // 3. Amount to pay Elisa (per visit)
-        const amountToPayElisa = serviceBase - serviceDiscount;
+        // Corrected: Subtract the applicable discount from the original price
+        const amountToPayElisa = originalServicePrice - serviceDiscount - flashSaleAmount;
 
         // 4. Tax Credit (50% of the invoice)
         const taxCredit = amountToPayElisa * 0.50;
@@ -115,8 +126,9 @@ export function usePricingCalculation(
         const visitsPerMonth = frequency === 'weekly' ? 4 : frequency === 'biweekly' ? 2 : 1;
 
         return {
-            serviceBase,
+            originalServicePrice,
             serviceDiscount,
+            flashSaleAmount,
             amountToPayElisa,
             taxCredit,
             finalPocketCost,
@@ -124,5 +136,5 @@ export function usePricingCalculation(
             tier,
             visitsPerMonth
         };
-    }, [tierId, people, isSubscribed, frequency]);
+    }, [tierId, people, isSubscribed, frequency, flashSaleDiscount]);
 }
