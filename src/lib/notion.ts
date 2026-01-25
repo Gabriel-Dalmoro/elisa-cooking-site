@@ -103,7 +103,7 @@ export async function getPosts(): Promise<Post[]> {
             const date = dateProp?.date?.start || page.created_time;
 
             // 4. Excerpt finding
-            const excerptProp = props.Excerpt || props.excerpt || props.Summary || props.summary;
+            const excerptProp = props["Short text"] || props["short text"] || props.Excerpt || props.excerpt || props.Summary || props.summary;
             const excerpt = excerptProp?.rich_text?.[0]?.plain_text || "";
 
             // 5. Intelligent Cover Image detection
@@ -138,6 +138,34 @@ export async function getPosts(): Promise<Post[]> {
     } catch (error: any) {
         console.error("[Notion] Error in getPosts:", error.message || error);
         return MOCK_POSTS;
+    }
+}
+
+/**
+ * Fetch a single post by its slug or ID
+ */
+/**
+ * Recursively fetch all blocks and their children
+ */
+async function getBlocks(blockId: string): Promise<any[]> {
+    try {
+        const response = await notionFetch(`blocks/${blockId}/children?page_size=100`);
+        const blocks = response.results;
+
+        // Fetch children recursively for blocks that have them
+        const childBlocks = await Promise.all(blocks.map(async (block: any) => {
+            if (block.has_children) {
+                // Recursion
+                const children = await getBlocks(block.id);
+                return { ...block, children };
+            }
+            return block;
+        }));
+
+        return childBlocks;
+    } catch (error: any) {
+        console.error(`[Notion] Error fetching blocks for ${blockId}:`, error.message);
+        return [];
     }
 }
 
@@ -197,8 +225,8 @@ export async function getPostBySlug(slug: string) {
         const titleProp = props.Title || props.Name || props.title || props.name || Object.values(props).find((p: any) => p.type === 'title');
         const dateProp = props.Date || props["Publication Date"] || props.date || Object.values(props).find((p: any) => p.type === 'date');
 
-        const blocksResponse = await notionFetch(`blocks/${page.id}/children`);
-        const blocks = blocksResponse.results;
+        // Fetch blocks recursively
+        const blocks = await getBlocks(page.id);
 
         // Intelligent Cover Image detection
         let coverImage = page.cover?.external?.url || page.cover?.file?.url;
@@ -209,7 +237,19 @@ export async function getPostBySlug(slug: string) {
         }
 
         if (!coverImage) {
-            const firstImage = blocks.find((b: any) => b.type === 'image');
+            // Helper to find first image recursively
+            const findFirstImage = (blocks: any[]): any => {
+                for (const block of blocks) {
+                    if (block.type === 'image') return block;
+                    if (block.children && block.children.length > 0) {
+                        const found = findFirstImage(block.children);
+                        if (found) return found;
+                    }
+                }
+                return null;
+            };
+
+            const firstImage = findFirstImage(blocks);
             if (firstImage) {
                 coverImage = firstImage.image.external?.url || firstImage.image.file?.url;
             }

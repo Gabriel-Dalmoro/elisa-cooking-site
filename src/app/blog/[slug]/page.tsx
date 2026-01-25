@@ -4,67 +4,9 @@ import Link from "next/link";
 import { ArrowLeft, Calendar, Clock, Share2 } from "lucide-react";
 import { getPostBySlug } from "@/lib/notion";
 import * as motion from "framer-motion/client";
+import { BlockRenderer } from "@/components/blog/BlockRenderer";
 
-// Basic block renderer component (Server-side compatible)
-function NotionBlockRenderer({ blocks }: { blocks: any[] }) {
-    if (!blocks) return null;
 
-    return (
-        <div className="space-y-6">
-            {blocks.map((block: any) => {
-                const { type } = block;
-                const value = block[type];
-
-                switch (type) {
-                    case "paragraph":
-                        return (
-                            <p key={block.id} className="text-lg text-stone-600 leading-relaxed">
-                                {value.rich_text.map((t: any) => t.plain_text)}
-                            </p>
-                        );
-                    case "heading_1":
-                        return (
-                            <h1 key={block.id} className="text-4xl font-black text-stone-900 mt-12 mb-6">
-                                {value.rich_text.map((t: any) => t.plain_text)}
-                            </h1>
-                        );
-                    case "heading_2":
-                        return (
-                            <h2 key={block.id} className="text-3xl font-black text-stone-900 mt-10 mb-5">
-                                {value.rich_text.map((t: any) => t.plain_text)}
-                            </h2>
-                        );
-                    case "heading_3":
-                        return (
-                            <h3 key={block.id} className="text-2xl font-black text-stone-900 mt-8 mb-4">
-                                {value.rich_text.map((t: any) => t.plain_text)}
-                            </h3>
-                        );
-                    case "bulleted_list_item":
-                        return (
-                            <li key={block.id} className="text-lg text-stone-600 ml-6 list-disc">
-                                {value.rich_text.map((t: any) => t.plain_text)}
-                            </li>
-                        );
-                    case "image":
-                        const src = value.type === "external" ? value.external.url : value.file.url;
-                        return (
-                            <figure key={block.id} className="my-10 rounded-[2rem] overflow-hidden shadow-2xl">
-                                <img src={src} alt="Article content" className="w-full object-cover" />
-                                {value.caption?.[0] && (
-                                    <figcaption className="text-center text-sm text-stone-400 mt-4 italic">
-                                        {value.caption[0].plain_text}
-                                    </figcaption>
-                                )}
-                            </figure>
-                        );
-                    default:
-                        return null;
-                }
-            })}
-        </div>
-    );
-}
 
 export default async function BlogPostPage({ params }: { params: Promise<{ slug: string }> }) {
     const { slug } = await params;
@@ -164,7 +106,11 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
 
                             {/* Render Notion Content */}
                             {post.blocks && post.blocks.length > 0 ? (
-                                <NotionBlockRenderer blocks={post.blocks} />
+                                <div className="space-y-2">
+                                    {post.blocks.map((block: any) => (
+                                        <BlockRenderer key={block.id} block={block} />
+                                    ))}
+                                </div>
                             ) : (
                                 <div className="space-y-6">
                                     {(post as any).excerpt && (
@@ -181,7 +127,7 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
                     </div>
 
                     {/* Sidebar / Newsletter / CTA */}
-                    <aside className="lg:col-span-4 space-y-8">
+                    <aside className="lg:col-span-4 space-y-8 lg:sticky lg:top-48 lg:self-start h-fit">
                         <div className="bg-stone-900 rounded-[2.5rem] p-10 text-white relative overflow-hidden group shadow-2xl">
                             <div className="absolute top-0 right-0 w-32 h-32 bg-brand-rose/20 blur-[60px] rounded-full -mr-16 -mt-16 animate-pulse" />
                             <div className="relative z-10">
@@ -208,7 +154,7 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
                                     Rejoignez-moi sur Instagram pour voir mes recettes quotidiennes et mes astuces de chef.
                                 </p>
                                 <a
-                                    href="https://instagram.com"
+                                    href="https://www.instagram.com/elisabatchcooking/"
                                     target="_blank"
                                     className="flex items-center gap-3 text-stone-900 font-bold hover:text-brand-rose transition-colors"
                                 >
