@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono, Caveat } from "next/font/google";
+import { Geist, Geist_Mono, Caveat, Playfair_Display } from "next/font/google";
 import "./globals.css";
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
@@ -7,7 +7,6 @@ import { PromoBanner } from "@/components/layout/PromoBanner";
 import { Suspense } from "react";
 import { getSiteConfig } from "@/lib/googleSheets";
 import { cn } from "@/lib/utils";
-
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -21,6 +20,11 @@ const geistMono = Geist_Mono({
 
 const fontHandwriting = Caveat({
   variable: "--font-handwriting",
+  subsets: ["latin"],
+});
+
+const fontSerif = Playfair_Display({
+  variable: "--font-serif",
   subsets: ["latin"],
 });
 
@@ -122,7 +126,7 @@ export default async function RootLayout({
         />
       </head>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} ${fontHandwriting.variable} antialiased selection:bg-brand-rose/20 ${hasPromo ? 'has-promo' : ''}`}
+        className={`${geistSans.variable} ${geistMono.variable} ${fontHandwriting.variable} ${fontSerif.variable} antialiased selection:bg-brand-rose/20 ${hasPromo ? 'has-promo' : ''}`}
       >
         {hasPromo && (
           <Suspense fallback={null}>
@@ -130,7 +134,7 @@ export default async function RootLayout({
           </Suspense>
         )}
         <Navbar />
-        <div className={cn("transition-all duration-300", hasPromo ? "pt-[20rem] lg:pt-40" : "pt-20")}>
+        <div className={cn("transition-all duration-300", hasPromo ? "pt-[19rem] lg:pt-40" : "pt-20")}>
 
           {children}
         </div>
