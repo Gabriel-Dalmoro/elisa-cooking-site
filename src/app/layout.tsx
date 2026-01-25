@@ -7,6 +7,8 @@ import { PromoBanner } from "@/components/layout/PromoBanner";
 import { Suspense } from "react";
 import { getSiteConfig } from "@/lib/googleSheets";
 import { cn } from "@/lib/utils";
+import { Analytics } from "@vercel/analytics/react";
+import { MicrosoftClarity } from "@/components/analytics/MicrosoftClarity";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -139,6 +141,8 @@ export default async function RootLayout({
           {children}
         </div>
         <Footer />
+        <Analytics />
+        <MicrosoftClarity />
       </body>
     </html>
   );
