@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 
 export async function HeroSection() {
     const config = await getSiteConfig();
-    const isPromoActive = config?.promoActive && (!config.promoExpiry || new Date(config.promoExpiry) > new Date());
+    const isPromoActive = config?.promoActive;
 
     return (
         <section className="relative overflow-hidden bg-stone-50">

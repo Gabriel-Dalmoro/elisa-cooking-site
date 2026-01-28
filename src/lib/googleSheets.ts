@@ -168,10 +168,19 @@ export async function getSiteConfig(): Promise<SiteConfig | null> {
         };
 
         const expiryDate = parseDate(expiryStr);
+        const now = new Date();
+        const isExpired = expiryDate ? expiryDate < now : false;
+        const discountValue = parseFloat(discount) || 0;
+
+        // Strict Promo Validation:
+        // 1. Must be set to TRUE in sheet
+        // 2. Must have a valid discount > 0
+        // 3. Must NOT be expired (if expiry date exists)
+        const isActive = (active?.toUpperCase() === 'TRUE') && (discountValue > 0) && !isExpired;
 
         const config = {
-            promoActive: active?.toUpperCase() === 'TRUE',
-            promoDiscount: parseFloat(discount) || 0,
+            promoActive: isActive,
+            promoDiscount: discountValue,
             promoLabel: label || '',
             promoExpiry: expiryDate ? expiryDate.toISOString() : '',
         };

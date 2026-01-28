@@ -78,7 +78,7 @@ export default async function RootLayout({
   children: React.ReactNode;
 }>) {
   const config = await getSiteConfig();
-  const hasPromo = config?.promoActive && (!config.promoExpiry || new Date(config.promoExpiry) > new Date());
+  const hasPromo = config?.promoActive;
 
   return (
     <html lang="fr" className="scroll-smooth">
@@ -147,4 +147,5 @@ export default async function RootLayout({
     </html>
   );
 }
+export const revalidate = 60;
 
