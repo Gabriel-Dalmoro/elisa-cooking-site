@@ -30,7 +30,7 @@ export function Navbar() {
     const pathname = usePathname();
 
     return (
-        <header className="fixed top-6 z-50 w-full px-4 sm:px-6 lg:px-8">
+        <header className="fixed top-6 z-50 w-full px-4 sm:px-6 lg:px-8 print:hidden">
             <div className="container mx-auto max-w-7xl">
                 <nav className="flex h-16 items-center justify-between px-6 rounded-full border border-white/20 bg-white/70 backdrop-blur-xl shadow-lg ring-1 ring-stone-900/5">
                     {/* Logo and Brand */}

@@ -4,7 +4,7 @@ import { Phone, Mail, Instagram, Facebook } from "lucide-react";
 
 export function Footer() {
     return (
-        <footer className="bg-stone-100 py-16 text-stone-600">
+        <footer className="bg-stone-100 py-16 text-stone-600 print:hidden">
             <div className="container mx-auto px-4 sm:px-6 lg:px-8">
                 <div className="grid grid-cols-1 gap-12 md:grid-cols-3">
                     {/* Column 1: Contact Info */}

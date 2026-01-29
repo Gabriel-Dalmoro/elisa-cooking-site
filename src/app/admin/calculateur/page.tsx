@@ -1,31 +1,49 @@
 "use client";
 
-import React, { useState, useMemo } from 'react';
-import { motion } from 'framer-motion';
+import React, { useState, useMemo, useEffect } from 'react';
 import {
     Clock,
     Euro,
-    User,
-    TrendingUp,
-    Info,
+    Utensils,
     ChefHat,
     ShieldCheck,
-    Lock,
-    Eye,
-    EyeOff,
-    ShoppingBag,
-    Utensils,
-    HelpCircle
+    RotateCcw,
+    Sparkles,
+    Wallet,
+    Users,
+    Printer,
+    MapPin,
+    CalendarDays
 } from 'lucide-react';
-import { cn } from '@/lib/utils';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
 import { Badge } from '@/components/ui/badge';
+import { Switch } from '@/components/ui/switch';
+import { Button } from '@/components/ui/button';
+import { motion, AnimatePresence } from 'framer-motion';
 
-// --- Types ---
+// --- Default Configuration ---
+const DEFAULTS = {
+    travelTime: 0.5,
+    extraPersonPrice: 10,
+    tiers: [
+        { recipes: 3, basePrice: 120, cookingTime: 2.5, shoppingTime: 1.0 },
+        { recipes: 5, basePrice: 200, cookingTime: 4.0, shoppingTime: 1.25 },
+        { recipes: 6, basePrice: 240, cookingTime: 4.5, shoppingTime: 1.5 },
+    ]
+};
+
+const LIVE_VALUES = {
+    extraPersonPrice: 10,
+    tiers: {
+        3: 120,
+        5: 200,
+        6: 240
+    }
+};
+
 interface TierConfig {
     recipes: number;
     basePrice: number;
@@ -33,52 +51,57 @@ interface TierConfig {
     shoppingTime: number;
 }
 
-// --- Local Utils ---
-const getGroceryUnitCost = (peopleCount: number) => {
-    if (peopleCount === 1) return { min: 7.5, max: 10.0 };
-    if (peopleCount === 2) return { min: 6.0, max: 8.5 };
-    if (peopleCount === 3) return { min: 5.0, max: 7.5 };
-    return { min: 4.0, max: 6.5 }; // 4+ people
-};
-
-// --- Defaults ---
-const DEFAULT_TIERS: TierConfig[] = [
-    { recipes: 3, basePrice: 120, cookingTime: 2.5, shoppingTime: 1.0 },
-    { recipes: 5, basePrice: 200, cookingTime: 4.0, shoppingTime: 1.25 },
-    { recipes: 6, basePrice: 240, cookingTime: 4.5, shoppingTime: 1.5 },
-];
-
-const DEFAULT_TRAVEL_TIME = 0.5; // 30 mins
-const DEFAULT_EXTRA_PERSON_PRICE = 10;
-const DEFAULT_EXTRA_PERSON_TIME = 0.25; // 15 mins
-
 export default function InternalCalculator() {
-    // --- Auth State ---
-    const [isAuthenticated, setIsAuthenticated] = useState(false);
-    const [password, setPassword] = useState('');
-    const [showPassword, setShowPassword] = useState(false);
-    const [authError, setAuthError] = useState(false);
+    // --- State: Configuration ---
+    const [travelTime, setTravelTime] = useState(DEFAULTS.travelTime);
+    const [extraPersonPrice, setExtraPersonPrice] = useState(DEFAULTS.extraPersonPrice);
+    const [extraPersonTime] = useState(0.25); // 15 mins constant
 
-    // --- Calculator State ---
-    const [travelTime, setTravelTime] = useState(DEFAULT_TRAVEL_TIME);
-    const [extraPersonPrice, setExtraPersonPrice] = useState(DEFAULT_EXTRA_PERSON_PRICE);
-    const [extraPersonTime, setExtraPersonTime] = useState(DEFAULT_EXTRA_PERSON_TIME);
-    const [tiers, setTiers] = useState<TierConfig[]>(DEFAULT_TIERS);
+    const [tiers, setTiers] = useState<TierConfig[]>(JSON.parse(JSON.stringify(DEFAULTS.tiers)));
 
-    // Simulations
-    const [selectedRecipes, setSelectedRecipes] = useState(5);
+    // --- State: Simulation Scenario ---
+    const [selectedRecipes, setSelectedRecipes] = useState(6);
     const [numPeople, setNumPeople] = useState(4);
 
-    // --- Handlers ---
-    const handleAuth = (e: React.FormEvent) => {
-        e.preventDefault();
-        if (password === 'elisa2024') {
-            setIsAuthenticated(true);
-            setAuthError(false);
-        } else {
-            setAuthError(true);
-            setTimeout(() => setAuthError(false), 2000);
-        }
+    // Revenue Modifiers
+    const [isSubscription, setIsSubscription] = useState(false);
+    const [promoDiscount, setPromoDiscount] = useState(0);
+
+    // --- Logic: Mutual Exclusivity ---
+    const handleSubscriptionChange = (checked: boolean) => {
+        setIsSubscription(checked);
+        if (checked) setPromoDiscount(0); // Disable promo if sub is checked
+    };
+
+    const handlePromoChange = (value: number) => {
+        setPromoDiscount(value);
+        if (value > 0) setIsSubscription(false); // Disable sub if promo is active
+    };
+
+    // --- Logic: Check for Changes ---
+    const hasChanges = useMemo(() => {
+        const isTravelChanged = travelTime !== DEFAULTS.travelTime;
+        const isExtraPriceChanged = extraPersonPrice !== DEFAULTS.extraPersonPrice;
+        const isTiersChanged = JSON.stringify(tiers) !== JSON.stringify(DEFAULTS.tiers);
+        return isTravelChanged || isExtraPriceChanged || isTiersChanged;
+    }, [travelTime, extraPersonPrice, tiers]);
+
+    const handleReset = () => {
+        setTravelTime(DEFAULTS.travelTime);
+        setExtraPersonPrice(DEFAULTS.extraPersonPrice);
+        setTiers(JSON.parse(JSON.stringify(DEFAULTS.tiers)));
+    };
+
+    const handlePrint = () => {
+        const originalTitle = document.title;
+        const dateStr = new Date().toLocaleDateString('fr-FR').replace(/\//g, '-');
+        document.title = `Rapport Profitabilité Elisa Cooking - ${dateStr}`;
+
+        window.print();
+
+        setTimeout(() => {
+            document.title = originalTitle;
+        }, 1000);
     };
 
     const updateTier = (index: number, field: keyof TierConfig, value: number) => {
@@ -87,493 +110,386 @@ export default function InternalCalculator() {
         setTiers(newTiers);
     };
 
-    // --- Calculations ---
+    // --- Core Calculation Logic ---
     const results = useMemo(() => {
-        const tier = tiers.find(t => t.recipes === selectedRecipes) || tiers[1];
+        const tier = tiers.find(t => t.recipes === selectedRecipes) || tiers[2];
         const extraPeople = Math.max(0, numPeople - 1);
-
-        // 1. Revenue
-        const totalRevenue = tier.basePrice + (extraPeople * extraPersonPrice);
-        const netRevenue = totalRevenue * (1 - 0.24); // URSSAF - 24%
-
-        // 2. Time
+        const grossServicePrice = tier.basePrice + (extraPeople * extraPersonPrice);
+        const subDiscountAmount = isSubscription ? grossServicePrice * 0.15 : 0;
+        const promoDiscountAmount = grossServicePrice * (promoDiscount / 100);
+        const totalDiscounts = subDiscountAmount + promoDiscountAmount;
+        const finalInvoiced = grossServicePrice - totalDiscounts;
+        const netRevenue = finalInvoiced * (1 - 0.24);
         const totalTime = travelTime + tier.shoppingTime + tier.cookingTime + (extraPeople * extraPersonTime);
-        const grossHourlyRate = totalRevenue / totalTime;
-        const netHourlyRate = netRevenue / totalTime;
-
-        // 3. Client Perspective
-        const clientCostAfterTax = totalRevenue * 0.5;
-        const totalMeals = selectedRecipes * numPeople;
-        const costPerMeal = clientCostAfterTax / totalMeals;
-
-        // 4. Grocery Integration (High end estimation)
-        const groceryUnit = getGroceryUnitCost(numPeople);
-        const totalGroceryCost = totalMeals * groceryUnit.max;
-        const clientTotalOutOfPocket = clientCostAfterTax + totalGroceryCost;
+        const netHourlyRate = totalTime > 0 ? netRevenue / totalTime : 0;
 
         return {
-            totalRevenue,
+            grossServicePrice,
+            subDiscountAmount,
+            promoDiscountAmount,
+            finalInvoiced,
             netRevenue,
             totalTime,
-            grossHourlyRate,
             netHourlyRate,
-            clientCostAfterTax,
-            totalMeals,
-            costPerMeal,
-            totalGroceryCost,
-            clientTotalOutOfPocket,
             tier
         };
-    }, [selectedRecipes, numPeople, travelTime, extraPersonPrice, extraPersonTime, tiers]);
+    }, [selectedRecipes, numPeople, travelTime, extraPersonPrice, extraPersonTime, tiers, isSubscription, promoDiscount]);
+
+    // --- State: Authentication ---
+    const [isAuthenticated, setIsAuthenticated] = useState(false);
+    const [passwordInput, setPasswordInput] = useState('');
+    const [authError, setAuthError] = useState(false);
+
+    const handleLogin = (e: React.FormEvent) => {
+        e.preventDefault();
+        // Simple client-side protection
+        if (passwordInput === 'elisa2024') {
+            setIsAuthenticated(true);
+            setAuthError(false);
+        } else {
+            setAuthError(true);
+        }
+    };
 
     if (!isAuthenticated) {
         return (
-            <div className="min-h-screen bg-stone-900 flex items-center justify-center p-4">
-                <motion.div
-                    initial={{ opacity: 0, scale: 0.95 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    className="w-full max-w-md"
-                >
-                    <Card className="border-stone-800 bg-stone-950 shadow-2xl overflow-hidden relative">
-                        <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-brand-rose via-brand-gold to-brand-rose" />
-                        <CardHeader className="text-center pt-10">
-                            <div className="h-16 w-16 bg-brand-rose/10 rounded-2xl flex items-center justify-center mx-auto mb-4 border border-brand-rose/20">
-                                <Lock className="h-8 w-8 text-brand-rose" />
+            <div className="min-h-screen flex items-center justify-center bg-[#FAFAF9] p-4">
+                <Card className="w-full max-w-md shadow-xl border-stone-100">
+                    <CardHeader className="text-center space-y-1">
+                        <div className="mx-auto bg-stone-900 text-white p-3 rounded-xl w-fit shadow-lg shadow-stone-900/10 mb-2">
+                            <ShieldCheck className="w-6 h-6" />
+                        </div>
+                        <CardTitle className="text-2xl font-black text-stone-900">Accès Sécurisé</CardTitle>
+                        <p className="text-stone-500 text-sm">Veuillez entrer le mot de passe pour accéder au calculateur.</p>
+                    </CardHeader>
+                    <CardContent>
+                        <form onSubmit={handleLogin} className="space-y-4">
+                            <div className="space-y-2">
+                                <Label htmlFor="password">Mot de passe</Label>
+                                <Input
+                                    id="password"
+                                    type="password"
+                                    value={passwordInput}
+                                    onChange={(e) => setPasswordInput(e.target.value)}
+                                    placeholder="••••••••"
+                                    className="text-lg text-center tracking-widest"
+                                />
                             </div>
-                            <CardTitle className="text-2xl font-black text-white tracking-tight">Espace Business</CardTitle>
-                            <CardDescription className="text-stone-500">
-                                Connectez-vous pour voir vos marges.
-                            </CardDescription>
-                        </CardHeader>
-                        <CardContent className="pb-10">
-                            <form onSubmit={handleAuth} className="space-y-4">
-                                <div className="space-y-2">
-                                    <Label className="text-stone-400 text-xs font-bold uppercase tracking-widest leading-none">Secret Marie</Label>
-                                    <div className="relative">
-                                        <Input
-                                            type={showPassword ? "text" : "password"}
-                                            value={password}
-                                            onChange={(e) => setPassword(e.target.value)}
-                                            className={cn(
-                                                "bg-stone-900 border-stone-800 text-white h-12 rounded-xl focus:ring-brand-rose transition-all",
-                                                authError && "border-red-500"
-                                            )}
-                                            placeholder="••••••••"
-                                        />
-                                        <button
-                                            type="button"
-                                            onClick={() => setShowPassword(!showPassword)}
-                                            className="absolute right-3 top-1/2 -translate-y-1/2 text-stone-500 hover:text-stone-300"
-                                        >
-                                            {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
-                                        </button>
-                                    </div>
-                                </div>
-                                <Button
-                                    className="w-full h-12 rounded-xl bg-brand-rose hover:bg-brand-rose/90 text-white font-bold text-lg shadow-xl shadow-brand-rose/20"
-                                    type="submit"
-                                >
-                                    Entrer dans le labo
-                                </Button>
-                                {authError && (
-                                    <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-center text-xs text-red-500 font-bold uppercase tracking-tighter mt-2">
-                                        Accès refusé. Vérifiez votre clé.
-                                    </motion.p>
-                                )}
-                            </form>
-                        </CardContent>
-                    </Card>
-                </motion.div>
+                            {authError && <p className="text-red-500 text-xs font-bold text-center">Mot de passe incorrect</p>}
+                            <Button type="submit" className="w-full bg-stone-900 hover:bg-stone-800 text-white font-bold h-12 rounded-xl">
+                                Entrer
+                            </Button>
+                        </form>
+                    </CardContent>
+                </Card>
             </div>
         );
     }
 
     return (
-        <main className="min-h-screen bg-[#FDFCFB] py-12 md:py-16 text-stone-900 text-sm">
-            <div className="container mx-auto px-4 max-w-7xl">
+        <main className="min-h-screen bg-[#FAFAF9] py-8 text-stone-900 font-sans selection:bg-brand-rose/20 print:bg-white print:p-0 print:m-0 print:h-auto print:min-h-0 print:overflow-hidden">
+            <style jsx global>{`
+                @media print {
+                    @page { margin: 1cm; size: auto; }
+                    body { background: white; -webkit-print-color-adjust: exact; }
+                    footer, .site-footer { display: none !important; }
+                    header { display: none !important; }
+                    main { min-height: 0 !important; height: auto !important; padding: 0 !important; margin: 0 !important; }
+                }
+            `}</style>
 
-                {/* --- HEADER --- */}
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-16">
-                    <div className="space-y-4">
+            <div className="container mx-auto px-4 max-w-7xl print:max-w-none print:px-4 print:py-0">
+
+                {/* --- HEADER (Screen Only) --- */}
+                <div className="flex flex-col lg:flex-row justify-between items-end gap-6 mb-8 relative print:hidden">
+                    <div className="flex flex-col gap-2 w-full lg:w-auto">
                         <div className="flex items-center gap-3">
-                            <div className="h-12 w-12 bg-stone-900 rounded-2xl flex items-center justify-center text-white shadow-xl shadow-stone-900/10">
-                                <ChefHat className="h-7 w-7" />
+                            <div className="bg-stone-900 text-white p-2.5 rounded-xl shadow-lg shadow-stone-900/10">
+                                <ChefHat className="w-5 h-5" />
                             </div>
-                            <Badge className="bg-brand-rose/10 text-brand-rose border-none px-3 py-1 uppercase text-[10px] font-black tracking-widest">
-                                Strategic Dashboard v2.0
-                            </Badge>
+                            <span className="inline-flex items-center px-3 py-1 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-black tracking-widest uppercase border border-emerald-200">
+                                Version 3.8
+                            </span>
                         </div>
-                        <div>
-                            <h1 className="text-4xl md:text-6xl font-black tracking-tight leading-[0.9]">
-                                Calcul de <span className="text-brand-rose italic underline decoration-brand-gold/20">Profitabilité.</span>
-                            </h1>
-                            <p className="text-stone-500 mt-4 text-lg font-medium max-w-xl leading-relaxed">
-                                Ajustez vos prix, visualisez vos heures et assurez-vous que chaque session batch-cooking soit rentable pour vous comme pour vos clients.
-                            </p>
+                        <h1 className="text-3xl lg:text-4xl font-black text-stone-900 tracking-tight leading-none">
+                            Calcul de <span className="font-handwriting text-brand-rose transform -rotate-1 inline-block ml-1 text-4xl lg:text-5xl">Profitabilité.</span>
+                        </h1>
+                        <p className="text-stone-500 text-sm font-medium max-w-lg mt-1">
+                            Simulateur interactif pour ajuster vos prix et garantir votre rentabilité.
+                        </p>
+                    </div>
+
+                    <div className="flex items-center gap-3 z-10 w-full lg:w-auto justify-end">
+                        <Button
+                            onClick={handlePrint}
+                            variant="outline"
+                            className="bg-white border-stone-200 text-stone-600 hover:bg-stone-50 shadow-sm rounded-xl gap-2 font-bold"
+                        >
+                            <Printer className="w-4 h-4" />
+                            Imprimer
+                        </Button>
+                        <AnimatePresence>
+                            {hasChanges && (
+                                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+                                    <Button onClick={handleReset} size="sm" variant="ghost" className="text-stone-400">
+                                        <RotateCcw className="w-4 h-4 mr-2" /> Reset
+                                    </Button>
+                                </motion.div>
+                            )}
+                        </AnimatePresence>
+                    </div>
+                </div>
+
+                {/* --- PRINT LAYOUT (A4 One-Pager) --- */}
+                <div className="hidden print:block w-full">
+                    {/* 1. Header: Logo & date */}
+                    <div className="flex justify-between items-center mb-8 border-b-2 border-stone-900 pb-4">
+                        <div className="flex items-center gap-3">
+                            <ChefHat className="w-8 h-8 text-stone-900" />
+                            <h1 className="text-2xl font-black text-stone-900 uppercase tracking-tight">Elisa Batch Cooking</h1>
+                        </div>
+                        <div className="text-right">
+                            <p className="text-stone-400 text-xs font-bold uppercase tracking-wider">Configuration Tarifaire</p>
+                            <div className="flex items-center gap-2 text-stone-900 font-medium text-sm">
+                                <CalendarDays className="w-4 h-4" />
+                                {new Date().toLocaleDateString('fr-FR')}
+                            </div>
                         </div>
                     </div>
 
-                    <div className="flex items-center gap-4 bg-white p-4 rounded-3xl shadow-sm border border-stone-100 min-w-[280px]">
-                        <div className="h-12 w-12 rounded-2xl bg-emerald-50 flex items-center justify-center text-emerald-600">
-                            <ShieldCheck className="h-6 w-6" />
+                    {/* 2. Global Params (Compact Row) */}
+                    <div className="mb-6">
+                        <h3 className="text-xs font-black text-stone-400 uppercase tracking-widest mb-2 border-b border-stone-200 pb-1">Paramètres Généraux</h3>
+                        <div className="flex gap-8">
+                            <div className="flex items-center gap-2 bg-stone-50 px-4 py-2 rounded-lg border border-stone-100">
+                                <MapPin className="w-4 h-4 text-stone-400" />
+                                <span className="font-bold text-sm text-stone-600">Trajet Facturé:</span>
+                                <span className="font-black text-lg text-stone-900">{travelTime}h</span>
+                            </div>
+                            <div className="flex items-center gap-2 bg-stone-50 px-4 py-2 rounded-lg border border-stone-100">
+                                <Users className="w-4 h-4 text-stone-400" />
+                                <span className="font-bold text-sm text-stone-600">Prix Extra/Pers:</span>
+                                <span className="font-black text-lg text-brand-rose">{extraPersonPrice}€</span>
+                            </div>
                         </div>
-                        <div>
-                            <p className="text-[10px] font-black uppercase tracking-widest text-stone-400 leading-none mb-1.5">Identité Elisa</p>
-                            <p className="text-sm font-black text-stone-900">Session Protégée Active</p>
+                    </div>
+
+                    {/* 3. Main Data: 3 Columns for All Recipes */}
+                    <div className="mb-8">
+                        <h3 className="text-xs font-black text-stone-400 uppercase tracking-widest mb-3 border-b border-stone-200 pb-1">Grille Tarifaire Complète</h3>
+                        <div className="grid grid-cols-3 gap-6">
+                            {tiers.map((tier, idx) => (
+                                <div key={idx} className="border-2 border-stone-100 rounded-xl p-4 bg-white break-inside-avoid shadow-sm">
+                                    <div className="flex justify-between items-center mb-3 border-b border-stone-100 pb-2">
+                                        <Badge className="bg-stone-900 text-white text-sm font-black px-2 py-0.5 rounded-md">{tier.recipes} Recettes</Badge>
+                                        <div className="text-2xl font-black text-stone-900">{tier.basePrice}€</div>
+                                    </div>
+                                    <div className="space-y-2">
+                                        <div className="flex justify-between items-center bg-stone-50 p-1.5 rounded-lg">
+                                            <span className="text-[10px] font-bold text-stone-500 uppercase">Cuisine</span>
+                                            <span className="font-black text-base">{tier.cookingTime}h</span>
+                                        </div>
+                                        <div className="flex justify-between items-center bg-stone-50 p-1.5 rounded-lg">
+                                            <span className="text-[10px] font-bold text-stone-500 uppercase">Courses</span>
+                                            <span className="font-black text-base">{tier.shoppingTime}h</span>
+                                        </div>
+                                        <div className="flex justify-between items-center bg-emerald-50 p-1.5 rounded-lg border border-emerald-100 mt-2">
+                                            <span className="text-[10px] font-bold text-emerald-700 uppercase">Taux Horaire*</span>
+                                            <span className="font-black text-base text-emerald-900">
+                                                {((tier.basePrice * (1 - 0.24)) / (travelTime + tier.shoppingTime + tier.cookingTime)).toFixed(1)}€
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                        <p className="text-[9px] text-stone-400 mt-1 italic">*Estimation net horaire pour 1 personne (base)</p>
+                    </div>
+
+                    {/* 4. Footer: Simulation Snapshot (Compact) */}
+                    <div className="border-t-2 border-stone-900 pt-4 break-inside-avoid">
+                        <div className="flex justify-between items-end">
+                            <div className="max-w-xs">
+                                <h3 className="text-[10px] font-black text-stone-900 uppercase tracking-widest mb-2">Scénario Simulé</h3>
+                                <p className="text-xs text-stone-600 mb-1">Formule: <span className="font-bold text-stone-900">{results.tier.recipes} Recettes</span></p>
+                                <p className="text-xs text-stone-600 mb-1">Couverts: <span className="font-bold text-stone-900">{numPeople} Personnes</span></p>
+                                <p className="text-xs text-stone-600">Options: {isSubscription ? "Abo (-15%)" : "Standard"} {promoDiscount > 0 && `, Promo (-${promoDiscount}%)`}</p>
+                            </div>
+
+                            <div className="flex gap-8 text-right items-end">
+                                <div>
+                                    <p className="text-[10px] font-bold text-stone-400 uppercase tracking-wider mb-1">Facture Client</p>
+                                    <p className="text-3xl font-black text-stone-900 leading-none">{Math.round(results.finalInvoiced)}€</p>
+                                </div>
+                                <div className="pl-8 border-l border-stone-200">
+                                    <p className="text-[10px] font-bold text-emerald-600 uppercase tracking-wider mb-1">Net Estimé</p>
+                                    <p className="text-4xl font-black text-emerald-600 leading-none">{Math.round(results.netRevenue)}€</p>
+                                    <p className="text-xs font-bold text-emerald-800/60 mt-1">{results.netHourlyRate.toFixed(1)}€ / h</p>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
 
-                {/* --- GRID LAYOUT --- */}
-                <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-
-                    {/* --- LEFT COLUMN: CONFIGURATION --- */}
-                    <div className="lg:col-span-4 space-y-8">
-
-                        {/* Card 1: Business Constants */}
-                        <Card className="rounded-[2.5rem] border-stone-100 shadow-xl overflow-hidden bg-white group hover:shadow-2xl transition-all duration-500">
-                            <CardHeader className="bg-stone-50/50 border-b border-stone-100 pb-6 pt-8">
-                                <div className="flex items-center gap-3 mb-2">
-                                    <div className="p-2 bg-brand-rose/10 rounded-xl text-brand-rose">
-                                        <Clock className="h-5 w-5" />
-                                    </div>
-                                    <CardTitle className="text-xl font-black text-stone-900">Constantes Métier</CardTitle>
-                                </div>
-                                <CardDescription className="text-stone-500 font-medium leading-relaxed">
-                                    Réglez les temps incompressibles et vos tarifs de suppléments.
-                                </CardDescription>
-                            </CardHeader>
-                            <CardContent className="pt-8 space-y-10">
-                                {/* Trajet */}
+                {/* --- INPUTS & UI (Screen Only) --- */}
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start print:hidden">
+                    {/* LEFT INPUTS */}
+                    <div className="lg:col-span-8 space-y-8">
+                        {/* Global Params */}
+                        <section className="bg-white rounded-3xl shadow-sm border border-stone-100 p-6">
+                            <div className="flex items-center gap-3 border-b border-stone-100 pb-4 mb-6">
+                                <div className="bg-stone-50 p-2 rounded-lg text-stone-500"><Clock className="w-5 h-5" /></div>
+                                <h2 className="text-sm font-black uppercase text-stone-400 tracking-widest">Paramètres Généraux</h2>
+                            </div>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                                 <div className="space-y-4">
-                                    <div className="flex justify-between items-center group/item">
-                                        <div className="flex items-center gap-2">
-                                            <Label className="text-xs font-black uppercase tracking-widest text-stone-500">Temps de trajet (H)</Label>
-                                            <HelpCircle className="h-3 w-3 text-stone-300" />
+                                    <div className="flex justify-between items-center">
+                                        <div className="space-y-0.5">
+                                            <Label className="font-bold text-stone-800">Trajet (Aller/Retour)</Label>
+                                            <p className="text-[10px] text-stone-400 font-medium max-w-[180px]">Temps perdu en déplacement non facturé.</p>
                                         </div>
-                                        <Badge variant="outline" className="text-stone-900 font-black px-3 rounded-full border-stone-200">{travelTime}h</Badge>
+                                        <Badge variant="secondary" className="text-sm font-black px-2.5 py-0.5 bg-stone-100 text-stone-700 rounded-lg">{travelTime}h</Badge>
                                     </div>
-                                    <Slider
-                                        value={[travelTime]} onValueChange={(val) => setTravelTime(val[0])}
-                                        max={2} min={0} step={0.25} className="py-2"
-                                    />
+                                    <Slider value={[travelTime]} onValueChange={(v) => setTravelTime(v[0])} max={2} step={0.25} className="py-2" />
                                 </div>
-
-                                {/* Supplément € */}
-                                <div className="space-y-4">
-                                    <div className="flex justify-between items-center group/item">
-                                        <div className="flex items-center gap-2">
-                                            <Label className="text-xs font-black uppercase tracking-widest text-stone-500">Prix / Pers. Extra</Label>
-                                            <HelpCircle className="h-3 w-3 text-stone-300" />
+                                <div className="space-y-4 border-t md:border-t-0 md:border-l border-stone-100 pt-6 md:pt-0 md:pl-8">
+                                    <div className="flex justify-between items-center">
+                                        <div className="space-y-0.5">
+                                            <Label className="font-bold text-stone-800">Prix Pers. Supplémentaire</Label>
+                                            <p className="text-[10px] text-stone-400 font-medium max-w-[180px]">Coût ajouté par personne au delà de 1.</p>
                                         </div>
-                                        <Badge className="bg-brand-rose text-white border-none font-black px-3 rounded-full">{extraPersonPrice}€</Badge>
-                                    </div>
-                                    <Slider
-                                        value={[extraPersonPrice]} onValueChange={(val) => setExtraPersonPrice(val[0])}
-                                        max={50} min={0} step={5} className="py-2"
-                                    />
-                                </div>
-
-                                {/* Supplément Time */}
-                                <div className="space-y-4">
-                                    <div className="flex justify-between items-center group/item">
-                                        <div className="flex items-center gap-2">
-                                            <Label className="text-xs font-black uppercase tracking-widest text-stone-500">Temps / Pers. Extra</Label>
-                                            <HelpCircle className="h-3 w-3 text-stone-300" />
+                                        <div className="flex flex-col items-end">
+                                            <Badge className="bg-brand-rose text-white text-sm font-black px-2.5 py-0.5 rounded-lg">{extraPersonPrice}€</Badge>
+                                            {extraPersonPrice !== LIVE_VALUES.extraPersonPrice && (<span className="text-[9px] font-bold text-amber-500 mt-1">Site: {LIVE_VALUES.extraPersonPrice}€</span>)}
                                         </div>
-                                        <Badge variant="outline" className="text-stone-900 font-black px-3 rounded-full border-stone-200">{extraPersonTime}h</Badge>
                                     </div>
-                                    <Slider
-                                        value={[extraPersonTime]} onValueChange={(val) => setExtraPersonTime(val[0])}
-                                        max={1} min={0} step={0.05} className="py-2"
-                                    />
-                                    <p className="text-[10px] text-stone-400 font-bold uppercase tracking-tight italic">Équivaut à {Math.round(extraPersonTime * 60)} minutes.</p>
+                                    <Slider value={[extraPersonPrice]} onValueChange={(v) => setExtraPersonPrice(v[0])} max={30} step={1} className="py-2" />
                                 </div>
-                            </CardContent>
-                        </Card>
+                            </div>
+                        </section>
 
-                        {/* Card 2: Tier Grid Settings */}
-                        <Card className="rounded-[2.5rem] border-stone-100 shadow-xl overflow-hidden bg-white group hover:shadow-2xl transition-all duration-500">
-                            <CardHeader className="bg-stone-50/50 border-b border-stone-100 pb-6 pt-8">
-                                <div className="flex items-center gap-3 mb-2">
-                                    <div className="p-2 bg-brand-gold/10 rounded-xl text-brand-gold">
-                                        <ShoppingBag className="h-5 w-5" />
-                                    </div>
-                                    <CardTitle className="text-xl font-black text-stone-900">Grille des Forfaits</CardTitle>
-                                </div>
-                                <CardDescription className="text-stone-500 font-medium leading-relaxed">
-                                    Base de votre offre. Modifiez prix et temps estimés.
-                                </CardDescription>
-                            </CardHeader>
-                            <CardContent className="pt-8 space-y-6">
+                        {/* Recipe Tiers */}
+                        <section className="space-y-4">
+                            <div className="flex items-center gap-3 border-b border-stone-200/60 pb-3">
+                                <div className="bg-stone-100 p-2 rounded-lg text-stone-500"><Utensils className="w-4 h-4" /></div>
+                                <h2 className="text-sm font-black uppercase text-stone-400 tracking-widest">Vos Formules</h2>
+                            </div>
+                            <div className="grid grid-cols-1 gap-4">
                                 {tiers.map((tier, idx) => (
-                                    <div key={idx} className="p-5 rounded-3xl bg-stone-50/50 border border-stone-100 hover:border-brand-gold/30 transition-all space-y-5 group/tier">
-                                        <div className="flex justify-between items-center">
-                                            <Badge className="bg-stone-900 text-white font-black text-[10px] uppercase tracking-[0.2em] px-3 py-1.5 rounded-xl">
-                                                {tier.recipes} RECETTES
-                                            </Badge>
+                                    <div key={idx} className="bg-white rounded-2xl shadow-sm border border-stone-100 p-5 flex flex-col md:flex-row items-center gap-6 group hover:border-brand-rose/20 hover:shadow-md transition-all">
+                                        <div className="flex flex-row md:flex-col items-center md:items-start justify-between w-full md:w-40 shrink-0 gap-2">
+                                            <Badge className="bg-stone-900 text-white text-sm font-bold px-3 py-1 rounded-lg">{tier.recipes} Recettes</Badge>
+                                            <div className="text-[10px] font-bold text-stone-400 px-2 py-1 bg-stone-50 rounded-full border border-stone-100">Site: {LIVE_VALUES.tiers[tier.recipes as keyof typeof LIVE_VALUES.tiers]}€</div>
                                         </div>
-                                        <div className="grid grid-cols-2 gap-4">
+                                        <div className="grid grid-cols-3 gap-6 flex-1 w-full">
                                             <div className="space-y-2">
-                                                <Label className="text-[10px] font-black uppercase text-stone-400 tracking-wider">Prix Client (€)</Label>
+                                                <Label className="text-[10px] font-bold text-stone-400 uppercase tracking-wider pl-1">Prix</Label>
                                                 <div className="relative">
-                                                    <Input
-                                                        type="number" value={tier.basePrice}
-                                                        onChange={(e) => updateTier(idx, 'basePrice', parseInt(e.target.value) || 0)}
-                                                        className="h-11 rounded-2xl border-stone-200 bg-white font-black text-brand-rose focus:ring-brand-rose"
-                                                    />
-                                                    <Euro className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-stone-300" />
+                                                    <Input type="number" value={tier.basePrice || ''} onChange={(e) => updateTier(idx, 'basePrice', e.target.value === '' ? 0 : parseFloat(e.target.value))} className="font-black text-lg h-12 border-stone-200 bg-stone-50/50 rounded-xl text-center pl-6 pr-2 shadow-inner" />
+                                                    <Euro className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-400" />
                                                 </div>
                                             </div>
                                             <div className="space-y-2">
-                                                <Label className="text-[10px] font-black uppercase text-stone-400 tracking-wider">Cuisine (H)</Label>
-                                                <Input
-                                                    type="number" step="0.5" value={tier.cookingTime}
-                                                    onChange={(e) => updateTier(idx, 'cookingTime', parseFloat(e.target.value) || 0)}
-                                                    className="h-11 rounded-2xl border-stone-200 bg-white font-black text-stone-900"
-                                                />
+                                                <Label className="text-[10px] font-bold text-stone-400 uppercase tracking-wider pl-1 flex items-center gap-1">Cuisine <Clock className="w-3 h-3" /></Label>
+                                                <Input type="number" step="0.5" value={tier.cookingTime || ''} onChange={(e) => updateTier(idx, 'cookingTime', e.target.value === '' ? 0 : parseFloat(e.target.value))} className="font-bold text-lg h-12 border-stone-200 bg-white rounded-xl text-center" />
                                             </div>
-                                            <div className="col-span-2 space-y-2">
-                                                <Label className="text-[10px] font-black uppercase text-stone-400 tracking-wider">Courses (H)</Label>
-                                                <Input
-                                                    type="number" step="0.25" value={tier.shoppingTime}
-                                                    onChange={(e) => updateTier(idx, 'shoppingTime', parseFloat(e.target.value) || 0)}
-                                                    className="h-11 rounded-2xl border-stone-200 bg-white font-black text-stone-900"
-                                                />
+                                            <div className="space-y-2">
+                                                <Label className="text-[10px] font-bold text-stone-400 uppercase tracking-wider pl-1 flex items-center gap-1">Courses <Wallet className="w-3 h-3" /></Label>
+                                                <Input type="number" step="0.25" value={tier.shoppingTime || ''} onChange={(e) => updateTier(idx, 'shoppingTime', e.target.value === '' ? 0 : parseFloat(e.target.value))} className="font-bold text-lg h-12 border-stone-200 bg-white rounded-xl text-center" />
                                             </div>
                                         </div>
                                     </div>
                                 ))}
+                            </div>
+                        </section>
+                    </div>
+
+                    {/* RIGHT SIMULATOR (Compact & Profit First) */}
+                    <div className="lg:col-span-4 lg:sticky lg:top-8 space-y-4">
+                        <Card className="border-none shadow-xl bg-white text-stone-900 rounded-[2rem] overflow-hidden ring-4 ring-stone-50 relative pb-4">
+
+                            <CardContent className="px-5 pt-5 pb-5 space-y-5">
+
+                                {/* 1. PROFIT FIRST (Top Card) */}
+                                <div className="bg-emerald-500 text-emerald-50 p-5 rounded-3xl shadow-xl shadow-emerald-200/50 transform scale-[1.02]">
+                                    <div className="flex justify-between items-center mb-1">
+                                        <p className="text-[9px] font-black uppercase text-emerald-900/60 tracking-[0.1em]">Net en Poche</p>
+                                        <p className="text-[9px] font-bold text-emerald-900/40">(après 24% URSSAF)</p>
+                                    </div>
+
+                                    <div className="flex items-center justify-center gap-1 mb-2">
+                                        <span className="text-6xl font-black tracking-tighter text-white">{Math.round(results.netRevenue)}</span>
+                                        <span className="text-2xl font-bold opacity-80 translate-y-1 text-emerald-100">€</span>
+                                    </div>
+
+                                    <div className="h-px bg-emerald-900/10 w-full my-3"></div>
+
+                                    <div className="flex items-center justify-center gap-2 text-emerald-900">
+                                        <span className="text-3xl font-black">{results.netHourlyRate.toFixed(1)}</span>
+                                        <span className="text-sm font-bold opacity-70">€ / heure</span>
+                                    </div>
+                                </div>
+
+                                {/* 2. Secondary Metrics (Compact) */}
+                                <div className="flex justify-between items-center text-xs font-medium px-2">
+                                    <div className="text-left">
+                                        <span className="block text-stone-400 text-[9px] uppercase tracking-wider">Facture Client</span>
+                                        <span className="block text-lg font-black text-stone-900">{Math.round(results.finalInvoiced)}€</span>
+                                    </div>
+                                    <div className="h-8 w-px bg-stone-200"></div>
+                                    <div className="text-right">
+                                        <span className="block text-stone-400 text-[9px] uppercase tracking-wider">Temps Total</span>
+                                        <span className="block text-lg font-black text-stone-900">{results.totalTime.toFixed(1)}h</span>
+                                    </div>
+                                </div>
+
+                                {/* 3. INPUT S (Below) */}
+                                <div className="space-y-4 pt-4 border-t border-stone-100">
+                                    <div className="space-y-3">
+                                        <div className="space-y-2">
+                                            <Label className="text-[10px] text-stone-400 font-bold uppercase tracking-widest pl-1">Formule Choisie</Label>
+                                            <select value={selectedRecipes} onChange={(e) => setSelectedRecipes(Number(e.target.value))} className="w-full bg-stone-100 border border-stone-200 rounded-xl h-10 text-center text-sm font-bold text-stone-900 outline-none focus:ring-2 focus:ring-brand-gold cursor-pointer appearance-none hover:bg-stone-200 transition-colors">
+                                                <option value="3" className="text-stone-900">3 Recettes</option>
+                                                <option value="5" className="text-stone-900">5 Recettes</option>
+                                                <option value="6" className="text-stone-900">6 Recettes</option>
+                                            </select>
+                                        </div>
+                                        <div className="space-y-2">
+                                            <div className="flex justify-between items-end">
+                                                <Label className="text-[10px] text-stone-400 font-bold uppercase tracking-widest pl-1">Nombre de Personnes</Label>
+                                                <div className="flex items-center gap-1.5 bg-stone-100 px-3 py-1 rounded-lg border border-stone-200"><Users className="w-3 h-3 text-brand-gold" /><span className="text-sm font-black text-stone-900">{numPeople}</span></div>
+                                            </div>
+                                            <Slider value={[numPeople]} onValueChange={(v) => setNumPeople(v[0])} min={1} max={8} step={1} className="py-2" />
+                                        </div>
+                                    </div>
+
+                                    {/* Exclusive Discounts */}
+                                    <div className="space-y-3 pt-3 border-t border-stone-100">
+                                        <div className={`flex items-center justify-between p-2.5 rounded-xl transition-colors border cursor-pointer ${isSubscription ? "bg-brand-rose/5 border-brand-rose/20" : "bg-stone-50 border-stone-100 hover:bg-stone-100"}`} onClick={() => handleSubscriptionChange(!isSubscription)}>
+                                            <div className="space-y-0.5">
+                                                <span className={`text-xs font-bold block ${isSubscription ? "text-brand-rose" : "text-stone-800"}`}>Abonnement (-15%)</span>
+                                            </div>
+                                            <Switch checked={isSubscription} onCheckedChange={handleSubscriptionChange} className="data-[state=checked]:bg-brand-rose scale-75 origin-right" />
+                                        </div>
+
+                                        <div className={`p-2.5 rounded-xl border space-y-2 ${promoDiscount > 0 ? "bg-brand-gold/10 border-brand-gold/20" : "bg-stone-50 border-stone-100"}`}>
+                                            <div className="flex justify-between items-center">
+                                                <span className={`text-xs font-bold ${promoDiscount > 0 ? "text-stone-900" : "text-stone-500"}`}>Vente Flash</span>
+                                                <Badge className={`text-[10px] font-black pointer-events-none h-5 ${promoDiscount > 0 ? 'bg-brand-gold text-stone-900' : 'bg-stone-200 text-stone-400'}`}>-{promoDiscount}%</Badge>
+                                            </div>
+                                            <Slider
+                                                value={[promoDiscount]}
+                                                onValueChange={(v) => handlePromoChange(v[0])}
+                                                max={50} step={5}
+                                                className="py-1"
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
                             </CardContent>
                         </Card>
                     </div>
-
-                    {/* --- RIGHT COLUMN: SIMULATOR & DASHBOARD --- */}
-                    <div className="lg:col-span-8 space-y-8">
-
-                        {/* Card 3: Live Simulator Interaction */}
-                        <div className="bg-stone-900 rounded-[3rem] p-8 md:p-12 text-white shadow-3xl relative overflow-hidden ring-1 ring-white/10">
-                            <div className="absolute top-0 right-0 w-96 h-96 bg-brand-rose/20 blur-[120px] rounded-full -mr-48 -mt-48 pointer-events-none opacity-40" />
-                            <div className="absolute bottom-0 left-0 w-64 h-64 bg-brand-gold/10 blur-[100px] rounded-full -ml-32 -mb-32 pointer-events-none opacity-30" />
-
-                            <div className="relative z-10 space-y-10">
-                                <div className="flex flex-col md:flex-row items-center justify-between gap-10">
-                                    <div className="flex-1 w-full space-y-8">
-                                        <div className="space-y-2">
-                                            <p className="text-brand-gold font-black text-[11px] uppercase tracking-[0.4em]">Simulateur Temps Réel</p>
-                                            <h2 className="text-3xl font-black tracking-tight leading-none">Scénario de session.</h2>
-                                        </div>
-
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                                            <div className="space-y-5">
-                                                <Label className="text-stone-400 text-xs font-black uppercase tracking-widest flex items-center gap-2">
-                                                    <Utensils className="h-4 w-4 text-brand-rose" /> Volume de Recettes
-                                                </Label>
-                                                <div className="flex gap-2">
-                                                    {[3, 5, 6].map((n) => (
-                                                        <button
-                                                            key={n} onClick={() => setSelectedRecipes(n)}
-                                                            className={cn(
-                                                                "h-16 flex-1 rounded-3xl font-black text-2xl transition-all border-2",
-                                                                selectedRecipes === n
-                                                                    ? "bg-brand-rose border-brand-rose text-white shadow-2xl shadow-brand-rose/40 scale-105"
-                                                                    : "bg-white/5 border-white/10 text-stone-500 hover:border-white/20 hover:text-white"
-                                                            )}
-                                                        >
-                                                            {n}
-                                                        </button>
-                                                    ))}
-                                                </div>
-                                            </div>
-
-                                            <div className="space-y-5">
-                                                <Label className="text-stone-400 text-xs font-black uppercase tracking-widest flex items-center gap-2">
-                                                    <User className="h-4 w-4 text-brand-gold" /> Nombre de personnes
-                                                </Label>
-                                                <div className="flex items-center gap-6 bg-white/5 p-4 rounded-3xl border border-white/10 transition-all">
-                                                    <Slider
-                                                        value={[numPeople]} onValueChange={(val) => setNumPeople(val[0])}
-                                                        max={8} min={1} step={1} className="py-2 flex-1"
-                                                    />
-                                                    <span className="text-5xl font-black text-brand-gold tabular-nums min-w-[3rem] text-center">{numPeople}</span>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                {/* Primary Visual Metrics */}
-                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                                    <div className="bg-white/[0.03] backdrop-blur-md border border-white/10 rounded-[2.5rem] p-7 group hover:bg-white/[0.06] transition-all">
-                                        <p className="text-[10px] font-black uppercase text-stone-500 mb-4 tracking-widest leading-none">Heures Engagées</p>
-                                        <div className="flex items-baseline gap-1">
-                                            <span className="text-4xl font-black text-white">{results.totalTime.toFixed(1)}</span>
-                                            <span className="text-sm font-bold text-stone-500 lowercase">h</span>
-                                        </div>
-                                        <p className="text-[8px] font-black uppercase text-stone-600 mt-4 tracking-tighter">Trajet + Courses + Cuisine</p>
-                                    </div>
-
-                                    <div className="bg-white/[0.03] backdrop-blur-md border border-white/10 rounded-[2.5rem] p-7 group hover:bg-white/[0.06] transition-all">
-                                        <p className="text-[10px] font-black uppercase text-stone-500 mb-4 tracking-widest leading-none">CA BRUT Visite</p>
-                                        <div className="flex items-baseline gap-1">
-                                            <span className="text-4xl font-black text-white">{results.totalRevenue}</span>
-                                            <span className="text-sm font-bold text-stone-500 uppercase">€</span>
-                                        </div>
-                                        <p className="text-[8px] font-black uppercase text-brand-gold/60 mt-4 tracking-tighter">Facturation Directe</p>
-                                    </div>
-
-                                    <div className="bg-brand-rose/20 border border-brand-rose/30 rounded-[2.5rem] p-7 group hover:bg-brand-rose/30 transition-all ring-1 ring-brand-rose/20">
-                                        <p className="text-[10px] font-black uppercase text-brand-gold mb-4 tracking-widest leading-none">Net en Poche (est.)</p>
-                                        <div className="flex items-baseline gap-1">
-                                            <span className="text-4xl font-black text-white">{Math.round(results.netRevenue)}</span>
-                                            <span className="text-sm font-bold text-stone-300 uppercase">€</span>
-                                        </div>
-                                        <p className="text-[8px] font-black uppercase text-white/40 mt-4 tracking-tighter">Après URSSAF 24%</p>
-                                    </div>
-
-                                    <div className="bg-brand-gold/20 border border-brand-gold/30 rounded-[2.5rem] p-7 group hover:bg-brand-gold/30 transition-all ring-1 ring-brand-gold/20">
-                                        <p className="text-[10px] font-black uppercase text-brand-gold mb-4 tracking-widest leading-none">Taux Horaire Net</p>
-                                        <div className="flex items-baseline gap-1">
-                                            <span className="text-4xl font-black text-white scale-110 origin-left">{Math.round(results.netHourlyRate)}</span>
-                                            <span className="text-sm font-bold text-stone-300 uppercase ml-1">€/h</span>
-                                        </div>
-                                        <p className="text-[8px] font-black uppercase text-white/40 mt-4 tracking-tighter">Objectif : 35€/h</p>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Card 4: Detailed Customer Analysis & Profit Breakdown */}
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-
-                            {/* Perspective Client - Focus on ingredients/real cost */}
-                            <Card className="rounded-[3rem] border-stone-100 shadow-xl overflow-hidden flex flex-col pt-10 px-10 pb-12 bg-white ring-1 ring-stone-900/5 hover:-translate-y-1 transition-all duration-500">
-                                <div className="flex items-center gap-3 mb-10">
-                                    <div className="h-10 w-10 bg-brand-gold/10 rounded-2xl flex items-center justify-center text-brand-gold">
-                                        <ShoppingBag className="h-5 w-5" />
-                                    </div>
-                                    <div>
-                                        <h3 className="text-2xl font-black text-stone-900 tracking-tight leading-none mb-1">Impact Client</h3>
-                                        <p className="text-[10px] text-stone-400 font-black uppercase tracking-widest">Coût global des courses</p>
-                                    </div>
-                                </div>
-
-                                <div className="space-y-10 flex-1">
-                                    <div className="bg-stone-50 rounded-[2.5rem] p-10 border border-stone-100 text-center relative">
-                                        <div className="absolute top-4 left-1/2 -translate-x-1/2">
-                                            <Badge className="bg-stone-900 text-white font-black text-[9px] uppercase px-3 py-1 rounded-full">TOTAL DÉBOURSÉ</Badge>
-                                        </div>
-                                        <div className="flex items-baseline justify-center gap-1 mt-4">
-                                            <span className="text-7xl font-black text-stone-900 tracking-tighter tabular-nums">{Math.round(results.clientTotalOutOfPocket)}</span>
-                                            <span className="text-2xl font-black text-stone-400 uppercase">€</span>
-                                        </div>
-                                        <p className="text-[11px] font-bold text-stone-400 uppercase tracking-widest mt-2 italic">Service + Ingrédients (Max)</p>
-                                    </div>
-
-                                    <div className="grid grid-cols-2 gap-4">
-                                        <div className="bg-stone-50/50 p-6 rounded-3xl border border-stone-100 text-center">
-                                            <p className="text-3xl font-black text-brand-rose">{results.costPerMeal.toFixed(1)}€</p>
-                                            <p className="text-[8px] font-black uppercase text-stone-400 tracking-[0.2em] mt-2 leading-none">L'Assiette<br />Cuisinée Chef</p>
-                                        </div>
-                                        <div className="bg-stone-50/50 p-6 rounded-3xl border border-stone-100 text-center">
-                                            <p className="text-3xl font-black text-stone-900 tabular-nums">{Math.round(results.totalGroceryCost)}€</p>
-                                            <p className="text-[8px] font-black uppercase text-stone-400 tracking-[0.2em] mt-2 leading-none">Estimation<br />Courses (Max)</p>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div className="mt-12 p-6 bg-stone-900 rounded-[2rem] text-white/90">
-                                    <div className="flex items-start gap-3">
-                                        <Info className="h-5 w-5 text-brand-gold shrink-0 mt-0.5" />
-                                        <p className="text-[11px] leading-[1.6] font-medium opacity-80">
-                                            Les clients retiennent l'effort financier TOTAL. Pour **{numPeople} personnes**, inclure les courses (est. **{Math.round(results.totalGroceryCost)}€**) montre que le repas revient à seulement **{Math.round(results.clientTotalOutOfPocket / results.totalMeals)}€** tout inclus.
-                                        </p>
-                                    </div>
-                                </div>
-                            </Card>
-
-                            {/* Analyse de Rentabilité - Elisa's Efficiency */}
-                            <Card className="rounded-[3rem] border-stone-100 shadow-xl overflow-hidden flex flex-col p-10 bg-white ring-1 ring-stone-900/5 hover:-translate-y-1 transition-all duration-500">
-                                <div className="flex items-center gap-3 mb-10">
-                                    <div className="h-10 w-10 bg-brand-rose/10 rounded-2xl flex items-center justify-center text-brand-rose">
-                                        <TrendingUp className="h-5 w-5" />
-                                    </div>
-                                    <div>
-                                        <h3 className="text-2xl font-black text-stone-900 tracking-tight leading-none mb-1">Votre Efficacité</h3>
-                                        <p className="text-[10px] text-stone-400 font-black uppercase tracking-widest">Temps vs Profit Net</p>
-                                    </div>
-                                </div>
-
-                                <div className="space-y-12 flex-1 flex flex-col">
-
-                                    <div className="space-y-8">
-                                        <div className="space-y-4">
-                                            <div className="flex justify-between items-end">
-                                                <div className="space-y-1">
-                                                    <Label className="text-[10px] font-black uppercase text-stone-400 tracking-widest">Densité Session</Label>
-                                                    <p className="text-sm font-black text-stone-900">{results.totalMeals} Plats cuisinés</p>
-                                                </div>
-                                                <Badge className="bg-emerald-100 text-emerald-700 border-none font-black text-[10px]">OPTIMAL</Badge>
-                                            </div>
-                                            <div className="h-3 w-full bg-stone-100 rounded-full overflow-hidden p-0.5 ring-1 ring-stone-900/5">
-                                                <motion.div
-                                                    className="h-full bg-emerald-500 rounded-full"
-                                                    initial={{ width: 0 }}
-                                                    animate={{ width: "88%" }}
-                                                />
-                                            </div>
-                                        </div>
-
-                                        <div className="space-y-4">
-                                            <div className="flex justify-between items-end text-xs font-black uppercase tracking-widest">
-                                                <div className="space-y-1">
-                                                    <Label className="text-[10px] font-black uppercase text-stone-400 tracking-widest">Rentabilité Temps / Net</Label>
-                                                    <p className="text-sm font-black text-stone-900">{Math.round(results.netHourlyRate)}€ / Heure de vie</p>
-                                                </div>
-                                                <span className={cn(
-                                                    "text-[10px]",
-                                                    results.netHourlyRate > 35 ? "text-emerald-500" : "text-brand-rose"
-                                                )}>
-                                                    {results.netHourlyRate > 35 ? 'EXCELLENTE' : 'À AMÉLIORER'}
-                                                </span>
-                                            </div>
-                                            <div className="h-3 w-full bg-stone-100 rounded-full overflow-hidden p-0.5 ring-1 ring-stone-900/5">
-                                                <motion.div
-                                                    className="h-full bg-brand-rose"
-                                                    initial={{ width: 0 }}
-                                                    animate={{ width: `${Math.min(100, (results.netHourlyRate / 50) * 100)}%` }}
-                                                />
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <div className="mt-auto">
-                                        <div className="p-8 bg-brand-gold/10 rounded-[2.5rem] border border-brand-gold/20 flex items-start gap-4">
-                                            <div className="p-3 bg-white rounded-2xl shadow-sm text-brand-gold shrink-0">
-                                                <ChefHat className="h-6 w-6" />
-                                            </div>
-                                            <div>
-                                                <p className="text-xs font-black uppercase text-brand-gold mb-2 tracking-widest leading-none">Conseil Stratégique</p>
-                                                <p className="text-[11px] text-stone-700 font-bold leading-relaxed italic">
-                                                    "Pour cette zone, tu génères **{Math.round(results.netRevenue)}€ NET** pour une journée de **{results.totalTime.toFixed(1)}h**. Si tu veux augmenter ton taux horaire, réduit le temps des courses ou optimise ton trajet."
-                                                </p>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </Card>
-                        </div>
-                    </div>
                 </div>
-
-                {/* --- FOOTER --- */}
-                <footer className="mt-24 pt-10 border-t border-stone-200 text-center space-y-4">
-                    <p className="text-[10px] font-black uppercase tracking-[0.5em] text-stone-400">Copyright © 2024 Chef Elisa • Confidentialité Entreprise</p>
-                    <div className="flex justify-center gap-6">
-                        <span className="flex items-center gap-1.5 text-[10px] font-black text-stone-300 uppercase tracking-widest"><ShieldCheck className="h-3 w-3" /> Chiffrement SSL</span>
-                        <span className="flex items-center gap-1.5 text-[10px] font-black text-stone-300 uppercase tracking-widest"><Lock className="h-3 w-3" /> Accès Restreint</span>
-                    </div>
-                </footer>
             </div>
         </main>
     );
