@@ -281,9 +281,9 @@ export default function TimeSavingsVisualizer({ savings, meals, onBookNow }: Tim
                             >
                                 <Button
                                     onClick={onBookNow}
-                                    className="bg-white text-brand-rose hover:bg-rose-50 font-black uppercase tracking-widest text-xs px-8 py-6 rounded-full shadow-lg shadow-black/10 hover:shadow-xl transition-all hover:-translate-y-0.5"
+                                    className="bg-white text-brand-rose hover:bg-rose-50 font-black uppercase tracking-widest text-xs px-8 py-6 rounded-full shadow-lg shadow-black/10 hover:shadow-xl transition-all hover:-translate-y-0.5 border-4 border-brand-gold"
                                 >
-                                    Je récupère mes {savings.total.split(' ')[0]}h maintenant
+                                    Je récupère mes {savings.total.split(' ')[0]} maintenant
                                     <ArrowRight className="ml-2 h-4 w-4" />
                                 </Button>
                             </motion.div>

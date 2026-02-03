@@ -816,7 +816,7 @@ export function SimulatorForm({ promoConfig }: SimulatorFormProps) {
                             <div className="flex flex-col ml-2">
                                 <span className="text-[10px] font-black uppercase tracking-widest text-stone-400">Temps Sauvé</span>
                                 <div className="flex items-baseline gap-1">
-                                    <span className="text-xl font-black text-white leading-none flex items-center">{calculation.tier.savings.total.split(' ')[0]}h</span>
+                                    <span className="text-xl font-black text-white leading-none flex items-center">{calculation.tier.savings.total.split(' ')[0]}</span>
                                     <span className="text-[9px] font-bold text-stone-500 uppercase tracking-widest">/ semaine</span>
                                 </div>
                             </div>
