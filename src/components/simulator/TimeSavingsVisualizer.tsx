@@ -71,7 +71,7 @@ const SuggestionRotator = ({ className }: { className?: string }) => {
     return (
         <div className={cn("pointer-events-none flex flex-col items-center md:items-end gap-3", className)}>
             <div className="space-y-1 text-center md:text-right">
-                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-brand-gold mb-1">Utilisez ce temps pour...</p>
+                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-rose-100 mb-1">Utilisez ce temps pour...</p>
             </div>
 
             <div className="relative flex flex-col items-center md:items-end gap-3">
@@ -84,8 +84,8 @@ const SuggestionRotator = ({ className }: { className?: string }) => {
                         transition={{ type: "spring", damping: 20, stiffness: 120 }}
                         className="relative"
                     >
-                        <div className="absolute inset-0 bg-brand-gold/30 blur-2xl rounded-full" />
-                        <div className="relative h-14 w-14 rounded-2xl bg-white shadow-xl border border-stone-100 flex items-center justify-center text-brand-rose">
+                        <div className="absolute inset-0 bg-white/20 blur-2xl rounded-full" />
+                        <div className="relative h-14 w-14 rounded-2xl bg-white/10 backdrop-blur-md shadow-xl border border-white/20 flex items-center justify-center text-white">
                             <Icon className="h-7 w-7" />
                         </div>
                     </motion.div>
@@ -98,7 +98,7 @@ const SuggestionRotator = ({ className }: { className?: string }) => {
                         animate={{ opacity: 1, x: 0 }}
                         exit={{ opacity: 0, x: -20 }}
                         transition={{ type: "spring", damping: 20, stiffness: 100 }}
-                        className="text-sm font-black text-stone-900 tracking-tight leading-tight max-w-[180px] text-center md:text-right"
+                        className="text-sm font-black text-white tracking-tight leading-tight max-w-[180px] text-center md:text-right drop-shadow-sm"
                     >
                         {text}
                     </motion.p>
@@ -251,23 +251,23 @@ export const TimeSavingsBreakdown = ({
 
 export default function TimeSavingsVisualizer({ savings, meals }: TimeSavingsVisualizerProps) {
     return (
-        <Card className="border-none bg-white shadow-xl rounded-[3rem] overflow-hidden">
+        <Card className="border-none bg-white shadow-xl rounded-[3rem] overflow-hidden p-0 gap-0">
             {/* SIMPLIFIED HEADER */}
-            <div className="bg-gradient-to-br from-brand-rose/5 via-white to-brand-gold/5 p-8 md:p-12 relative overflow-hidden border-b border-stone-100/50">
-                <div className="absolute top-0 right-0 w-64 h-64 bg-brand-rose/5 blur-[80px] rounded-full -mr-32 -mt-32 opacity-60" />
+            <div className="bg-gradient-to-br from-brand-rose via-brand-rose/90 to-brand-gold p-8 md:p-12 relative overflow-hidden border-b border-stone-100/50">
+                <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 blur-[80px] rounded-full -mr-32 -mt-32 opacity-60" />
 
                 <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-12 text-center md:text-left">
                     <div className="space-y-4">
-                        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-brand-rose/10 text-brand-rose">
-                            <Sparkles className="h-3 w-3" />
+                        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/20 text-white border border-white/20 backdrop-blur-sm shadow-sm">
+                            <Sparkles className="h-3 w-3 fill-current" />
                             <span className="text-[10px] font-black uppercase tracking-widest">Votre Liberté</span>
                         </div>
-                        <h3 className="text-4xl md:text-5xl font-black tracking-tighter leading-none text-stone-900">
+                        <h3 className="text-4xl md:text-5xl font-black tracking-tighter leading-none text-white drop-shadow-sm">
                             Le temps que vous <br />
-                            <span className="text-brand-rose">allez récupérer.</span>
+                            <span className="text-rose-100">allez récupérer.</span>
                         </h3>
-                        <p className="text-stone-500 text-sm md:text-base font-medium max-w-sm mx-auto md:mx-0">
-                            Chaque semaine, je m'occupe de tout pour vous offrir <span className="text-stone-900 font-bold">le luxe ultime : votre temps.</span>
+                        <p className="text-rose-50 text-sm md:text-base font-medium max-w-sm mx-auto md:mx-0">
+                            Chaque semaine, je m'occupe de tout pour vous offrir <span className="text-white font-bold">le luxe ultime : votre temps.</span>
                         </p>
                     </div>
 
@@ -275,18 +275,18 @@ export default function TimeSavingsVisualizer({ savings, meals }: TimeSavingsVis
                         <SuggestionRotator className="w-full md:w-48" />
 
                         <div className="relative group">
-                            <div className="absolute inset-0 bg-brand-rose/20 blur-3xl rounded-full scale-75 group-hover:scale-100 transition-transform duration-700" />
-                            <div className="relative h-32 w-32 md:h-40 md:w-40 rounded-full bg-white border-8 border-brand-rose/5 flex flex-col items-center justify-center shadow-2xl">
-                                <Clock className="h-6 w-6 text-brand-rose mb-1" />
+                            <div className="absolute inset-0 bg-white/30 blur-3xl rounded-full scale-75 group-hover:scale-100 transition-transform duration-700" />
+                            <div className="relative h-32 w-32 md:h-40 md:w-40 rounded-full bg-white/10 backdrop-blur-md border-8 border-white/20 flex flex-col items-center justify-center shadow-2xl">
+                                <Clock className="h-6 w-6 text-white mb-1" />
                                 <motion.p
                                     key={savings.total}
                                     initial={{ scale: 1.2, opacity: 0 }}
                                     animate={{ scale: 1, opacity: 1 }}
-                                    className="text-4xl md:text-5xl font-black tracking-tighter leading-none text-stone-900"
+                                    className="text-4xl md:text-5xl font-black tracking-tighter leading-none text-white drop-shadow-sm"
                                 >
                                     {savings.total.split(' ')[0]}
                                 </motion.p>
-                                <p className="text-xs font-black uppercase tracking-widest text-brand-gold mt-1">Heures</p>
+                                <p className="text-xs font-black uppercase tracking-widest text-rose-100 mt-1">Heures</p>
                             </div>
                         </div>
                     </div>

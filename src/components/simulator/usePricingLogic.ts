@@ -69,7 +69,7 @@ export const PRICING_CONFIG = {
         }
     } as Record<string, PricingTier>,
     EXTRA_PERSON_FEE: 10,
-    MAX_PEOPLE: 8,
+    MAX_PEOPLE: 6,
     SUB_DISCOUNT: 0.15,
 };
 
@@ -107,6 +107,7 @@ export function usePricingCalculation(
 
         // 3. Amount to pay Elisa (per visit)
         // Corrected: Subtract the applicable discount from the original price
+        // We use exact values including decimals (as requested)
         const amountToPayElisa = originalServicePrice - serviceDiscount - flashSaleAmount;
 
         // 4. Tax Credit (50% of the invoice)

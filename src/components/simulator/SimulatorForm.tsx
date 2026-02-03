@@ -4,7 +4,7 @@ import React, { useState, useMemo } from "react";
 import Link from "next/link";
 import { useSearchParams } from 'next/navigation';
 import { motion, AnimatePresence } from "framer-motion";
-import { Check, Flame, Lightbulb, ArrowRight, ArrowLeft, Utensils, Clock, Cookie } from "lucide-react";
+import { ArrowLeft, ArrowRight, Briefcase, Car, Check, Clock, Cookie, Flame, Lightbulb, ListTodo, PackageOpen, Search, Utensils } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { PRICING_CONFIG, usePricingCalculation, getGroceryUnitCost } from "@/components/simulator/usePricingLogic";
 import { AddressAutocomplete } from "@/components/booking/AddressAutocomplete";
@@ -21,11 +21,41 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import TimeSavingsVisualizer, { TimeSavingsBreakdown } from "@/components/simulator/TimeSavingsVisualizer";
+import CountUp from "@/components/ui/CountUp";
 import { SiteConfig } from "@/lib/googleSheets";
 
 interface SimulatorFormProps {
     promoConfig: SiteConfig | null;
 }
+
+const formatPrice = (price: number) => {
+    return price % 1 === 0 ? price.toString() : price.toFixed(2);
+};
+
+// New visual component for cleaner prices
+const PriceDisplay = ({ amount, className = "", currencyClassName = "", large = false }: { amount: number, className?: string, currencyClassName?: string, large?: boolean }) => {
+    // If integer, just show integer
+    if (amount % 1 === 0) {
+        return (
+            <span className={cn("inline-flex items-baseline", className)}>
+                {amount}
+                <span className={cn("ml-0.5", currencyClassName)}>€</span>
+            </span>
+        );
+    }
+
+    // Split for styling
+    const formatted = amount.toFixed(2);
+    const [int, dec] = formatted.split('.');
+
+    return (
+        <span className={cn("inline-flex items-baseline", className)}>
+            {int}
+            <span className={cn("font-bold opacity-80 select-none", large ? "text-[0.5em] -translate-y-4" : "text-[0.65em] -translate-y-1")}>,{dec}</span>
+            <span className={cn("ml-0.5", currencyClassName)}>€</span>
+        </span>
+    );
+};
 
 export function SimulatorForm({ promoConfig }: SimulatorFormProps) {
     const [step, setStep] = useState(0);
@@ -96,10 +126,10 @@ export function SimulatorForm({ promoConfig }: SimulatorFormProps) {
                 frequency_label: frequencyLabel,
                 engagement_type: engagementLabel,
                 has_sweet_addon: hasSweetAddon ? "Oui" : "Non",
-                total_price: `${Math.round(calculation.finalPocketCost)}€`,
-                billed_total: `${Math.round(calculation.amountToPayElisa)}€`,
-                grocery_min: `${Math.round(calculation.groceryRange.min)}€`,
-                grocery_max: `${Math.round(calculation.groceryRange.max)}€`,
+                total_price: `${formatPrice(calculation.finalPocketCost)}€`,
+                billed_total: `${formatPrice(calculation.amountToPayElisa)}€`,
+                grocery_min: `${formatPrice(calculation.groceryRange.min)}€`,
+                grocery_max: `${formatPrice(calculation.groceryRange.max)}€`,
                 custom_message: formData.message,
                 promo_applied: isPromoActive ? `${promoConfig?.promoLabel} (-${activeDiscount}%)` : "Aucune"
             };
@@ -327,9 +357,9 @@ export function SimulatorForm({ promoConfig }: SimulatorFormProps) {
                                                     Pour <span className="text-6xl md:text-7xl text-brand-rose font-black leading-none">{people}</span> convives
                                                 </div>
                                                 <div className="px-4 mb-8">
-                                                    <Slider value={[people]} onValueChange={(val) => setPeople(val[0])} max={8} min={1} step={1} className="[&_[role=slider]]:h-8 [&_[role=slider]]:w-8 [&_[role=slider]]:border-4 [&_[role=slider]]:border-white [&_[role=slider]]:bg-brand-rose [&_[role=slider]]:shadow-xl" />
+                                                    <Slider value={[people]} onValueChange={(val) => setPeople(val[0])} max={6} min={1} step={1} className="[&_[role=slider]]:h-8 [&_[role=slider]]:w-8 [&_[role=slider]]:border-4 [&_[role=slider]]:border-white [&_[role=slider]]:bg-brand-rose [&_[role=slider]]:shadow-xl" />
                                                     <div className="flex justify-between mt-4 text-[10px] font-black uppercase tracking-widest text-stone-300">
-                                                        <span>Solo</span><span>8 personnes</span>
+                                                        <span>Solo</span><span>6 personnes</span>
                                                     </div>
                                                 </div>
                                                 <div className="min-h-[50px] flex justify-center items-center">
@@ -451,14 +481,22 @@ export function SimulatorForm({ promoConfig }: SimulatorFormProps) {
                                 <motion.div
                                     initial={{ scale: 0.95, opacity: 0 }}
                                     animate={{ scale: 1, opacity: 1 }}
-                                    className="bg-gradient-to-br from-brand-rose/5 via-white to-brand-gold/5 p-6 rounded-[2.5rem] text-stone-900 relative overflow-hidden shadow-xl border-2 border-white"
+                                    className="bg-gradient-to-br from-brand-rose/20 via-white to-brand-gold/20 p-6 rounded-[2.5rem] text-stone-900 relative overflow-hidden shadow-xl border-2 border-white"
                                 >
                                     <div className="absolute top-0 right-0 w-32 h-32 bg-brand-rose/10 blur-[60px] rounded-full -mr-16 -mt-16 animate-pulse" />
                                     <div className="relative z-10 flex items-center justify-between">
                                         <div className="space-y-1">
-                                            <p className="text-brand-rose font-black text-[9px] uppercase tracking-[0.4em] leading-none mb-2">Votre Temps de Vie Sauvé</p>
+                                            <p className="text-brand-rose font-black text-[10px] md:text-xs uppercase tracking-[0.2em] leading-tight mb-1">Votre Temps de Vie Sauvé</p>
+                                            <p className="text-[9px] text-stone-400 font-medium leading-tight mb-2 italic">Ce n'est pas mon temps de travail, c'est <span className="font-bold text-brand-rose">votre temps libre.</span></p>
                                             <div className="flex items-baseline gap-2">
-                                                <span className="text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-brand-rose to-brand-gold tracking-tighter leading-none">{calculation.tier.savings.total.split(' ')[0]}</span>
+                                                <span className="text-5xl md:text-6xl font-black text-transparent bg-clip-text bg-gradient-to-r from-brand-rose to-brand-gold tracking-tighter leading-none">
+                                                    <CountUp
+                                                        to={parseFloat(calculation.tier.savings.total.split(' ')[0])}
+                                                        duration={1.5}
+                                                        separator=","
+                                                        className="tabular-nums"
+                                                    />
+                                                </span>
                                                 <span className="text-lg font-black text-stone-300 uppercase">Heures</span>
                                             </div>
                                         </div>
@@ -467,14 +505,80 @@ export function SimulatorForm({ promoConfig }: SimulatorFormProps) {
                                         </div>
                                     </div>
 
-                                    {/* Real-time Category Breakdown */}
-                                    <TimeSavingsBreakdown
-                                        savings={calculation.tier.savings}
-                                        meals={calculation.tier.meals}
-                                        isCompact={true}
-                                        isExtraCompact={true}
-                                        className="mt-6 pt-6 border-t border-brand-rose/10"
-                                    />
+                                    {/* Real-time Category Breakdown - Sorted by Dynamic Impact */}
+                                    <div className="mt-6 pt-6 border-t border-brand-rose/10 space-y-4">
+                                        {/* 1. Cuisine & Vaisselle (Most Dynamic) */}
+                                        <div className="flex items-center justify-between p-3 rounded-xl bg-white/70 border border-white shadow-sm hover:shadow-md transition-all duration-300 group">
+                                            <div className="flex items-center gap-3">
+                                                <div className="h-8 w-8 rounded-xl bg-stone-50 border border-stone-100 flex items-center justify-center text-stone-400 group-hover:bg-brand-rose/10 group-hover:text-brand-rose transition-all duration-300">
+                                                    <Utensils className="h-4 w-4" />
+                                                </div>
+                                                <p className="font-bold text-stone-700 uppercase tracking-widest leading-none text-[10px]">
+                                                    Cuisine & Vaisselle <span className="text-stone-400 text-[9px] lowercase italic normal-case block mt-0.5">(pour {calculation.tier.meals} recettes)</span>
+                                                </p>
+                                            </div>
+                                            <div className="font-black text-sm tabular-nums leading-none">
+                                                {Math.floor(calculation.tier.savings.cookingCleaning / 60) > 0 && <><CountUp to={Math.floor(calculation.tier.savings.cookingCleaning / 60)} duration={1} />h</>}
+                                                {(calculation.tier.savings.cookingCleaning % 60) > 0 && <><CountUp to={calculation.tier.savings.cookingCleaning % 60} duration={1} />min</>}
+                                            </div>
+                                        </div>
+
+                                        {/* 2. Recherche & Menus */}
+                                        <div className="flex items-center justify-between p-3 rounded-xl bg-white/70 border border-white shadow-sm hover:shadow-md transition-all duration-300 group">
+                                            <div className="flex items-center gap-3">
+                                                <div className="h-8 w-8 rounded-xl bg-stone-50 border border-stone-100 flex items-center justify-center text-stone-400 group-hover:bg-brand-rose/10 group-hover:text-brand-rose transition-all duration-300">
+                                                    <Search className="h-4 w-4" />
+                                                </div>
+                                                <p className="font-bold text-stone-700 uppercase tracking-widest leading-none text-[10px]">Recherche & Menus</p>
+                                            </div>
+                                            <div className="font-black text-sm tabular-nums leading-none">
+                                                {Math.floor(calculation.tier.savings.planning / 60) > 0 && <><CountUp to={Math.floor(calculation.tier.savings.planning / 60)} duration={1} />h</>}
+                                                {(calculation.tier.savings.planning % 60) > 0 && <><CountUp to={calculation.tier.savings.planning % 60} duration={1} />min</>}
+                                            </div>
+                                        </div>
+
+                                        {/* 3. Liste de courses */}
+                                        <div className="flex items-center justify-between p-3 rounded-xl bg-white/70 border border-white shadow-sm hover:shadow-md transition-all duration-300 group">
+                                            <div className="flex items-center gap-3">
+                                                <div className="h-8 w-8 rounded-xl bg-stone-50 border border-stone-100 flex items-center justify-center text-stone-400 group-hover:bg-brand-rose/10 group-hover:text-brand-rose transition-all duration-300">
+                                                    <ListTodo className="h-4 w-4" />
+                                                </div>
+                                                <p className="font-bold text-stone-700 uppercase tracking-widest leading-none text-[10px]">Liste de courses</p>
+                                            </div>
+                                            <div className="font-black text-sm tabular-nums leading-none">
+                                                {Math.floor(calculation.tier.savings.shoppingList / 60) > 0 && <><CountUp to={Math.floor(calculation.tier.savings.shoppingList / 60)} duration={1} />h</>}
+                                                {(calculation.tier.savings.shoppingList % 60) > 0 && <><CountUp to={calculation.tier.savings.shoppingList % 60} duration={1} />min</>}
+                                            </div>
+                                        </div>
+
+                                        {/* 4. Courses & Trajet */}
+                                        <div className="flex items-center justify-between p-3 rounded-xl bg-white/70 border border-white shadow-sm hover:shadow-md transition-all duration-300 group">
+                                            <div className="flex items-center gap-3">
+                                                <div className="h-8 w-8 rounded-xl bg-stone-50 border border-stone-100 flex items-center justify-center text-stone-400 group-hover:bg-brand-rose/10 group-hover:text-brand-rose transition-all duration-300">
+                                                    <Car className="h-4 w-4" />
+                                                </div>
+                                                <p className="font-bold text-stone-700 uppercase tracking-widest leading-none text-[10px]">Courses & Trajet</p>
+                                            </div>
+                                            <div className="font-black text-sm tabular-nums leading-none">
+                                                {Math.floor(calculation.tier.savings.groceryRun / 60) > 0 && <><CountUp to={Math.floor(calculation.tier.savings.groceryRun / 60)} duration={1} />h</>}
+                                                {(calculation.tier.savings.groceryRun % 60) > 0 && <><CountUp to={calculation.tier.savings.groceryRun % 60} duration={1} />min</>}
+                                            </div>
+                                        </div>
+
+                                        {/* 5. Rangement */}
+                                        <div className="flex items-center justify-between p-3 rounded-xl bg-white/70 border border-white shadow-sm hover:shadow-md transition-all duration-300 group">
+                                            <div className="flex items-center gap-3">
+                                                <div className="h-8 w-8 rounded-xl bg-stone-50 border border-stone-100 flex items-center justify-center text-stone-400 group-hover:bg-brand-rose/10 group-hover:text-brand-rose transition-all duration-300">
+                                                    <PackageOpen className="h-4 w-4" />
+                                                </div>
+                                                <p className="font-bold text-stone-700 uppercase tracking-widest leading-none text-[10px]">Rangement Courses</p>
+                                            </div>
+                                            <div className="font-black text-sm tabular-nums leading-none">
+                                                {Math.floor(calculation.tier.savings.packing / 60) > 0 && <><CountUp to={Math.floor(calculation.tier.savings.packing / 60)} duration={1} />h</>}
+                                                {(calculation.tier.savings.packing % 60) > 0 && <><CountUp to={calculation.tier.savings.packing % 60} duration={1} />min</>}
+                                            </div>
+                                        </div>
+                                    </div>
                                 </motion.div>
 
                                 <div className="bg-white rounded-[2.5rem] shadow-xl border border-stone-100 overflow-hidden">
@@ -483,8 +587,8 @@ export function SimulatorForm({ promoConfig }: SimulatorFormProps) {
                                             {/* 1. Original Price at Top */}
                                             <div className="flex justify-between items-center px-1">
                                                 <span className="text-sm text-stone-400">Prix de la prestation</span>
-                                                <span className="text-base font-bold text-stone-400 line-through decoration-stone-200">
-                                                    {Math.round(calculation.originalServicePrice)}€
+                                                <span className="text-base font-bold text-stone-400 line-through decoration-stone-200 flex items-center">
+                                                    <PriceDisplay amount={calculation.originalServicePrice} />
                                                 </span>
                                             </div>
 
@@ -492,13 +596,13 @@ export function SimulatorForm({ promoConfig }: SimulatorFormProps) {
                                             {isSubscribed && calculation.serviceDiscount > 0 && (
                                                 <div className="flex justify-between items-center px-1">
                                                     <span className="text-sm text-emerald-500 font-medium italic">Avantage Abonnement (-15%)</span>
-                                                    <span className="text-base font-bold text-emerald-500">-{Math.round(calculation.serviceDiscount)}€</span>
+                                                    <span className="text-base font-bold text-emerald-500 flex items-center">-<PriceDisplay amount={calculation.serviceDiscount} /></span>
                                                 </div>
                                             )}
                                             {!isSubscribed && calculation.flashSaleAmount > 0 && (
                                                 <div className="flex justify-between items-center px-1">
                                                     <span className="text-sm text-brand-rose font-medium italic">Offre exceptionnelle : {activeDiscount}% de réduction !</span>
-                                                    <span className="text-base font-bold text-brand-rose">-{Math.round(calculation.flashSaleAmount)}€</span>
+                                                    <span className="text-base font-bold text-brand-rose flex items-center">-<PriceDisplay amount={calculation.flashSaleAmount} /></span>
                                                 </div>
                                             )}
 
@@ -506,22 +610,22 @@ export function SimulatorForm({ promoConfig }: SimulatorFormProps) {
                                             <div className="flex justify-between items-center px-1 pt-4 border-t border-stone-50">
                                                 <div className="flex flex-col">
                                                     <span className="text-sm font-bold text-stone-900 leading-none">À payer à Elisa</span>
-                                                    <span className="text-[9px] text-stone-400 mt-1 uppercase tracking-widest font-bold">Lors de la prestation</span>
+                                                    <span className="text-9px text-stone-400 mt-1 uppercase tracking-widest font-bold">Lors de la prestation</span>
                                                 </div>
-                                                <span className="text-2xl font-black text-stone-900">{Math.round(calculation.amountToPayElisa)}€</span>
+                                                <span className="text-2xl font-black text-stone-900 flex items-center"><PriceDisplay amount={calculation.amountToPayElisa} /></span>
                                             </div>
 
                                             {/* 4. Tax Credit Deduction */}
                                             <div className="flex justify-between items-center px-1">
                                                 <span className="text-sm text-emerald-500 font-medium italic">Économie fiscale (-50%)</span>
-                                                <span className="text-base font-bold text-emerald-500">-{Math.round(calculation.taxCredit)}€</span>
+                                                <span className="text-base font-bold text-emerald-500 flex items-center">-<PriceDisplay amount={calculation.taxCredit} /></span>
                                             </div>
 
                                             {/* 5. BIG PINK TOTAL - Final Real Cost */}
                                             <div className="pt-6 border-t-2 border-dashed border-stone-100 text-center space-y-2">
                                                 <p className="text-[10px] font-black uppercase tracking-[0.2em] text-stone-400">Votre coût réel de revient</p>
                                                 <div className="flex items-center justify-center gap-2">
-                                                    <span className="text-7xl font-black text-brand-rose tracking-tighter leading-none">{Math.round(calculation.finalPocketCost)}€</span>
+                                                    <span className="text-7xl font-black text-brand-rose tracking-tighter leading-none flex items-center"><PriceDisplay amount={calculation.finalPocketCost} large={true} /></span>
                                                 </div>
                                                 <p className="text-[10px] font-black uppercase tracking-[0.2em] text-stone-400 italic">/ Visite de Chef</p>
                                             </div>
@@ -530,7 +634,7 @@ export function SimulatorForm({ promoConfig }: SimulatorFormProps) {
                                             <div className="pt-6 border-t border-stone-50">
                                                 <div className="flex justify-between items-center bg-stone-50/80 p-4 rounded-xl">
                                                     <span className="text-xs font-bold text-stone-900 uppercase tracking-widest">Budget Ingrédients</span>
-                                                    <span className="text-sm text-stone-400 font-bold italic">~{Math.round(calculation.groceryRange.min)}€ - {Math.round(calculation.groceryRange.max)}€</span>
+                                                    <span className="text-sm text-stone-400 font-bold italic flex items-center gap-1">~<PriceDisplay amount={calculation.groceryRange.min} /> - <PriceDisplay amount={calculation.groceryRange.max} /></span>
                                                 </div>
                                             </div>
                                         </div>
@@ -583,8 +687,8 @@ export function SimulatorForm({ promoConfig }: SimulatorFormProps) {
                                                 {/* 1. Original Price at Top */}
                                                 <div className="flex justify-between items-center px-2">
                                                     <span className="text-stone-400 text-lg font-medium">Prix de la prestation</span>
-                                                    <span className="text-2xl font-bold text-stone-300 line-through decoration-stone-200">
-                                                        {Math.round(calculation.originalServicePrice)}€
+                                                    <span className="text-2xl font-bold text-stone-300 line-through decoration-stone-200 flex items-center">
+                                                        <PriceDisplay amount={calculation.originalServicePrice} />
                                                     </span>
                                                 </div>
 
@@ -592,13 +696,13 @@ export function SimulatorForm({ promoConfig }: SimulatorFormProps) {
                                                 {isSubscribed && calculation.serviceDiscount > 0 && (
                                                     <div className="flex justify-between items-center px-2">
                                                         <span className="text-emerald-500 font-bold text-xl italic">Avantage Abonnement (-15%)</span>
-                                                        <span className="text-2xl font-black text-emerald-500">-{Math.round(calculation.serviceDiscount)}€</span>
+                                                        <span className="text-2xl font-black text-emerald-500 flex items-center">-<PriceDisplay amount={calculation.serviceDiscount} /></span>
                                                     </div>
                                                 )}
                                                 {!isSubscribed && calculation.flashSaleAmount > 0 && (
                                                     <div className="flex justify-between items-center px-2">
                                                         <span className="text-brand-rose font-bold text-xl italic leading-tight">Offre exceptionnelle :<br />{activeDiscount}% de réduction !</span>
-                                                        <span className="text-2xl font-black text-brand-rose">-{Math.round(calculation.flashSaleAmount)}€</span>
+                                                        <span className="text-base font-bold text-brand-rose flex items-center">-<PriceDisplay amount={calculation.flashSaleAmount} /></span>
                                                     </div>
                                                 )}
 
@@ -608,20 +712,20 @@ export function SimulatorForm({ promoConfig }: SimulatorFormProps) {
                                                         <span className="text-xl font-black text-stone-900 leading-none">À payer à Elisa</span>
                                                         <span className="text-xs text-stone-400 mt-2 uppercase tracking-widest font-bold">Lors de la prestation</span>
                                                     </div>
-                                                    <span className="text-4xl font-black text-stone-900">{Math.round(calculation.amountToPayElisa)}€</span>
+                                                    <span className="text-4xl font-black text-stone-900 flex items-center"><PriceDisplay amount={calculation.amountToPayElisa} /></span>
                                                 </div>
 
                                                 {/* 4. Tax Credit Deduction */}
                                                 <div className="flex justify-between items-center px-2">
                                                     <span className="text-emerald-500 font-bold text-xl italic">Économie fiscale (-50%)</span>
-                                                    <span className="text-2xl font-black text-emerald-500">-{Math.round(calculation.taxCredit)}€</span>
+                                                    <span className="text-2xl font-black text-emerald-500 flex items-center">-<PriceDisplay amount={calculation.taxCredit} /></span>
                                                 </div>
 
                                                 {/* 5. BIG PINK TOTAL - Final Real Cost */}
                                                 <div className="pt-10 border-t-2 border-dashed border-stone-100 text-center space-y-4">
                                                     <p className="text-sm font-black uppercase tracking-[0.4em] text-stone-400">Votre coût réel de revient</p>
                                                     <div className="flex items-center justify-center gap-3">
-                                                        <span className="text-8xl md:text-9xl font-black text-brand-rose tracking-tighter leading-none">{Math.round(calculation.finalPocketCost)}€</span>
+                                                        <span className="text-8xl md:text-9xl font-black text-brand-rose tracking-tighter leading-none flex items-center"><PriceDisplay amount={calculation.finalPocketCost} large={true} /></span>
                                                     </div>
                                                     <p className="text-base font-black uppercase tracking-[0.3em] text-stone-400 italic">/ Visite de Chef</p>
                                                 </div>
@@ -630,7 +734,7 @@ export function SimulatorForm({ promoConfig }: SimulatorFormProps) {
                                                 <div className="pt-10 border-t border-stone-100">
                                                     <div className="flex justify-between items-center bg-stone-50 p-6 rounded-[2rem] border border-stone-100">
                                                         <span className="text-xl font-black text-stone-900 uppercase tracking-widest">Budget Ingrédients</span>
-                                                        <span className="text-xl text-stone-400 font-bold italic">~{Math.round(calculation.groceryRange.min)}€ - {Math.round(calculation.groceryRange.max)}€</span>
+                                                        <span className="text-xl text-stone-400 font-bold italic flex items-center gap-1">~<PriceDisplay amount={calculation.groceryRange.min} /> - <PriceDisplay amount={calculation.groceryRange.max} /></span>
                                                     </div>
                                                 </div>
                                             </div>
@@ -678,11 +782,11 @@ export function SimulatorForm({ promoConfig }: SimulatorFormProps) {
                                 <span className="text-[9px] font-black uppercase tracking-widest text-stone-400">Votre Coût Réel</span>
                                 <div className="flex items-baseline gap-1">
                                     {isPromoActive && (
-                                        <span className="text-sm font-bold text-stone-200 line-through decoration-brand-rose/40 mr-1">
-                                            {Math.round(calculation.finalPocketCost + (calculation.flashSaleAmount / 2))}€
+                                        <span className="text-sm font-bold text-stone-200 line-through decoration-brand-rose/40 mr-1 flex items-center">
+                                            <PriceDisplay amount={calculation.finalPocketCost + (calculation.flashSaleAmount / 2)} />
                                         </span>
                                     )}
-                                    <span className="text-3xl font-black text-brand-rose leading-none">{Math.round(calculation.finalPocketCost)}€</span>
+                                    <span className="text-3xl font-black text-brand-rose leading-none flex items-center"><PriceDisplay amount={calculation.finalPocketCost} /></span>
                                     <span className="text-[10px] font-bold text-stone-400 uppercase tracking-widest">/ sem.</span>
                                 </div>
                             </div>

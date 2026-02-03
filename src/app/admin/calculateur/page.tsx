@@ -459,7 +459,7 @@ export default function InternalCalculator() {
                                                 <Label className="text-[10px] text-stone-400 font-bold uppercase tracking-widest pl-1">Nombre de Personnes</Label>
                                                 <div className="flex items-center gap-1.5 bg-stone-100 px-3 py-1 rounded-lg border border-stone-200"><Users className="w-3 h-3 text-brand-gold" /><span className="text-sm font-black text-stone-900">{numPeople}</span></div>
                                             </div>
-                                            <Slider value={[numPeople]} onValueChange={(v) => setNumPeople(v[0])} min={1} max={8} step={1} className="py-2" />
+                                            <Slider value={[numPeople]} onValueChange={(v) => setNumPeople(v[0])} min={1} max={6} step={1} className="py-2" />
                                         </div>
                                     </div>
 
