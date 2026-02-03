@@ -25,12 +25,14 @@ import {
     Briefcase
 } from 'lucide-react';
 import { TimeSavings } from './usePricingLogic';
+import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 
 interface TimeSavingsVisualizerProps {
     savings: TimeSavings;
     meals: number;
+    onBookNow?: () => void;
 }
 
 // Fixed maximums for relative progress bar display (based on 6 recipes tier)
@@ -249,7 +251,7 @@ export const TimeSavingsBreakdown = ({
     );
 };
 
-export default function TimeSavingsVisualizer({ savings, meals }: TimeSavingsVisualizerProps) {
+export default function TimeSavingsVisualizer({ savings, meals, onBookNow }: TimeSavingsVisualizerProps) {
     return (
         <Card className="border-none bg-white shadow-xl rounded-[3rem] overflow-hidden p-0 gap-0">
             {/* SIMPLIFIED HEADER */}
@@ -269,6 +271,23 @@ export default function TimeSavingsVisualizer({ savings, meals }: TimeSavingsVis
                         <p className="text-rose-50 text-sm md:text-base font-medium max-w-sm mx-auto md:mx-0">
                             Chaque semaine, je m'occupe de tout pour vous offrir <span className="text-white font-bold">le luxe ultime : votre temps.</span>
                         </p>
+
+                        {onBookNow && (
+                            <motion.div
+                                initial={{ opacity: 0, y: 10 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ delay: 0.5 }}
+                                className="pt-2"
+                            >
+                                <Button
+                                    onClick={onBookNow}
+                                    className="bg-white text-brand-rose hover:bg-rose-50 font-black uppercase tracking-widest text-xs px-8 py-6 rounded-full shadow-lg shadow-black/10 hover:shadow-xl transition-all hover:-translate-y-0.5"
+                                >
+                                    Je récupère mes {savings.total.split(' ')[0]}h maintenant
+                                    <ArrowRight className="ml-2 h-4 w-4" />
+                                </Button>
+                            </motion.div>
+                        )}
                     </div>
 
                     <div className="flex flex-col md:flex-row items-center gap-12 md:gap-16">

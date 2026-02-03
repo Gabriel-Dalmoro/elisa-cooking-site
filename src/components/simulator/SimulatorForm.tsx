@@ -676,7 +676,11 @@ export function SimulatorForm({ promoConfig }: SimulatorFormProps) {
                                     transition={{ delay: 0.2 }}
                                     className="w-full"
                                 >
-                                    <TimeSavingsVisualizer savings={calculation.tier.savings} meals={calculation.tier.meals} />
+                                    <TimeSavingsVisualizer
+                                        savings={calculation.tier.savings}
+                                        meals={calculation.tier.meals}
+                                        onBookNow={() => setIsModalOpen(true)}
+                                    />
                                 </motion.div>
 
                                 {/* Cost Summary - BELOW TIME */}
@@ -796,6 +800,33 @@ export function SimulatorForm({ promoConfig }: SimulatorFormProps) {
                                 className="rounded-full px-6 py-4 h-auto bg-brand-gold text-stone-900 text-sm font-bold shadow-lg"
                             >
                                 {step === 2 ? "Voir mon devis" : "Continuer"}
+                            </Button>
+                        </div>
+                    </motion.div>
+                )}
+
+                {/* Mobile Sticky Action Bar (Step 3 - Final Result) */}
+                {step === 3 && (
+                    <motion.div
+                        initial={{ opacity: 0, y: 50 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="lg:hidden fixed bottom-6 left-4 right-4 z-50 p-4 bg-stone-900/95 backdrop-blur-md rounded-full shadow-2xl border border-white/10"
+                    >
+                        <div className="flex items-center justify-between gap-4">
+                            <div className="flex flex-col ml-2">
+                                <span className="text-[10px] font-black uppercase tracking-widest text-stone-400">Temps Sauvé</span>
+                                <div className="flex items-baseline gap-1">
+                                    <span className="text-xl font-black text-white leading-none flex items-center">{calculation.tier.savings.total.split(' ')[0]}h</span>
+                                    <span className="text-[9px] font-bold text-stone-500 uppercase tracking-widest">/ semaine</span>
+                                </div>
+                            </div>
+
+                            <Button
+                                onClick={() => setIsModalOpen(true)}
+                                className="rounded-full px-6 py-5 h-auto bg-brand-rose hover:bg-brand-rose/90 text-white text-sm font-bold shadow-lg shadow-brand-rose/20"
+                            >
+                                Réserver
+                                <ArrowRight className="ml-2 h-4 w-4" />
                             </Button>
                         </div>
                     </motion.div>
