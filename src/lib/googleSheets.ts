@@ -99,7 +99,7 @@ export async function getSiteConfig(): Promise<SiteConfig | null> {
                     .replace(/^["']|["']$/g, "")
                     .replace(/\\n/g, "\n"),
             },
-            scopes: ['https://www.googleapis.com/auth/spreadsheets.readonly'],
+            scopes: ['https://www.googleapis.com/auth/spreadsheets'],
         });
 
         const sheets = google.sheets({ version: 'v4', auth });
@@ -170,7 +170,9 @@ export async function getSiteConfig(): Promise<SiteConfig | null> {
         const expiryDate = parseDate(expiryStr);
         const now = new Date();
         const isExpired = expiryDate ? expiryDate < now : false;
-        const discountValue = parseFloat(discount) || 0;
+        // Parse discount safely to handle both '15' and '15%'
+        const rawDiscount = String(discount || '0').replace('%', '').trim();
+        const discountValue = parseFloat(rawDiscount) || 0;
 
         // Strict Promo Validation:
         // 1. Must be set to TRUE in sheet
@@ -195,6 +197,100 @@ export async function getSiteConfig(): Promise<SiteConfig | null> {
             promoLabel: '',
             promoExpiry: '',
         };
+    }
+}
+
+
+// --- Testimonials System ---
+
+export interface Testimonial {
+    id: string; // Row index or unique ID if available
+    date: string;
+    name: string;
+    rating: number;
+    message: string;
+    status: 'Approved' | 'Pending' | 'Flagged';
+}
+
+export async function getTestimonials(): Promise<Testimonial[]> {
+    try {
+        const auth = new google.auth.GoogleAuth({
+            credentials: {
+                client_email: process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL,
+                private_key: (process.env.GOOGLE_PRIVATE_KEY || '')
+                    .replace(/^["']|["']$/g, "")
+                    .replace(/\\n/g, "\n"),
+            },
+            scopes: ['https://www.googleapis.com/auth/spreadsheets.readonly'],
+        });
+
+        const sheets = google.sheets({ version: 'v4', auth });
+        const spreadsheetId = process.env.GOOGLE_SHEETS_SPREADSHEET_ID;
+
+        // Fetch from 'Testimonials' sheet. Columns: A:Date, B:Name, C:Rating, D:Message, E:Status
+        const response = await sheets.spreadsheets.values.get({
+            spreadsheetId,
+            range: 'Testimonials!A2:E100', // Skip header row
+        });
+
+        const rows = response.data.values;
+        if (!rows || rows.length === 0) return [];
+
+        // Map and allow only 'Approved' status
+        const testimonials: Testimonial[] = rows
+            .map((row, index) => ({
+                id: `row-${index + 2}`,
+                date: row[0],
+                name: row[1],
+                rating: parseInt(row[2]) || 5,
+                message: row[3],
+                status: row[4] as Testimonial['status'],
+            }))
+            .filter(t => t.status === 'Approved' && t.message && t.name);
+
+        return testimonials;
+    } catch (error) {
+        console.error('Error fetching Testimonials:', error);
+        return [];
+    }
+}
+
+export async function saveTestimonial(data: { name: string; rating: number; message: string }): Promise<boolean> {
+    try {
+        const auth = new google.auth.GoogleAuth({
+            credentials: {
+                client_email: process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL,
+                private_key: (process.env.GOOGLE_PRIVATE_KEY || '')
+                    .replace(/^["']|["']$/g, "")
+                    .replace(/\\n/g, "\n"),
+            },
+            // Need full access to append
+            scopes: ['https://www.googleapis.com/auth/spreadsheets'],
+        });
+
+        const sheets = google.sheets({ version: 'v4', auth });
+        const spreadsheetId = process.env.GOOGLE_SHEETS_SPREADSHEET_ID;
+
+        // Append new row: [Date, Name, Rating, Message, Status]
+        // Default status is 'Pending' for moderation
+        const date = new Date().toISOString();
+        const values = [
+            [date, data.name, data.rating, data.message, 'Pending']
+        ];
+
+        await sheets.spreadsheets.values.append({
+            spreadsheetId,
+            range: 'Testimonials!A:E',
+            valueInputOption: 'USER_ENTERED',
+            requestBody: {
+                values,
+            },
+        });
+
+        return true;
+    } catch (error) {
+        console.error('Error saving Testimonial:', error);
+        return false;
     }
 }
 
