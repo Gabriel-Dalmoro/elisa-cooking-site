@@ -2,7 +2,6 @@
 
 import React, { useState, useMemo } from "react";
 import Link from "next/link";
-import { useSearchParams } from 'next/navigation';
 import { motion, AnimatePresence } from "framer-motion";
 import { ArrowLeft, ArrowRight, Briefcase, Car, Check, Clock, Cookie, Flame, Lightbulb, ListTodo, PackageOpen, Search, Utensils } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -85,7 +84,6 @@ export function SimulatorForm({ promoConfig }: SimulatorFormProps) {
         message: "",
     });
 
-    const searchParams = useSearchParams();
 
     const activeDiscount = isPromoActive ? (promoConfig?.promoDiscount || 0) : 0;
 
@@ -134,7 +132,8 @@ export function SimulatorForm({ promoConfig }: SimulatorFormProps) {
                 promo_applied: isPromoActive ? `${promoConfig?.promoLabel} (-${activeDiscount}%)` : "Aucune"
             };
 
-            const isTestMode = searchParams.get('mode') === 'test' || searchParams.get('debug') === 'true';
+            const currentParams = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : new URLSearchParams();
+            const isTestMode = currentParams.get('mode') === 'test' || currentParams.get('debug') === 'true';
             const productionUrl = process.env.NEXT_PUBLIC_N8N_WEBHOOK_URL || 'https://n8n-production-ced7.up.railway.app/webhook/lead-submit';
             const testUrl = 'https://n8n-production-ced7.up.railway.app/webhook-test/lead-submit';
             const webhookUrl = isTestMode ? testUrl : productionUrl;
