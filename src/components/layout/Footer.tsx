@@ -66,7 +66,7 @@ export function Footer() {
                         </h3>
                         <nav className="flex flex-col gap-3">
                             <Link href="/mentions-legales" className="hover:text-brand-rose transition-colors">Mentions Légales</Link>
-                            <Link href="/cgv" className="hover:text-brand-rose transition-colors">CGV</Link>
+                            <Link href="/cgv" className="hover:text-brand-rose transition-colors">Conditions Générales de Vente</Link>
                             <Link href="/politique-de-confidentialite" className="hover:text-brand-rose transition-colors">Politique de Confidentialité</Link>
                         </nav>
                         <p className="mt-4 text-xs leading-relaxed opacity-70">

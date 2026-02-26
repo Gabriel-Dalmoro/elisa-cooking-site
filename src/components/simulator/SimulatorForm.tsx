@@ -82,6 +82,7 @@ export function SimulatorForm({ promoConfig }: SimulatorFormProps) {
         email: "",
         phone: "",
         message: "",
+        ingredientConsent: false,
     });
 
 
@@ -109,7 +110,7 @@ export function SimulatorForm({ promoConfig }: SimulatorFormProps) {
                 monthly: "Mensuel"
             };
             const frequencyLabel = isSubscribed ? frequencyMap[frequency] : "Une seule fois";
-            const engagementLabel = isSubscribed ? "Abonnement ( -15% )" : "Commande Ponctuelle";
+            const engagementLabel = isSubscribed ? "Essai Sérénité ( Abonnement -15% )" : "Commande Ponctuelle";
 
             const payload = {
                 type: 'simulator_lead',
@@ -129,7 +130,8 @@ export function SimulatorForm({ promoConfig }: SimulatorFormProps) {
                 grocery_min: `${formatPrice(calculation.groceryRange.min)}€`,
                 grocery_max: `${formatPrice(calculation.groceryRange.max)}€`,
                 custom_message: formData.message,
-                promo_applied: isPromoActive ? `${promoConfig?.promoLabel} (-${activeDiscount}%)` : "Aucune"
+                promo_applied: isPromoActive ? `${promoConfig?.promoLabel} (-${activeDiscount}%)` : "Aucune",
+                ingredient_consent: formData.ingredientConsent ? "Validé" : "Non validé"
             };
 
             const currentParams = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : new URLSearchParams();
@@ -147,7 +149,7 @@ export function SimulatorForm({ promoConfig }: SimulatorFormProps) {
             if (response.ok) {
                 setIsModalOpen(false);
                 alert("Merci ! Votre demande de devis a été envoyée avec succès.");
-                setFormData({ name: "", email: "", phone: "", message: "" });
+                setFormData({ name: "", email: "", phone: "", message: "", ingredientConsent: false });
                 setAddressDetails(null);
                 setIsEligible(true);
                 setHasSweetAddon(false);
@@ -404,12 +406,12 @@ export function SimulatorForm({ promoConfig }: SimulatorFormProps) {
                                                         Unique
                                                         {isPromoActive && <span className={cn("ml-2 px-1.5 py-0.5 rounded-full text-[8px] font-black shadow-sm", !isSubscribed ? "bg-white text-brand-rose" : "bg-brand-rose text-white")}>-{activeDiscount}%</span>}
                                                     </button>
-                                                    <button onClick={() => setIsSubscribed(true)} className={cn("flex-1 py-3 md:py-4 text-[10px] md:text-xs font-black uppercase tracking-widest rounded-full relative z-10 flex items-center justify-center gap-1.5 md:gap-2 transition-colors duration-300", isSubscribed ? "text-white" : "text-stone-400")}>Abonnement <span className={cn("bg-brand-rose text-white px-1.5 py-0.5 rounded-full text-[8px] md:text-[9px] font-black shadow-md", isSubscribed ? "bg-stone-900" : "")}>-15%</span></button>
+                                                    <button onClick={() => setIsSubscribed(true)} className={cn("flex-1 py-3 md:py-4 text-[10px] md:text-xs font-black uppercase tracking-widest rounded-full relative z-10 flex items-center justify-center gap-1.5 md:gap-2 transition-colors duration-300", isSubscribed ? "text-white" : "text-stone-400")}>Essai Abo <span className={cn("bg-brand-rose text-white px-1.5 py-0.5 rounded-full text-[8px] md:text-[9px] font-black shadow-md", isSubscribed ? "bg-stone-900" : "")}>-15%</span></button>
                                                 </div>
 
                                                 <div className="space-y-4 relative z-10 text-stone-900">
-                                                    <h4 className="text-lg md:text-xl font-bold mb-1">{isSubscribed ? "L'Option Sérénité" : "Une prestation ponctuelle"}</h4>
-                                                    <p className="text-stone-500 text-sm md:text-base leading-relaxed">{isSubscribed ? <><span className="font-bold text-stone-700">Engagement 3 mois minimum.</span> Bénéficiez d'un tarif préférentiel pour vos repas réguliers.</> : "Idéale pour un besoin spécifique ou pour tester. Une expérience culinaire d'exception, sans engagement."}</p>
+                                                    <h4 className="text-lg md:text-xl font-bold mb-1">{isSubscribed ? "L'Essai Abonnement Sérénité" : "Une prestation ponctuelle"}</h4>
+                                                    <p className="text-stone-500 text-sm md:text-base leading-relaxed">{isSubscribed ? <><span className="font-bold text-stone-700">Testez avec une 1ère session à -15%.</span> Si l'expérience vous séduit, sécurisez votre créneau mensuel (engagement 3 mois, facturation mensuelle 100% automatisée).</> : "Idéale pour un besoin spécifique ou pour tester. Une expérience culinaire d'exception, sans engagement."}</p>
 
                                                     {isSubscribed && (
                                                         <div className="pt-6 border-t border-emerald-100/50 space-y-4">
@@ -757,7 +759,7 @@ export function SimulatorForm({ promoConfig }: SimulatorFormProps) {
                                         size="lg"
                                         className="rounded-full px-12 py-7 h-auto text-xl bg-brand-rose hover:bg-brand-rose/90 text-white shadow-3xl shadow-brand-rose/30 group border-none transition-transform active:scale-95"
                                     >
-                                        Vérifier les disponibilités
+                                        {isSubscribed ? "Réserver mon essai" : "Vérifier les disponibilités"}
                                         <ArrowRight className="ml-2 h-6 w-6 transition-transform group-hover:translate-x-1" />
                                     </Button>
                                     <Button
@@ -940,13 +942,27 @@ export function SimulatorForm({ promoConfig }: SimulatorFormProps) {
                             )}
                         </AnimatePresence>
 
-                        <div className="pt-4">
+                        <div className="pt-4 space-y-4">
+                            <div className="bg-stone-50 border border-stone-200 p-4 rounded-xl flex items-start gap-4 cursor-pointer group hover:border-brand-rose/30 transition-all" onClick={() => setFormData({ ...formData, ingredientConsent: !formData.ingredientConsent })}>
+                                <div className={cn(
+                                    "mt-0.5 flex-shrink-0 w-5 h-5 rounded border-2 flex items-center justify-center transition-all",
+                                    formData.ingredientConsent ? "bg-brand-rose border-brand-rose text-white shadow-sm" : "bg-white border-stone-300 text-transparent group-hover:border-brand-rose/40"
+                                )}>
+                                    <Check className="w-3.5 h-3.5" />
+                                </div>
+                                <div className="select-none">
+                                    <p className="text-sm text-stone-700 leading-snug">
+                                        J'ai bien compris que <strong className="text-stone-900">le coût des ingrédients n'est pas inclus</strong> dans le tarif du service et qu'il sera à rembourser sur présentation du ticket de caisse.
+                                    </p>
+                                </div>
+                            </div>
+
                             <Button
                                 type="submit"
-                                disabled={!addressDetails}
+                                disabled={!addressDetails || !formData.ingredientConsent}
                                 className={cn(
                                     "w-full rounded-full py-8 h-auto text-xl shadow-2xl transition-all group relative overflow-hidden",
-                                    addressDetails
+                                    (addressDetails && formData.ingredientConsent)
                                         ? "bg-stone-900 hover:bg-stone-800 text-white shadow-stone-900/20"
                                         : "bg-stone-100 text-stone-300 cursor-not-allowed border-none"
                                 )}
@@ -958,8 +974,8 @@ export function SimulatorForm({ promoConfig }: SimulatorFormProps) {
                                     transition={{ type: "tween" }}
                                 />
                                 <span className="relative z-10 flex items-center justify-center">
-                                    {addressDetails ? "Recevoir mon devis gratuit" : "Veuillez saisir votre adresse"}
-                                    {addressDetails && <ArrowRight className="ml-2 h-6 w-6 transition-transform group-hover:translate-x-1" />}
+                                    {(addressDetails && formData.ingredientConsent) ? "Recevoir mon devis gratuit" : "Veuillez compléter tous les champs"}
+                                    {(addressDetails && formData.ingredientConsent) && <ArrowRight className="ml-2 h-6 w-6 transition-transform group-hover:translate-x-1" />}
                                 </span>
                             </Button>
                             <div className="flex items-center justify-center gap-2 mt-4">
