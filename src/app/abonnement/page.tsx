@@ -26,8 +26,8 @@ export default function AbonnementPage() {
         try {
             const currentParams = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : new URLSearchParams();
             const isTestMode = currentParams.get('mode') === 'test' || currentParams.get('debug') === 'true';
-            const productionUrl = process.env.NEXT_PUBLIC_N8N_WEBHOOK_URL || 'https://n8n-production-ced7.up.railway.app/webhook/86d17b28-b3cd-46ed-a7a1-82b4b0af88b3';
-            const testUrl = 'https://n8n-production-ced7.up.railway.app/webhook-test/86d17b28-b3cd-46ed-a7a1-82b4b0af88b3';
+            const productionUrl = 'https://n8n-production-ced7.up.railway.app/webhook/subscription-submit';
+            const testUrl = 'https://n8n-production-ced7.up.railway.app/webhook-test/subscription-submit';
             const webhookUrl = isTestMode ? testUrl : productionUrl;
 
             const response = await fetch(webhookUrl, {
