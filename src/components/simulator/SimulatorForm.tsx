@@ -911,7 +911,7 @@ export function SimulatorForm({ promoConfig }: SimulatorFormProps) {
 
                                         {/* Instagram CTA */}
                                         <a
-                                            href="https://www.instagram.com/elisa.batchcooking/"
+                                            href="https://www.instagram.com/elisabatchcooking/"
                                             target="_blank"
                                             rel="noopener noreferrer"
                                             className="group flex items-center gap-4 w-full bg-gradient-to-r from-rose-50 via-fuchsia-50 to-orange-50 border-2 border-rose-100 hover:border-brand-rose/40 rounded-2xl p-4 transition-all hover:shadow-md hover:-translate-y-0.5"
