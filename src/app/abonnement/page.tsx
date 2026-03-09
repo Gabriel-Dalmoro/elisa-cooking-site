@@ -24,13 +24,7 @@ export default function AbonnementPage() {
         setIsSubmitting(true);
 
         try {
-            const currentParams = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : new URLSearchParams();
-            const isTestMode = currentParams.get('mode') === 'test' || currentParams.get('debug') === 'true';
-            const productionUrl = 'https://n8n-production-ced7.up.railway.app/webhook/subscription-submit';
-            const testUrl = 'https://n8n-production-ced7.up.railway.app/webhook-test/subscription-submit';
-            const webhookUrl = isTestMode ? testUrl : productionUrl;
-
-            const response = await fetch(webhookUrl, {
+            const response = await fetch('/api/subscription-submit', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
