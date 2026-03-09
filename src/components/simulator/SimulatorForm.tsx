@@ -72,6 +72,7 @@ export function SimulatorForm({ promoConfig }: SimulatorFormProps) {
 
     const [frequency, setFrequency] = useState<'weekly' | 'biweekly' | 'monthly'>('weekly');
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [isSubmitSuccess, setIsSubmitSuccess] = useState(false);
     const [isEligible, setIsEligible] = useState(true);
     const [addressDetails, setAddressDetails] = useState<{ address: string; distance: number | null; coords: [number, number] } | null>(null);
     const [hasSweetAddon, setHasSweetAddon] = useState(false);
@@ -147,8 +148,7 @@ export function SimulatorForm({ promoConfig }: SimulatorFormProps) {
             });
 
             if (response.ok) {
-                setIsModalOpen(false);
-                alert("Merci ! Votre demande de devis a été envoyée avec succès.");
+                setIsSubmitSuccess(true);
                 setFormData({ name: "", email: "", phone: "", message: "", ingredientConsent: false });
                 setAddressDetails(null);
                 setIsEligible(true);
@@ -835,157 +835,287 @@ export function SimulatorForm({ promoConfig }: SimulatorFormProps) {
             </div>
 
             {/* Booking Modal */}
-            <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
+            <Dialog open={isModalOpen} onOpenChange={(open) => { setIsModalOpen(open); if (!open) setIsSubmitSuccess(false); }}>
                 <DialogContent className="sm:max-w-[480px] rounded-[2.5rem] p-0 overflow-hidden border-none shadow-2xl max-h-[95vh] overflow-y-auto bg-white">
-                    <div className="p-8 md:p-10 pb-4 relative">
-                        <div className="absolute top-0 right-0 w-40 h-40 bg-brand-rose/10 rounded-full blur-3xl -mr-20 -mt-20 -z-10" />
-                        <div className="absolute bottom-0 left-0 w-32 h-32 bg-brand-gold/5 rounded-full blur-2xl -ml-16 -mb-16 -z-10" />
-
-                        <DialogHeader className="text-left">
-                            <div className="inline-flex items-center gap-2 px-3 py-1 bg-emerald-50 text-emerald-600 rounded-full text-[10px] font-black uppercase tracking-widest mb-4 border border-emerald-100 w-fit">
-                                <Check className="h-3 w-3" /> Presque fini !
-                            </div>
-                            <DialogTitle className="text-3xl md:text-4xl font-black text-stone-900 tracking-tight leading-tight mb-4">
-                                Recevez votre <span className="text-brand-rose">devis personnalisé</span>
-                            </DialogTitle>
-                        </DialogHeader>
-
-                        <div className="bg-stone-50 border border-stone-100 rounded-[2rem] p-6 shadow-sm mb-4">
-                            <div className="flex items-center justify-between mb-4">
-                                <p className="text-[11px] font-black uppercase tracking-widest text-stone-400">Votre Configuration</p>
-                                <Badge className="bg-brand-rose text-white border-none text-[9px] font-black uppercase tracking-widest px-2.5 py-1 shadow-md shadow-brand-rose/10">
-                                    {!isSubscribed ? "Engagement Unique" : frequency === 'weekly' ? "Hebdomadaire" : frequency === 'biweekly' ? "Bi-mensuel" : "Mensuel"}
-                                </Badge>
-                            </div>
-                            <div className="flex items-center gap-4">
-                                <div className="h-12 w-12 rounded-2xl bg-white border border-stone-100 flex items-center justify-center text-brand-rose shadow-sm">
-                                    <Utensils className="h-5 w-5" />
-                                </div>
-                                <div className="space-y-0.5">
-                                    <span className="text-xl font-black text-stone-900 block leading-none">
-                                        {currentTier.meals} Recettes <span className="text-stone-300 font-light mx-1">•</span> {people} Personnes
-                                    </span>
-                                    <p className="text-[11px] text-stone-500 font-medium">Préparé par Chef Elisa chez vous.</p>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <form onSubmit={handleFormSubmit} className="px-8 md:px-10 pb-10 space-y-5">
-                        <div className="space-y-4">
-                            <div className="space-y-2 px-1">
-                                <Label className="text-[11px] font-black uppercase text-stone-500 ml-1">Adresse de livraison</Label>
-                                <AddressAutocomplete
-                                    onEligibilityChange={(eligible, data) => {
-                                        setIsEligible(eligible);
-                                        if (data) setAddressDetails(data);
-                                    }}
-                                />
-                            </div>
-
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div className="space-y-2">
-                                    <Label htmlFor="name" className="text-[11px] font-black uppercase text-stone-500 ml-1">Nom Complet</Label>
-                                    <Input
-                                        id="name"
-                                        required
-                                        placeholder="Ex: Jean Dupont"
-                                        className="rounded-xl border-stone-100 bg-stone-100/50 h-12 focus:ring-brand-rose text-stone-900 placeholder:text-stone-400"
-                                        value={formData.name}
-                                        onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                                    />
-                                </div>
-                                <div className="space-y-2">
-                                    <Label htmlFor="phone" className="text-[11px] font-black uppercase text-stone-500 ml-1">Téléphone</Label>
-                                    <Input
-                                        id="phone"
-                                        type="tel"
-                                        required
-                                        placeholder="06 12 34 56 78"
-                                        className="rounded-xl border-stone-100 bg-stone-100/50 h-12 focus:ring-brand-rose text-stone-900 placeholder:text-stone-400"
-                                        value={formData.phone}
-                                        onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                                    />
-                                </div>
-                            </div>
-                        </div>
-                        <div className="space-y-2">
-                            <Label htmlFor="email" className="text-[11px] font-black uppercase text-stone-500 ml-1">Email</Label>
-                            <Input
-                                id="email"
-                                type="email"
-                                required
-                                placeholder="votre@email.com"
-                                className="rounded-xl border-stone-100 bg-stone-100/50 h-12 focus:ring-brand-rose text-stone-900 placeholder:text-stone-400"
-                                value={formData.email}
-                                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                            />
-                        </div>
-
-                        <AnimatePresence>
-                            {!isEligible && addressDetails && (
-                                <motion.div
-                                    initial={{ height: 0, opacity: 0 }}
-                                    animate={{ height: "auto", opacity: 1 }}
-                                    exit={{ height: 0, opacity: 0 }}
-                                    className="space-y-2 overflow-hidden"
-                                >
-                                    <Label htmlFor="message" className="text-[11px] font-black uppercase text-stone-500 ml-1">Un petit mot pour Elisa ?</Label>
-                                    <Textarea
-                                        id="message"
-                                        placeholder="Dites-moi en plus sur votre projet pour voir si un déplacement exceptionnel est possible..."
-                                        className="rounded-xl border-stone-100 bg-stone-100/50 min-h-[100px] focus:ring-brand-rose text-stone-900 placeholder:text-stone-400"
-                                        value={formData.message}
-                                        onChange={(e) => setFormData({ ...formData, message: e.target.value })}
-                                    />
-                                </motion.div>
-                            )}
-                        </AnimatePresence>
-
-                        <div className="pt-4 space-y-4">
-                            <div className="bg-stone-50 border border-stone-200 p-4 rounded-xl flex items-start gap-4 cursor-pointer group hover:border-brand-rose/30 transition-all" onClick={() => setFormData({ ...formData, ingredientConsent: !formData.ingredientConsent })}>
-                                <div className={cn(
-                                    "mt-0.5 flex-shrink-0 w-5 h-5 rounded border-2 flex items-center justify-center transition-all",
-                                    formData.ingredientConsent ? "bg-brand-rose border-brand-rose text-white shadow-sm" : "bg-white border-stone-300 text-transparent group-hover:border-brand-rose/40"
-                                )}>
-                                    <Check className="w-3.5 h-3.5" />
-                                </div>
-                                <div className="select-none">
-                                    <p className="text-sm text-stone-700 leading-snug">
-                                        J'ai bien compris que <strong className="text-stone-900">le coût des ingrédients n'est pas inclus</strong> dans le tarif du service et qu'il sera à rembourser sur présentation du ticket de caisse.
-                                    </p>
-                                </div>
-                            </div>
-
-                            <Button
-                                type="submit"
-                                disabled={!addressDetails || !formData.ingredientConsent}
-                                className={cn(
-                                    "w-full rounded-full py-8 h-auto text-xl shadow-2xl transition-all group relative overflow-hidden",
-                                    (addressDetails && formData.ingredientConsent)
-                                        ? "bg-stone-900 hover:bg-stone-800 text-white shadow-stone-900/20"
-                                        : "bg-stone-100 text-stone-300 cursor-not-allowed border-none"
-                                )}
+                    <AnimatePresence mode="wait">
+                        {isSubmitSuccess ? (
+                            <motion.div
+                                key="success"
+                                initial={{ opacity: 0, scale: 0.95 }}
+                                animate={{ opacity: 1, scale: 1 }}
+                                exit={{ opacity: 0, scale: 0.95 }}
+                                className="relative overflow-hidden"
                             >
-                                <motion.div
-                                    className="absolute inset-0 bg-brand-rose/10"
-                                    initial={{ x: "-100%" }}
-                                    whileHover={{ x: "0%" }}
-                                    transition={{ type: "tween" }}
-                                />
-                                <span className="relative z-10 flex items-center justify-center">
-                                    {(addressDetails && formData.ingredientConsent) ? "Recevoir mon devis gratuit" : "Veuillez compléter tous les champs"}
-                                    {(addressDetails && formData.ingredientConsent) && <ArrowRight className="ml-2 h-6 w-6 transition-transform group-hover:translate-x-1" />}
-                                </span>
-                            </Button>
-                            <div className="flex items-center justify-center gap-2 mt-4">
-                                <div className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                                <p className="text-center text-[10px] text-stone-400 font-medium">
-                                    Réponse garantie sous 24h • Sans engagement
-                                </p>
-                            </div>
-                        </div>
-                    </form>
+                                {/* Background glows */}
+                                <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-400/20 rounded-full blur-3xl -mr-32 -mt-32 pointer-events-none" />
+                                <div className="absolute bottom-0 left-0 w-48 h-48 bg-brand-gold/15 rounded-full blur-3xl -ml-24 -mb-24 pointer-events-none" />
+
+                                <div className="relative p-8 md:p-10 space-y-8">
+                                    {/* Header */}
+                                    <div className="text-center space-y-4">
+                                        <motion.div
+                                            initial={{ scale: 0 }}
+                                            animate={{ scale: 1 }}
+                                            transition={{ type: "spring", stiffness: 260, damping: 20, delay: 0.1 }}
+                                            className="mx-auto relative w-20 h-20"
+                                        >
+                                            <div className="absolute inset-0 bg-emerald-400 rounded-full animate-ping opacity-20" />
+                                            <div className="relative h-20 w-20 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center shadow-lg shadow-emerald-900/10">
+                                                <Check className="h-10 w-10 stroke-[2.5px]" />
+                                            </div>
+                                        </motion.div>
+
+                                        <motion.div
+                                            initial={{ opacity: 0, y: 10 }}
+                                            animate={{ opacity: 1, y: 0 }}
+                                            transition={{ delay: 0.2 }}
+                                            className="space-y-2"
+                                        >
+                                            <div className="inline-flex items-center gap-2 px-3 py-1 bg-emerald-50 text-emerald-600 rounded-full text-[10px] font-black uppercase tracking-widest border border-emerald-100">
+                                                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                                                Devis reçu !
+                                            </div>
+                                            <h2 className="text-3xl md:text-4xl font-black text-stone-900 tracking-tight leading-tight">
+                                                C'est dans la boîte ! 🎉
+                                            </h2>
+                                            <p className="text-stone-500 text-base leading-relaxed">
+                                                Elisa a bien reçu votre demande et reviendra vers vous <span className="font-bold text-stone-700">sous 24h</span> avec votre devis personnalisé.
+                                            </p>
+                                        </motion.div>
+                                    </div>
+
+                                    {/* Social proof urgency nudge */}
+                                    <motion.div
+                                        initial={{ opacity: 0, y: 10 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        transition={{ delay: 0.35 }}
+                                        className="bg-amber-50 border border-amber-100 rounded-2xl p-4 flex items-start gap-3"
+                                    >
+                                        <span className="text-xl mt-0.5">⏰</span>
+                                        <div>
+                                            <p className="text-sm font-black text-stone-900">Les créneaux partent vite.</p>
+                                            <p className="text-xs text-stone-500 font-medium mt-0.5 leading-relaxed">
+                                                Elisa travaille avec un nombre limité de familles pour garantir une qualité irréprochable. Votre demande est priorisée dès maintenant.
+                                            </p>
+                                        </div>
+                                    </motion.div>
+
+                                    {/* CTAs to keep the lead warm */}
+                                    <motion.div
+                                        initial={{ opacity: 0, y: 10 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        transition={{ delay: 0.45 }}
+                                        className="space-y-3"
+                                    >
+                                        <p className="text-[10px] font-black uppercase tracking-widest text-stone-400 text-center">En attendant, explorez ✨</p>
+
+                                        {/* Instagram CTA */}
+                                        <a
+                                            href="https://www.instagram.com/elisa.batchcooking/"
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="group flex items-center gap-4 w-full bg-gradient-to-r from-rose-50 via-fuchsia-50 to-orange-50 border-2 border-rose-100 hover:border-brand-rose/40 rounded-2xl p-4 transition-all hover:shadow-md hover:-translate-y-0.5"
+                                        >
+                                            <div className="h-12 w-12 flex-shrink-0 rounded-xl bg-gradient-to-br from-brand-rose via-fuchsia-500 to-orange-400 flex items-center justify-center shadow-md shadow-brand-rose/20">
+                                                <svg className="h-6 w-6 text-white" fill="currentColor" viewBox="0 0 24 24">
+                                                    <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z" />
+                                                </svg>
+                                            </div>
+                                            <div className="flex-1 text-left">
+                                                <p className="font-black text-stone-900 text-sm leading-tight">Voir ses dernières créations 📸</p>
+                                                <p className="text-xs text-stone-500 font-medium mt-0.5">Plats, moments en cuisine, clients ravis…</p>
+                                            </div>
+                                            <ArrowRight className="h-4 w-4 text-stone-300 group-hover:text-brand-rose group-hover:translate-x-1 transition-all flex-shrink-0" />
+                                        </a>
+
+                                        {/* Menu CTA */}
+                                        <a
+                                            href="/menu"
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="group flex items-center gap-4 w-full bg-stone-50 border-2 border-stone-100 hover:border-brand-gold/40 rounded-2xl p-4 transition-all hover:shadow-md hover:-translate-y-0.5"
+                                        >
+                                            <div className="h-12 w-12 flex-shrink-0 rounded-xl bg-brand-gold/10 flex items-center justify-center">
+                                                <span className="text-2xl">📖</span>
+                                            </div>
+                                            <div className="flex-1 text-left">
+                                                <p className="font-black text-stone-900 text-sm leading-tight">Parcourir le menu de la semaine</p>
+                                                <p className="text-xs text-stone-500 font-medium mt-0.5">Des recettes maison saines et gourmandes.</p>
+                                            </div>
+                                            <ArrowRight className="h-4 w-4 text-stone-300 group-hover:text-brand-gold group-hover:translate-x-1 transition-all flex-shrink-0" />
+                                        </a>
+                                    </motion.div>
+
+                                    {/* Close */}
+                                    <motion.div
+                                        initial={{ opacity: 0 }}
+                                        animate={{ opacity: 1 }}
+                                        transition={{ delay: 0.6 }}
+                                        className="text-center pt-2"
+                                    >
+                                        <button
+                                            onClick={() => { setIsModalOpen(false); setIsSubmitSuccess(false); }}
+                                            className="text-xs text-stone-400 hover:text-stone-600 font-medium transition-colors underline underline-offset-2"
+                                        >
+                                            Fermer
+                                        </button>
+                                    </motion.div>
+                                </div>
+                            </motion.div>
+                        ) : (
+                            <motion.div key="form" initial={{ opacity: 1 }} exit={{ opacity: 0 }}>
+                                <div className="p-8 md:p-10 pb-4 relative">
+                                    <div className="absolute top-0 right-0 w-40 h-40 bg-brand-rose/10 rounded-full blur-3xl -mr-20 -mt-20 -z-10" />
+                                    <div className="absolute bottom-0 left-0 w-32 h-32 bg-brand-gold/5 rounded-full blur-2xl -ml-16 -mb-16 -z-10" />
+
+                                    <DialogHeader className="text-left">
+                                        <div className="inline-flex items-center gap-2 px-3 py-1 bg-emerald-50 text-emerald-600 rounded-full text-[10px] font-black uppercase tracking-widest mb-4 border border-emerald-100 w-fit">
+                                            <Check className="h-3 w-3" /> Presque fini !
+                                        </div>
+                                        <DialogTitle className="text-3xl md:text-4xl font-black text-stone-900 tracking-tight leading-tight mb-4">
+                                            Recevez votre <span className="text-brand-rose">devis personnalisé</span>
+                                        </DialogTitle>
+                                    </DialogHeader>
+
+                                    <div className="bg-stone-50 border border-stone-100 rounded-[2rem] p-6 shadow-sm mb-4">
+                                        <div className="flex items-center justify-between mb-4">
+                                            <p className="text-[11px] font-black uppercase tracking-widest text-stone-400">Votre Configuration</p>
+                                            <Badge className="bg-brand-rose text-white border-none text-[9px] font-black uppercase tracking-widest px-2.5 py-1 shadow-md shadow-brand-rose/10">
+                                                {!isSubscribed ? "Engagement Unique" : frequency === 'weekly' ? "Hebdomadaire" : frequency === 'biweekly' ? "Bi-mensuel" : "Mensuel"}
+                                            </Badge>
+                                        </div>
+                                        <div className="flex items-center gap-4">
+                                            <div className="h-12 w-12 rounded-2xl bg-white border border-stone-100 flex items-center justify-center text-brand-rose shadow-sm">
+                                                <Utensils className="h-5 w-5" />
+                                            </div>
+                                            <div className="space-y-0.5">
+                                                <span className="text-xl font-black text-stone-900 block leading-none">
+                                                    {currentTier.meals} Recettes <span className="text-stone-300 font-light mx-1">•</span> {people} Personnes
+                                                </span>
+                                                <p className="text-[11px] text-stone-500 font-medium">Préparé par Chef Elisa chez vous.</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <form onSubmit={handleFormSubmit} className="px-8 md:px-10 pb-10 space-y-5">
+                                    <div className="space-y-4">
+                                        <div className="space-y-2 px-1">
+                                            <Label className="text-[11px] font-black uppercase text-stone-500 ml-1">Adresse de livraison</Label>
+                                            <AddressAutocomplete
+                                                onEligibilityChange={(eligible, data) => {
+                                                    setIsEligible(eligible);
+                                                    if (data) setAddressDetails(data);
+                                                }}
+                                            />
+                                        </div>
+
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                            <div className="space-y-2">
+                                                <Label htmlFor="name" className="text-[11px] font-black uppercase text-stone-500 ml-1">Nom Complet</Label>
+                                                <Input
+                                                    id="name"
+                                                    required
+                                                    placeholder="Ex: Jean Dupont"
+                                                    className="rounded-xl border-stone-100 bg-stone-100/50 h-12 focus:ring-brand-rose text-stone-900 placeholder:text-stone-400"
+                                                    value={formData.name}
+                                                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                                                />
+                                            </div>
+                                            <div className="space-y-2">
+                                                <Label htmlFor="phone" className="text-[11px] font-black uppercase text-stone-500 ml-1">Téléphone</Label>
+                                                <Input
+                                                    id="phone"
+                                                    type="tel"
+                                                    required
+                                                    placeholder="06 12 34 56 78"
+                                                    className="rounded-xl border-stone-100 bg-stone-100/50 h-12 focus:ring-brand-rose text-stone-900 placeholder:text-stone-400"
+                                                    value={formData.phone}
+                                                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                                                />
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label htmlFor="email" className="text-[11px] font-black uppercase text-stone-500 ml-1">Email</Label>
+                                        <Input
+                                            id="email"
+                                            type="email"
+                                            required
+                                            placeholder="votre@email.com"
+                                            className="rounded-xl border-stone-100 bg-stone-100/50 h-12 focus:ring-brand-rose text-stone-900 placeholder:text-stone-400"
+                                            value={formData.email}
+                                            onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                                        />
+                                    </div>
+
+                                    <AnimatePresence>
+                                        {!isEligible && addressDetails && (
+                                            <motion.div
+                                                initial={{ height: 0, opacity: 0 }}
+                                                animate={{ height: "auto", opacity: 1 }}
+                                                exit={{ height: 0, opacity: 0 }}
+                                                className="space-y-2 overflow-hidden"
+                                            >
+                                                <Label htmlFor="message" className="text-[11px] font-black uppercase text-stone-500 ml-1">Un petit mot pour Elisa ?</Label>
+                                                <Textarea
+                                                    id="message"
+                                                    placeholder="Dites-moi en plus sur votre projet pour voir si un déplacement exceptionnel est possible..."
+                                                    className="rounded-xl border-stone-100 bg-stone-100/50 min-h-[100px] focus:ring-brand-rose text-stone-900 placeholder:text-stone-400"
+                                                    value={formData.message}
+                                                    onChange={(e) => setFormData({ ...formData, message: e.target.value })}
+                                                />
+                                            </motion.div>
+                                        )}
+                                    </AnimatePresence>
+
+                                    <div className="pt-4 space-y-4">
+                                        <div className="bg-stone-50 border border-stone-200 p-4 rounded-xl flex items-start gap-4 cursor-pointer group hover:border-brand-rose/30 transition-all" onClick={() => setFormData({ ...formData, ingredientConsent: !formData.ingredientConsent })}>
+                                            <div className={cn(
+                                                "mt-0.5 flex-shrink-0 w-5 h-5 rounded border-2 flex items-center justify-center transition-all",
+                                                formData.ingredientConsent ? "bg-brand-rose border-brand-rose text-white shadow-sm" : "bg-white border-stone-300 text-transparent group-hover:border-brand-rose/40"
+                                            )}>
+                                                <Check className="w-3.5 h-3.5" />
+                                            </div>
+                                            <div className="select-none">
+                                                <p className="text-sm text-stone-700 leading-snug">
+                                                    J'ai bien compris que <strong className="text-stone-900">le coût des ingrédients n'est pas inclus</strong> dans le tarif du service et qu'il sera à rembourser sur présentation du ticket de caisse.
+                                                </p>
+                                            </div>
+                                        </div>
+
+                                        <Button
+                                            type="submit"
+                                            disabled={!addressDetails || !formData.ingredientConsent}
+                                            className={cn(
+                                                "w-full rounded-full py-8 h-auto text-xl shadow-2xl transition-all group relative overflow-hidden",
+                                                (addressDetails && formData.ingredientConsent)
+                                                    ? "bg-stone-900 hover:bg-stone-800 text-white shadow-stone-900/20"
+                                                    : "bg-stone-100 text-stone-300 cursor-not-allowed border-none"
+                                            )}
+                                        >
+                                            <motion.div
+                                                className="absolute inset-0 bg-brand-rose/10"
+                                                initial={{ x: "-100%" }}
+                                                whileHover={{ x: "0%" }}
+                                                transition={{ type: "tween" }}
+                                            />
+                                            <span className="relative z-10 flex items-center justify-center">
+                                                {(addressDetails && formData.ingredientConsent) ? "Recevoir mon devis gratuit" : "Veuillez compléter tous les champs"}
+                                                {(addressDetails && formData.ingredientConsent) && <ArrowRight className="ml-2 h-6 w-6 transition-transform group-hover:translate-x-1" />}
+                                            </span>
+                                        </Button>
+                                        <div className="flex items-center justify-center gap-2 mt-4">
+                                            <div className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                                            <p className="text-center text-[10px] text-stone-400 font-medium">
+                                                Réponse garantie sous 24h • Sans engagement
+                                            </p>
+                                        </div>
+                                    </div>
+                                </form>
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
                 </DialogContent>
             </Dialog>
         </main>
