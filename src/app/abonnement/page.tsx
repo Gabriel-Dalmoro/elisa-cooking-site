@@ -38,6 +38,13 @@ export default function AbonnementPage() {
         e.preventDefault();
         if (!formData.consent) return;
         setIsSubmitting(true);
+
+        // Compute savings for the selected frequency
+        const freq = FREQUENCIES.find((f) => f.id === selectedFrequency)!;
+        const timeSaved = `~${Math.round(8.25 * freq.visitsPerMonth)}h`;
+        const moneySaved = fmt((ORIGINAL - REAL) * freq.visitsPerMonth);
+        const frequencyLabel = freq.label;
+
         try {
             const res = await fetch("/api/subscription-submit", {
                 method: "POST",
@@ -48,6 +55,9 @@ export default function AbonnementPage() {
                     client_email: formData.email,
                     engagement_type: "Abonnement Sérénité",
                     frequency: selectedFrequency,
+                    frequency_label: frequencyLabel,
+                    time_saved_per_month: timeSaved,
+                    money_saved_per_month: moneySaved,
                     consent_3_months: formData.consent,
                 }),
             });
