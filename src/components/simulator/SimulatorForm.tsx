@@ -3,7 +3,7 @@
 import React, { useState, useMemo } from "react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowLeft, ArrowRight, Briefcase, Car, Check, Clock, Cookie, Flame, Lightbulb, ListTodo, PackageOpen, Search, Utensils } from "lucide-react";
+import { ArrowLeft, ArrowRight, Briefcase, Car, Check, Clock, Cookie, Flame, Info, Lightbulb, ListTodo, PackageOpen, Search, Utensils } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { PRICING_CONFIG, usePricingCalculation, getGroceryUnitCost } from "@/components/simulator/usePricingLogic";
 import { AddressAutocomplete } from "@/components/booking/AddressAutocomplete";
@@ -478,6 +478,28 @@ export function SimulatorForm({ promoConfig }: SimulatorFormProps) {
                                 animate={{ opacity: 1, x: 0 }}
                                 className="space-y-6"
                             >
+                                {/* Dynamic Meal Calculator Info Box */}
+                                <motion.div
+                                    initial={{ opacity: 0, y: 10 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    className="bg-brand-rose/5 border border-brand-rose/20 rounded-[2rem] p-5 shadow-inner"
+                                >
+                                    <div className="flex items-start gap-4">
+                                        <div className="mt-1 h-8 w-8 shrink-0 rounded-full bg-brand-rose/20 flex items-center justify-center">
+                                            <Info className="h-4 w-4 text-brand-rose" />
+                                        </div>
+                                        <div className="space-y-1">
+                                            <p className="text-sm font-bold text-stone-900 leading-tight">Détail de votre sélection</p>
+                                            <p className="text-xs text-stone-600 leading-relaxed">
+                                                Vous avez sélectionné un menu de <span className="font-bold text-brand-rose">{calculation.tier.meals} recettes</span>, cuisiné sur-mesure pour régaler <span className="font-bold text-brand-rose">{people} {people > 1 ? "personnes" : "personne"}</span>.
+                                            </p>
+                                            <p className="text-[11px] text-stone-500 italic mt-2">
+                                                🍽️ Cette formule couvrira <span className="font-bold text-stone-700">{calculation.tier.meals} repas complets</span> pour tout votre foyer. L'idéal pour partager de délicieux dîners sans passer par la cuisine !
+                                            </p>
+                                        </div>
+                                    </div>
+                                </motion.div>
+
                                 {/* Time Saved Highlight - PROMINENT and EXCITING during selection */}
                                 <motion.div
                                     initial={{ scale: 0.95, opacity: 0 }}
@@ -668,6 +690,30 @@ export function SimulatorForm({ promoConfig }: SimulatorFormProps) {
                                         <h2 className="text-3xl md:text-5xl font-black text-stone-900 tracking-tight leading-none">C'est le moment de savourer.</h2>
                                         <p className="text-stone-500 text-sm md:text-base max-w-lg mx-auto">Votre Chef est prêt, votre cuisine n'attend plus que sa magie.</p>
                                     </div>
+                                </div>
+
+                                {/* Dynamic Meal Calculator Info Box - Step 3 */}
+                                <div className="max-w-md mx-auto w-full mb-6">
+                                    <motion.div
+                                        initial={{ opacity: 0, y: 10 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        className="bg-brand-rose/5 border border-brand-rose/20 rounded-[2rem] p-5 shadow-inner"
+                                    >
+                                        <div className="flex items-start gap-4">
+                                            <div className="mt-1 h-8 w-8 shrink-0 rounded-full bg-brand-rose/20 flex items-center justify-center">
+                                                <Info className="h-4 w-4 text-brand-rose" />
+                                            </div>
+                                            <div className="space-y-1 text-left">
+                                                <p className="text-sm font-bold text-stone-900 leading-tight">Détail de votre sélection</p>
+                                                <p className="text-xs text-stone-600 leading-relaxed">
+                                                    Vous avez sélectionné un menu de <span className="font-bold text-brand-rose">{calculation.tier.meals} recettes</span>, cuisiné sur-mesure pour régaler <span className="font-bold text-brand-rose">{people} {people > 1 ? "personnes" : "personne"}</span>.
+                                                </p>
+                                                <p className="text-[11px] text-stone-500 italic mt-2">
+                                                    🍽️ Cette formule couvrira <span className="font-bold text-stone-700">{calculation.tier.meals} repas complets</span> pour tout votre foyer. L'idéal pour partager de délicieux dîners sans passer par la cuisine !
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </motion.div>
                                 </div>
 
                                 {/* Time Savings Visualizer - FULL WIDTH AT TOP */}
