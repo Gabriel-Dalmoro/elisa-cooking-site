@@ -12,6 +12,7 @@ import {
     ArrowRight
 } from "lucide-react";
 import Link from "next/link";
+import Image from "next/image";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -41,9 +42,6 @@ export default function CreditImpotPage() {
                             animate={{ opacity: 1, x: 0 }}
                             transition={{ duration: 0.6 }}
                         >
-                            <Badge className="mb-4 bg-brand-gold text-stone-900 border-none px-4 py-1 text-sm font-semibold shadow-sm">
-                                Service à la Personne (SAP)
-                            </Badge>
                             <h1 className="text-4xl font-extrabold tracking-tight text-stone-900 sm:text-5xl lg:text-6xl mb-6">
                                 Offrez-vous un Chef à domicile. <br />
                                 <span className="text-brand-rose">L'État finance la moitié.</span>
@@ -52,16 +50,36 @@ export default function CreditImpotPage() {
                                 Mes prestations de cuisine à domicile sont éligibles au crédit d'impôt de 50%.
                                 Une solution premium devenue accessible à tous.
                             </p>
+                            <Image
+                                src="/images/service-personne-logo.png"
+                                alt="Services à la Personne - Agrément officiel"
+                                width={180}
+                                height={90}
+                                className="object-contain"
+                                unoptimized
+                            />
                         </motion.div>
 
                         <motion.div
                             initial={{ opacity: 0, scale: 0.95 }}
                             animate={{ opacity: 1, scale: 1 }}
                             transition={{ duration: 0.6, delay: 0.2 }}
+                            className="relative pt-16"
                         >
-                            <Card className="border-none shadow-2xl bg-white overflow-hidden rounded-[2.5rem]">
+                            {/* 50% badge as a floating seal on the card */}
+                            <div className="absolute top-0 left-1/2 -translate-x-1/2 z-10">
+                                <Image
+                                    src="/images/tax-discount.jpg"
+                                    alt="50% réduction d'impôt"
+                                    width={144}
+                                    height={144}
+                                    className="rounded-full shadow-2xl ring-4 ring-white"
+                                    unoptimized
+                                />
+                            </div>
+                            <Card className="border-none shadow-2xl bg-white overflow-hidden rounded-[2.5rem] w-full">
                                 <div className="bg-brand-rose h-3 w-full" />
-                                <CardContent className="p-8 md:p-12">
+                                <CardContent className="p-8 md:p-12 pt-12 md:pt-14">
                                     <div className="space-y-8">
                                         <div className="flex justify-between items-center text-stone-500">
                                             <span className="text-lg">Valeur de la prestation</span>

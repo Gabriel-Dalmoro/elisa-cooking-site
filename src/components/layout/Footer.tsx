@@ -69,7 +69,30 @@ export function Footer() {
                             <Link href="/cgv" className="hover:text-brand-rose transition-colors">Conditions Générales de Vente</Link>
                             <Link href="/politique-de-confidentialite" className="hover:text-brand-rose transition-colors">Politique de Confidentialité</Link>
                         </nav>
-                        <p className="mt-4 text-xs leading-relaxed opacity-70">
+
+                        {/* Trust Badges */}
+                        <div className="flex items-center gap-4 mt-2">
+                            <Link href="/credit-impot" className="hover:opacity-80 transition-opacity" title="50% réduction d'impôt">
+                                <Image
+                                    src="/images/tax-discount.jpg"
+                                    alt="50% réduction d'impôt"
+                                    width={72}
+                                    height={72}
+                                    className="rounded-full shadow-sm"
+                                    unoptimized
+                                />
+                            </Link>
+                            <Image
+                                src="/images/service-personne-logo.png"
+                                alt="Services à la Personne - Agrément officiel"
+                                width={110}
+                                height={55}
+                                className="object-contain"
+                                unoptimized
+                            />
+                        </div>
+
+                        <p className="text-xs leading-relaxed opacity-70">
                             © {new Date().getFullYear()} Elisa Batch Cooking. Tous droits réservés. <br />
                             Service à la personne - Agrément SAP.
                         </p>

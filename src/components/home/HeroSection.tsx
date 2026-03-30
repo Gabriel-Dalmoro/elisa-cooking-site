@@ -20,10 +20,10 @@ export async function HeroSection() {
                             <span>je m'occupe de tout.</span>
                         </h1>
 
-                        <div className="mt-8 flex flex-col sm:flex-row items-center lg:items-start gap-3">
+                        <div className="mt-8 flex items-center gap-3">
                             <CheckCircle2 className="h-6 w-6 flex-shrink-0 text-brand-gold" />
                             <p className="text-lg leading-relaxed text-stone-600 sm:text-xl">
-                                Savourez une cuisine d'exception chez vous, avec <span className="font-semibold text-stone-900">50% d'avantage fiscal</span>.
+                                Savourez une cuisine d'exception chez vous, avec <Link href="/credit-impot" className="font-semibold text-stone-900 underline-offset-2 hover:text-brand-rose transition-colors">50% d'avantage fiscal</Link>.
                             </p>
                         </div>
 
@@ -44,12 +44,12 @@ export async function HeroSection() {
                         </div>
 
 
-
                         <div className="mt-8 flex items-center gap-4 text-sm font-medium text-stone-400">
                             <span className="h-px w-8 bg-stone-200" />
                             <span>Spécialiste Batch Cooking à Annecy</span>
                             <span className="h-px w-8 bg-stone-200" />
                         </div>
+
                     </div>
 
                     {/* Right Content (Image) */}
@@ -65,6 +65,21 @@ export async function HeroSection() {
                         {/* Subtle warm overlay */}
                         <div className="absolute inset-0 bg-brand-gold/5 mix-blend-multiply" />
                         <div className="absolute inset-0 bg-gradient-to-t from-stone-950/20 to-transparent" />
+                        {/* 50% Tax badge floating overlay */}
+                        <Link
+                            href="/credit-impot"
+                            className="absolute top-5 left-5 hover:scale-110 transition-transform drop-shadow-2xl"
+                            title="50% crédit d'impôt"
+                        >
+                            <Image
+                                src="/images/tax-discount.jpg"
+                                alt="50% réduction d'impôt"
+                                width={148}
+                                height={148}
+                                className="rounded-full shadow-2xl ring-4 ring-white/30"
+                                unoptimized
+                            />
+                        </Link>
                     </div>
                 </div>
             </div>
