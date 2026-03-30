@@ -175,16 +175,16 @@ export default function CreditImpotPage() {
                             viewport={{ once: true }}
                             className="text-center mb-12"
                         >
-                            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-brand-rose text-white text-xs font-bold uppercase tracking-widest mb-6 shadow-lg shadow-brand-rose/20">
-                                <CheckCircle2 className="h-4 w-4" />
-                                Désormais disponible
+                            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-stone-800 text-brand-gold text-xs font-bold uppercase tracking-widest mb-6 shadow-lg">
+                                <Clock className="h-4 w-4" />
+                                En cours d'activation
                             </div>
                             <h2 className="text-3xl md:text-4xl font-extrabold text-stone-900 mb-4">
-                                L'Avance Immédiate : votre 50% déduit <span className="text-brand-rose">à la source</span>.
+                                Bientôt : votre 50% déduit <span className="text-brand-rose">à la source</span>.
                             </h2>
                             <p className="text-stone-600 text-lg max-w-2xl mx-auto leading-relaxed">
-                                Plus besoin d'attendre votre déclaration de revenus. Avec l'Avance Immédiate, vous ne payez que
-                                votre reste à charge dès la réception de la facture.
+                                Je suis en cours d'habilitation pour l'Avance Immédiate de crédit d'impôt. D'ici peu,
+                                vous ne paierez plus que votre reste à charge dès la réception de la facture — sans attendre la déclaration de revenus.
                             </p>
                         </motion.div>
 
@@ -197,7 +197,7 @@ export default function CreditImpotPage() {
                         >
                             <ShieldCheck className="h-5 w-5 text-brand-gold shrink-0" />
                             <p className="text-stone-700 text-sm leading-relaxed">
-                                <span className="font-bold">Dispositif officiel</span> mis en place par l'<span className="font-semibold">URSSAF</span> et la <span className="font-semibold">Direction Générale des Finances Publiques (DGFiP)</span>.
+                                <span className="font-bold">Dispositif officiel</span> mis en place par l’<span className="font-semibold">URSSAF</span> et la <span className="font-semibold">Direction Générale des Finances Publiques (DGFiP)</span>.
                             </p>
                         </motion.div>
 
@@ -212,40 +212,41 @@ export default function CreditImpotPage() {
                             <HelpCircle className="h-5 w-5 text-brand-gold shrink-0 mt-0.5" />
                             <p className="text-stone-700 text-sm leading-relaxed">
                                 <span className="font-bold text-stone-900">Service entièrement optionnel et gratuit.</span>{" "}
-                                L'Avance Immédiate n'est pas obligatoire. Vous choisissez librement d'y adhérer ou de rester
+                                L’Avance Immédiate ne sera pas obligatoire. Vous choisirez librement d’y adhérer ou de rester
                                 sur le remboursement classique annuel.
                             </p>
                         </motion.div>
 
                         {/* ③④ Activation flow + 48h — obligations #3 & #4 */}
+                        <p className="text-sm font-semibold text-stone-500 uppercase tracking-wider mb-4">Comment ça fonctionnera pour vous</p>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-10">
                             {[
                                 {
                                     num: "1",
                                     icon: ShieldCheck,
                                     title: "Activation de votre compte",
-                                    desc: "Vous activez votre espace personnel sur particulier.urssaf.fr. Vous devez disposer d'un numéro fiscal et avoir déjà effectué au moins une déclaration de revenus.",
+                                    desc: "Vous activerez votre espace personnel sur particulier.urssaf.fr. Vous devrez disposer d’un numéro fiscal et avoir déjà effectué au moins une déclaration de revenus.",
                                     color: "gold"
                                 },
                                 {
                                     num: "2",
                                     icon: Euro,
                                     title: "Prestation & émission de la facture",
-                                    desc: "J'interviens chez vous, puis j'émets la demande de paiement directement via l'URSSAF une fois la prestation terminée.",
+                                    desc: "J’interviendrai chez vous, puis émettrai la demande de paiement directement via l’URSSAF une fois la prestation terminée.",
                                     color: "rose"
                                 },
                                 {
                                     num: "3",
                                     icon: Clock,
-                                    title: "Vous avez 48h pour valider",
-                                    desc: "Vous recevez une notification de l'URSSAF sur votre espace. Vous avez 48 heures pour valider ou contester la facture. Sans réponse, elle est validée automatiquement.",
+                                    title: "48h pour valider ou contester",
+                                    desc: "Vous recevrez une notification de l’URSSAF sur votre espace. Vous aurez 48 heures pour valider ou contester la facture. Sans réponse, elle sera validée automatiquement.",
                                     color: "gold"
                                 },
                                 {
                                     num: "4",
                                     icon: TrendingDown,
-                                    title: "Vous ne payez que 50%",
-                                    desc: "Seul votre reste à charge (50%) est prélevé. L'URSSAF règle les 50% restants directement à votre prestataire. Aucune avance de fonds de votre côté.",
+                                    title: "Vous ne paierez que 50%",
+                                    desc: "Seul votre reste à charge (50%) sera prélevé. L’URSSAF réglera les 50% restants directement à votre prestataire. Aucune avance de fonds de votre côté.",
                                     color: "rose"
                                 }
                             ].map((step, i) => (
