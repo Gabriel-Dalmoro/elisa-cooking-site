@@ -18,9 +18,6 @@ import { Button } from "@/components/ui/button";
 import {
     Card,
     CardContent,
-    CardDescription,
-    CardHeader,
-    CardTitle
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -110,10 +107,9 @@ export default function CreditImpotPage() {
             <section className="py-24 bg-white">
                 <div className="container mx-auto px-4 sm:px-6 lg:px-8">
                     <div className="mb-16">
-                        <h2 className="text-3xl font-extrabold text-stone-900 mb-4">Comment ça marche aujourd'hui ?</h2>
+                        <h2 className="text-3xl font-extrabold text-stone-900 mb-4">Le crédit d'impôt classique — comment ça marche ?</h2>
                         <p className="text-stone-600 max-w-2xl">
-                            En attendant l'activation de l'avance immédiate, vous bénéficiez du dispositif classique,
-                            garantissant votre remboursement annuel.
+                            Vous payez la totalité de la prestation, et l'État vous rembourse 50% chaque année via votre déclaration de revenus.
                         </p>
                     </div>
 
@@ -166,45 +162,141 @@ export default function CreditImpotPage() {
                 </div>
             </section>
 
-            {/* 3. Future Section */}
-            <section className="py-24 relative overflow-hidden">
+            {/* 3. Avance Immédiate — URSSAF Compliant Section */}
+            <section className="py-24 bg-stone-50 relative overflow-hidden">
+                <div className="absolute -right-40 top-20 h-96 w-96 rounded-full bg-brand-rose/5 blur-3xl" />
                 <div className="container mx-auto px-4 sm:px-6 lg:px-8">
                     <div className="max-w-4xl mx-auto">
-                        <Card className="border-none shadow-xl bg-gradient-to-br from-stone-900 to-stone-800 text-white overflow-hidden rounded-[2.5rem]">
-                            <CardContent className="p-8 md:p-16 relative">
-                                <div className="absolute top-8 right-8">
-                                    <Badge variant="outline" className="text-brand-gold border-brand-gold animate-pulse">
-                                        En cours d'activation
-                                    </Badge>
-                                </div>
-                                <div className="flex flex-col md:flex-row gap-12 items-center">
-                                    <div className="flex-1">
-                                        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 text-brand-gold text-xs font-bold uppercase tracking-wider mb-6">
-                                            <Clock className="h-3.5 w-3.5" />
-                                            Prochainement
-                                        </div>
-                                        <h2 className="text-3xl md:text-4xl font-bold mb-6 italic">
-                                            L'Avance Immédiate : Le 50% déduit dès le départ.
-                                        </h2>
-                                        <p className="text-stone-300 text-lg leading-relaxed mb-8">
-                                            Je suis en cours d'activation pour l'avance immédiate du crédit d'impôt.
-                                            D'ici peu, vous pourrez déduire vos 50% d'avantage fiscal directement sur vos factures !
-                                        </p>
+
+                        {/* Header */}
+                        <motion.div
+                            initial={{ opacity: 0, y: 20 }}
+                            whileInView={{ opacity: 1, y: 0 }}
+                            viewport={{ once: true }}
+                            className="text-center mb-12"
+                        >
+                            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-brand-rose text-white text-xs font-bold uppercase tracking-widest mb-6 shadow-lg shadow-brand-rose/20">
+                                <CheckCircle2 className="h-4 w-4" />
+                                Désormais disponible
+                            </div>
+                            <h2 className="text-3xl md:text-4xl font-extrabold text-stone-900 mb-4">
+                                L'Avance Immédiate : votre 50% déduit <span className="text-brand-rose">à la source</span>.
+                            </h2>
+                            <p className="text-stone-600 text-lg max-w-2xl mx-auto leading-relaxed">
+                                Plus besoin d'attendre votre déclaration de revenus. Avec l'Avance Immédiate, vous ne payez que
+                                votre reste à charge dès la réception de la facture.
+                            </p>
+                        </motion.div>
+
+                        {/* ① URSSAF / DGFiP badge — obligation #1 */}
+                        <motion.div
+                            initial={{ opacity: 0, y: 10 }}
+                            whileInView={{ opacity: 1, y: 0 }}
+                            viewport={{ once: true }}
+                            className="flex items-center gap-3 bg-white border border-stone-200 rounded-2xl px-6 py-4 mb-6 shadow-sm"
+                        >
+                            <ShieldCheck className="h-5 w-5 text-brand-gold shrink-0" />
+                            <p className="text-stone-700 text-sm leading-relaxed">
+                                <span className="font-bold">Dispositif officiel</span> mis en place par l'<span className="font-semibold">URSSAF</span> et la <span className="font-semibold">Direction Générale des Finances Publiques (DGFiP)</span>.
+                            </p>
+                        </motion.div>
+
+                        {/* ② Optional service alert — obligation #2 */}
+                        <motion.div
+                            initial={{ opacity: 0, y: 10 }}
+                            whileInView={{ opacity: 1, y: 0 }}
+                            viewport={{ once: true }}
+                            transition={{ delay: 0.1 }}
+                            className="flex items-start gap-3 bg-brand-gold/10 border border-brand-gold/30 rounded-2xl px-6 py-4 mb-10 shadow-sm"
+                        >
+                            <HelpCircle className="h-5 w-5 text-brand-gold shrink-0 mt-0.5" />
+                            <p className="text-stone-700 text-sm leading-relaxed">
+                                <span className="font-bold text-stone-900">Service entièrement optionnel et gratuit.</span>{" "}
+                                L'Avance Immédiate n'est pas obligatoire. Vous choisissez librement d'y adhérer ou de rester
+                                sur le remboursement classique annuel.
+                            </p>
+                        </motion.div>
+
+                        {/* ③④ Activation flow + 48h — obligations #3 & #4 */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-10">
+                            {[
+                                {
+                                    num: "1",
+                                    icon: ShieldCheck,
+                                    title: "Activation de votre compte",
+                                    desc: "Vous activez votre espace personnel sur particulier.urssaf.fr. Vous devez disposer d'un numéro fiscal et avoir déjà effectué au moins une déclaration de revenus.",
+                                    color: "gold"
+                                },
+                                {
+                                    num: "2",
+                                    icon: Euro,
+                                    title: "Prestation & émission de la facture",
+                                    desc: "J'interviens chez vous, puis j'émets la demande de paiement directement via l'URSSAF une fois la prestation terminée.",
+                                    color: "rose"
+                                },
+                                {
+                                    num: "3",
+                                    icon: Clock,
+                                    title: "Vous avez 48h pour valider",
+                                    desc: "Vous recevez une notification de l'URSSAF sur votre espace. Vous avez 48 heures pour valider ou contester la facture. Sans réponse, elle est validée automatiquement.",
+                                    color: "gold"
+                                },
+                                {
+                                    num: "4",
+                                    icon: TrendingDown,
+                                    title: "Vous ne payez que 50%",
+                                    desc: "Seul votre reste à charge (50%) est prélevé. L'URSSAF règle les 50% restants directement à votre prestataire. Aucune avance de fonds de votre côté.",
+                                    color: "rose"
+                                }
+                            ].map((step, i) => (
+                                <motion.div
+                                    key={i}
+                                    initial={{ opacity: 0, y: 20 }}
+                                    whileInView={{ opacity: 1, y: 0 }}
+                                    viewport={{ once: true }}
+                                    transition={{ delay: i * 0.1 }}
+                                    className="relative bg-white rounded-3xl p-6 border border-stone-100 shadow-sm hover:shadow-md hover:border-brand-gold/20 transition-all group"
+                                >
+                                    <div className="absolute -top-3 -left-3 h-8 w-8 flex items-center justify-center rounded-full bg-stone-900 text-white text-xs font-black shadow-lg group-hover:bg-brand-gold transition-colors">
+                                        {step.num}
                                     </div>
-                                    <div className="w-full md:w-1/3 opacity-40 blur-[2px] pointer-events-none scale-95 transition-all">
-                                        {/* Visual representation of future UI */}
-                                        <div className="bg-white/5 rounded-2xl p-4 border border-white/10">
-                                            <div className="h-4 w-2/3 bg-white/20 rounded mb-4" />
-                                            <div className="h-8 w-full bg-brand-rose/40 rounded mb-4" />
-                                            <div className="flex justify-between">
-                                                <div className="h-4 w-1/4 bg-white/10 rounded" />
-                                                <div className="h-4 w-1/4 bg-white/10 rounded" />
-                                            </div>
-                                        </div>
+                                    <div className={`mb-4 flex h-12 w-12 items-center justify-center rounded-2xl ${
+                                        step.color === 'gold' ? 'bg-brand-gold/10 text-brand-gold' : 'bg-brand-rose/10 text-brand-rose'
+                                    }`}>
+                                        <step.icon className="h-6 w-6" />
                                     </div>
-                                </div>
-                            </CardContent>
-                        </Card>
+                                    <h3 className="text-base font-bold text-stone-900 mb-2">{step.title}</h3>
+                                    <p className="text-stone-600 text-sm leading-relaxed">{step.desc}</p>
+                                </motion.div>
+                            ))}
+                        </div>
+
+                        {/* ⑤ Interlocutrice note + ⑥ official link — obligations #5 & #6 */}
+                        <motion.div
+                            initial={{ opacity: 0, y: 10 }}
+                            whileInView={{ opacity: 1, y: 0 }}
+                            viewport={{ once: true }}
+                            className="bg-white rounded-3xl border border-stone-100 shadow-sm p-6 flex flex-col sm:flex-row items-start sm:items-center gap-6"
+                        >
+                            <div className="flex-1">
+                                <p className="text-sm text-stone-600 leading-relaxed">
+                                    <span className="font-semibold text-stone-900">Une question sur votre prestation ou ce service ?</span>{" "}
+                                    Votre interlocutrice reste <span className="font-semibold text-brand-rose">Elisa Batch Cooking</span> —
+                                    l'URSSAF gère uniquement la partie paiement.
+                                </p>
+                            </div>
+                            <Link
+                                href="https://www.impots.gouv.fr/portail/particulier/emploi-domicile"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="flex-shrink-0 flex items-center gap-2 px-5 py-3 bg-stone-900 hover:bg-stone-700 text-white text-sm font-bold rounded-2xl transition-all hover:scale-105 shadow-sm whitespace-nowrap"
+                            >
+                                <FileText className="h-4 w-4" />
+                                Plafonds officiels
+                                <ArrowRight className="h-4 w-4" />
+                            </Link>
+                        </motion.div>
+
                     </div>
                 </div>
             </section>
