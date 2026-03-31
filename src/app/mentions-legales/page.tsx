@@ -59,7 +59,7 @@ export default function MentionsLegalesPage() {
                                     </li>
                                     <li>
                                         <strong className="block text-stone-900 mb-1">Agrément SAP</strong>
-                                        Déclaration Service à la Personne (SAP) n° [Numéro SAP - À compléter]
+                                        Déclaration Service à la Personne (SAP) n° 953183423
                                     </li>
                                     <li className="flex gap-3 mt-4 pt-4 border-t border-stone-200">
                                         <Mail className="h-6 w-6 text-stone-400 flex-shrink-0" />
