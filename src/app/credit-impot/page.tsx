@@ -47,6 +47,13 @@ export default function CreditImpotPage() {
                                 Mes prestations de cuisine à domicile sont éligibles au crédit d'impôt de 50%.
                                 Une solution premium devenue accessible à tous.
                             </p>
+                            <p className="text-sm text-stone-500 italic mb-8">
+                                <span className="text-brand-gold not-italic">✦</span>{" "}
+                                Sous réserve d'éligibilité, vous pouvez bénéficier de l'Avance immédiate du crédit d'impôt.{" "}
+                                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-widest bg-stone-800 text-brand-gold not-italic align-middle animate-pulse">
+                                    Bientôt
+                                </span>
+                            </p>
                             <Image
                                 src="/images/service-personne-logo.png"
                                 alt="Services à la Personne - Agrément officiel"
@@ -74,9 +81,9 @@ export default function CreditImpotPage() {
                                     unoptimized
                                 />
                             </div>
-                            <Card className="border-none shadow-2xl bg-white overflow-hidden rounded-[2.5rem] w-full">
+                            <div className="border-none shadow-2xl bg-white overflow-hidden rounded-[2.5rem] w-full">
                                 <div className="bg-brand-rose h-3 w-full" />
-                                <CardContent className="p-8 md:p-12 pt-12 md:pt-14">
+                                <div className="p-8 md:p-12 pt-20 md:pt-24">
                                     <div className="space-y-8">
                                         <div className="flex justify-between items-center text-stone-500">
                                             <span className="text-lg">Valeur de la prestation</span>
@@ -96,8 +103,8 @@ export default function CreditImpotPage() {
                                             <p>Dispositif officiel encadré par la Direction Générale des Entreprises.</p>
                                         </div>
                                     </div>
-                                </CardContent>
-                            </Card>
+                                </div>
+                            </div>
                         </motion.div>
                     </div>
                 </div>
@@ -306,42 +313,40 @@ export default function CreditImpotPage() {
             <section className="py-24 bg-stone-50">
                 <div className="container mx-auto px-4">
                     <div className="text-center mb-16">
-                        <h2 className="text-3xl font-extrabold text-stone-900 mb-4">Un exemple concret pour le Pack Famille</h2>
+                        <h2 className="text-3xl font-extrabold text-stone-900 mb-3">Un exemple concret</h2>
+                        <p className="text-stone-500 text-lg">6 recettes · 4 personnes · formule recommandée</p>
                         <div className="mt-4 mx-auto h-1 w-20 bg-brand-gold rounded-full" />
                     </div>
 
                     <div className="max-w-2xl mx-auto bg-white rounded-[2rem] p-8 md:p-12 shadow-lg border border-stone-100">
                         <div className="space-y-6">
                             <div className="flex justify-between text-stone-700">
-                                <span>Service Cuisine (Main d'œuvre)</span>
-                                <span className="font-bold">250 €</span>
-                            </div>
-                            <div className="flex justify-between text-stone-700">
-                                <span>Courses alimentaires</span>
-                                <span className="font-bold">75 €</span>
+                                <span>Service cuisine — main d'œuvre</span>
+                                <span className="font-bold">270 €</span>
                             </div>
                             <div className="flex justify-between text-stone-900 font-bold pt-4 border-t border-stone-100">
-                                <span>Total réglé au Chef</span>
-                                <span>325 €</span>
+                                <span>Total réglé au chef</span>
+                                <span>270 €</span>
                             </div>
                             <div className="flex justify-between text-emerald-600 bg-emerald-50 p-4 rounded-xl font-medium">
                                 <span className="flex items-center gap-2">
                                     <CheckCircle2 className="h-4 w-4" />
-                                    Crédit d'Impôt (50% de la main d'œuvre)
+                                    Crédit d'impôt (50% de la main d'œuvre)
                                 </span>
-                                <span>-125 €</span>
+                                <span>−135 €</span>
                             </div>
                             <div className="flex justify-between items-center bg-brand-rose text-white p-6 rounded-2xl">
-                                <span className="text-lg font-bold">Coût réel pour vous :</span>
-                                <span className="text-3xl font-black">200 €</span>
+                                <span className="text-lg font-bold">Votre coût réel de service :</span>
+                                <span className="text-3xl font-black">135 €</span>
                             </div>
                             <p className="text-center text-stone-400 text-xs mt-6 italic">
-                                *Seule la partie main-d'œuvre (service) est éligible au crédit d'impôt. Les courses restent à votre charge.
+                                *Les courses alimentaires sont remboursées directement à Elisa sur présentation des reçus et ne font pas partie du calcul du crédit d'impôt.
                             </p>
                         </div>
                     </div>
                 </div>
             </section>
+
 
             {/* 5. FAQ Section */}
             <section className="py-24 bg-white">

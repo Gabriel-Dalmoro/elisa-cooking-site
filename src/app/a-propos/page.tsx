@@ -130,9 +130,9 @@ export default function AboutPage() {
                                                 viewport={{ once: true, margin: "-50px" }}
                                                 className="flex-1 w-full"
                                             >
-                                                <Card className="rounded-3xl md:rounded-[2.5rem] border-none shadow-xl bg-white overflow-hidden group hover:shadow-2xl transition-all duration-500">
+                                                <div className="rounded-3xl md:rounded-[2.5rem] border-none shadow-xl bg-white overflow-hidden group hover:shadow-2xl transition-all duration-500">
                                                     <div className={`h-2 w-full ${node.color === 'brand-rose' ? 'bg-brand-rose' : 'bg-brand-gold'}`} />
-                                                    <CardContent className="p-6 md:p-10">
+                                                    <div className="p-6 md:p-10">
                                                         <div className="flex items-center gap-4 mb-4 md:mb-6">
                                                             <div className={`p-3 md:p-4 rounded-xl md:rounded-2xl ${node.color === 'brand-rose' ? 'bg-brand-rose/10 text-brand-rose' : 'bg-brand-gold/10 text-brand-gold'}`}>
                                                                 <Icon className="h-6 w-6 md:h-8 md:w-8" />
@@ -145,8 +145,8 @@ export default function AboutPage() {
                                                             </div>
                                                         </div>
                                                         <p className="text-stone-600 text-base md:text-lg leading-relaxed">{node.description}</p>
-                                                    </CardContent>
-                                                </Card>
+                                                    </div>
+                                                </div>
                                             </motion.div>
                                             <div className="flex-1 hidden md:block" />
                                         </div>
