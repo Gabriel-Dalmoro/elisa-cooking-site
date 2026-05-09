@@ -224,6 +224,25 @@ export default function CreditImpotPage() {
                             </p>
                         </motion.div>
 
+                        {/* ② Conditions d'accès et d'utilisation — obligation #2 */}
+                        <motion.div
+                            initial={{ opacity: 0, y: 10 }}
+                            whileInView={{ opacity: 1, y: 0 }}
+                            viewport={{ once: true }}
+                            transition={{ delay: 0.2 }}
+                            className="bg-white border border-stone-200 rounded-2xl px-6 py-5 mb-10 shadow-sm"
+                        >
+                            <p className="text-sm font-bold text-stone-900 uppercase tracking-wider mb-3">Conditions d'accès et d'utilisation</p>
+                            <ul className="space-y-2 text-sm text-stone-600">
+                                <li className="flex items-start gap-2"><CheckCircle2 className="h-4 w-4 text-brand-gold shrink-0 mt-0.5" />Disposer d'une adresse sur le territoire français</li>
+                                <li className="flex items-start gap-2"><CheckCircle2 className="h-4 w-4 text-brand-gold shrink-0 mt-0.5" />Être le seul déclarant du foyer fiscal à faire appel à des prestations de services à la personne</li>
+                                <li className="flex items-start gap-2"><CheckCircle2 className="h-4 w-4 text-brand-gold shrink-0 mt-0.5" />Disposer d'un numéro fiscal valide</li>
+                                <li className="flex items-start gap-2"><CheckCircle2 className="h-4 w-4 text-brand-gold shrink-0 mt-0.5" />Avoir effectué au moins une déclaration de revenus (année N-1 ou N-2)</li>
+                                <li className="flex items-start gap-2"><CheckCircle2 className="h-4 w-4 text-brand-gold shrink-0 mt-0.5" />Ne pas bénéficier d'une prise en charge financière par un tiers (APA, PCH…)</li>
+                                <li className="flex items-start gap-2"><CheckCircle2 className="h-4 w-4 text-brand-gold shrink-0 mt-0.5" />Ne pas utiliser de titres spéciaux de paiement (CESU préfinancé, etc.)</li>
+                            </ul>
+                        </motion.div>
+
                         {/* ③④ Activation flow + 48h — obligations #3 & #4 */}
                         <p className="text-sm font-semibold text-stone-500 uppercase tracking-wider mb-4">Comment ça fonctionnera pour vous</p>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-10">
@@ -232,25 +251,18 @@ export default function CreditImpotPage() {
                                     num: "1",
                                     icon: ShieldCheck,
                                     title: "Activation de votre compte",
-                                    desc: "Vous activerez votre espace personnel sur particulier.urssaf.fr. Vous devrez disposer d’un numéro fiscal et avoir déjà effectué au moins une déclaration de revenus.",
+                                    desc: "Elisa Batch Cooking procède à votre inscription au service. Vous recevrez un e-mail vous invitant à activer votre compte personnel sur particulier.urssaf.fr (lien valable 7 jours).",
                                     color: "gold"
                                 },
                                 {
                                     num: "2",
-                                    icon: Euro,
-                                    title: "Prestation & émission de la facture",
-                                    desc: "J’interviendrai chez vous, puis émettrai la demande de paiement directement via l’URSSAF une fois la prestation terminée.",
-                                    color: "rose"
-                                },
-                                {
-                                    num: "3",
                                     icon: Clock,
                                     title: "48h pour valider ou contester",
-                                    desc: "Vous recevrez une notification de l’URSSAF sur votre espace. Vous aurez 48 heures pour valider ou contester la facture. Sans réponse, elle sera validée automatiquement.",
+                                    desc: "Vous recevrez sur votre compte la demande de paiement émise par votre Organisme de services à la personne. Vous aurez 48 heures pour la valider ou la contester. Sans réponse, elle sera validée automatiquement.",
                                     color: "gold"
                                 },
                                 {
-                                    num: "4",
+                                    num: "3",
                                     icon: TrendingDown,
                                     title: "Vous ne paierez que 50%",
                                     desc: "Seul votre reste à charge (50%) sera prélevé. L’URSSAF réglera les 50% restants directement à votre prestataire. Aucune avance de fonds de votre côté.",
