@@ -204,7 +204,7 @@ export default function CreditImpotPage() {
                         >
                             <ShieldCheck className="h-5 w-5 text-brand-gold shrink-0" />
                             <p className="text-stone-700 text-sm leading-relaxed">
-                                <span className="font-bold">Dispositif officiel</span> mis en place par l’<span className="font-semibold">URSSAF</span> et la <span className="font-semibold">Direction Générale des Finances Publiques (DGFiP)</span>.
+                                <span className="font-bold">Dispositif officiel</span> mis en place par l'<span className="font-semibold">URSSAF</span> et la <span className="font-semibold">Direction Générale des Finances Publiques (DGFiP)</span>.
                             </p>
                         </motion.div>
 
@@ -219,7 +219,7 @@ export default function CreditImpotPage() {
                             <HelpCircle className="h-5 w-5 text-brand-gold shrink-0 mt-0.5" />
                             <p className="text-stone-700 text-sm leading-relaxed">
                                 <span className="font-bold text-stone-900">Service entièrement optionnel et gratuit.</span>{" "}
-                                L’Avance Immédiate ne sera pas obligatoire. Vous choisirez librement d’y adhérer ou de rester
+                                L'Avance Immédiate ne sera pas obligatoire. Vous choisirez librement d'y adhérer ou de rester
                                 sur le remboursement classique annuel.
                             </p>
                         </motion.div>
@@ -245,7 +245,7 @@ export default function CreditImpotPage() {
 
                         {/* ③④ Activation flow + 48h — obligations #3 & #4 */}
                         <p className="text-sm font-semibold text-stone-500 uppercase tracking-wider mb-4">Comment ça fonctionnera pour vous</p>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-10">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             {[
                                 {
                                     num: "1",
@@ -265,7 +265,7 @@ export default function CreditImpotPage() {
                                     num: "3",
                                     icon: TrendingDown,
                                     title: "Vous ne paierez que 50%",
-                                    desc: "Seul votre reste à charge (50%) sera prélevé. L’URSSAF réglera les 50% restants directement à votre prestataire. Aucune avance de fonds de votre côté.",
+                                    desc: "Seul votre reste à charge (50%) sera prélevé. L'URSSAF réglera les 50% restants directement à votre prestataire. Aucune avance de fonds de votre côté.",
                                     color: "rose"
                                 }
                             ].map((step, i) => (
@@ -289,33 +289,36 @@ export default function CreditImpotPage() {
                                     <p className="text-stone-600 text-sm leading-relaxed">{step.desc}</p>
                                 </motion.div>
                             ))}
-                        </div>
 
-                        {/* ⑤ Interlocutrice note + ⑥ official link — obligations #5 & #6 */}
-                        <motion.div
-                            initial={{ opacity: 0, y: 10 }}
-                            whileInView={{ opacity: 1, y: 0 }}
-                            viewport={{ once: true }}
-                            className="bg-white rounded-3xl border border-stone-100 shadow-sm p-6 flex flex-col sm:flex-row items-start sm:items-center gap-6"
-                        >
-                            <div className="flex-1">
-                                <p className="text-sm text-stone-600 leading-relaxed">
-                                    <span className="font-semibold text-stone-900">Une question sur votre prestation ou ce service ?</span>{" "}
-                                    Votre interlocutrice reste <span className="font-semibold text-brand-rose">Elisa Batch Cooking</span> —
-                                    l'URSSAF gère uniquement la partie paiement.
-                                </p>
-                            </div>
-                            <Link
-                                href="https://www.impots.gouv.fr/portail/particulier/emploi-domicile"
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="flex-shrink-0 flex items-center gap-2 px-5 py-3 bg-stone-900 hover:bg-stone-700 text-white text-sm font-bold rounded-2xl transition-all hover:scale-105 shadow-sm whitespace-nowrap"
+                            {/* ⑤⑥ 4th card — interlocutrice + official link */}
+                            <motion.div
+                                initial={{ opacity: 0, y: 20 }}
+                                whileInView={{ opacity: 1, y: 0 }}
+                                viewport={{ once: true }}
+                                transition={{ delay: 0.3 }}
+                                className="relative bg-brand-gold/15 border border-brand-gold rounded-3xl p-6 shadow-sm flex flex-col justify-between gap-6"
                             >
-                                <FileText className="h-4 w-4" />
-                                Plafonds officiels
-                                <ArrowRight className="h-4 w-4" />
-                            </Link>
-                        </motion.div>
+                                <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-brand-gold text-white">
+                                    <HelpCircle className="h-6 w-6" />
+                                </div>
+                                <div>
+                                    <h3 className="text-base font-bold text-stone-900 mb-2">Une question ?</h3>
+                                    <p className="text-stone-600 text-sm leading-relaxed">
+                                        Votre interlocutrice reste <span className="text-brand-rose font-semibold">Elisa Batch Cooking</span> — l'URSSAF gère uniquement la partie paiement.
+                                    </p>
+                                </div>
+                                <Link
+                                    href="https://www.impots.gouv.fr/portail/particulier/emploi-domicile"
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="flex items-center gap-2 px-4 py-3 bg-brand-rose hover:bg-brand-rose/90 text-white text-sm font-bold rounded-2xl transition-all whitespace-nowrap self-start shadow-sm"
+                                >
+                                    <FileText className="h-4 w-4" />
+                                    Plafonds officiels
+                                    <ArrowRight className="h-4 w-4" />
+                                </Link>
+                            </motion.div>
+                        </div>
 
                     </div>
                 </div>
