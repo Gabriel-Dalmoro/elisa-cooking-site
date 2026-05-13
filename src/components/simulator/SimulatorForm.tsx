@@ -102,6 +102,16 @@ export function SimulatorForm({ promoConfig }: SimulatorFormProps) {
 
     const currentTier = Object.values(PRICING_CONFIG.TIERS).find(t => t.id === tierId) || PRICING_CONFIG.TIERS.SIX;
 
+    // Bonus quantity promo derived state
+    const isBonusQtyPromo = isPromoActive && promoConfig?.promoType === 'bonus_qty';
+    const bonusTierMeals = isBonusQtyPromo ? (promoConfig?.promoBuyQty || 0) : 0;
+    const bonusDisplayMeals = isBonusQtyPromo ? (promoConfig?.promoGetQty || 0) : 0;
+    const bonusExtra = bonusDisplayMeals - bonusTierMeals;
+    // Bonus only applies to one-time (non-subscription) bookings
+    const hasActiveBonus = isBonusQtyPromo && !isSubscribed && currentTier.meals === bonusTierMeals;
+    // Whether a given tier should show the bonus badge (subscription-aware)
+    const tierShowsBonus = (tierMeals: number) => isBonusQtyPromo && !isSubscribed && tierMeals === bonusTierMeals;
+
     const handleFormSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         try {
@@ -131,7 +141,11 @@ export function SimulatorForm({ promoConfig }: SimulatorFormProps) {
                 grocery_min: `${formatPrice(calculation.groceryRange.min)}€`,
                 grocery_max: `${formatPrice(calculation.groceryRange.max)}€`,
                 custom_message: formData.message,
-                promo_applied: isPromoActive ? `${promoConfig?.promoLabel} (-${activeDiscount}%)` : "Aucune",
+                promo_applied: isPromoActive
+                    ? (isBonusQtyPromo
+                        ? `${promoConfig?.promoLabel} (+${bonusExtra} recette offerte)`
+                        : `${promoConfig?.promoLabel} (-${activeDiscount}%)`)
+                    : "Aucune",
                 ingredient_consent: formData.ingredientConsent ? "Validé" : "Non validé"
             };
 
@@ -182,8 +196,15 @@ export function SimulatorForm({ promoConfig }: SimulatorFormProps) {
                                     {promoConfig?.promoLabel || 'OFFRE SPÉCIALE'}
                                 </div>
                                 <div className="flex flex-col items-start relative z-10">
-                                    <span className="text-[10px] font-black uppercase tracking-widest text-brand-rose">Remise immédiate</span>
-                                    <span className="text-sm font-bold"> -{activeDiscount}% appliqué sur votre simulation</span>
+                                    <span className="text-[10px] font-black uppercase tracking-widest text-brand-rose">
+                                        {isBonusQtyPromo ? 'Offre exclusive' : 'Remise immédiate'}
+                                    </span>
+                                    <span className="text-sm font-bold">
+                                        {isBonusQtyPromo
+                                            ? `${bonusDisplayMeals} recettes pour le prix de ${bonusTierMeals} !`
+                                            : `-${activeDiscount}% appliqué sur votre simulation`
+                                        }
+                                    </span>
                                 </div>
                             </div>
                         </motion.div>
@@ -258,6 +279,13 @@ export function SimulatorForm({ promoConfig }: SimulatorFormProps) {
                                                                         </Badge>
                                                                     </div>
                                                                 )}
+                                                                {tierShowsBonus(tier.meals) && (
+                                                                    <div className="absolute -top-3 left-1/2 -translate-x-1/2 z-20">
+                                                                        <Badge className="bg-brand-rose text-white border-none px-3 py-0.5 shadow-lg whitespace-nowrap text-[9px] font-bold ring-2 ring-stone-50">
+                                                                            🎁 {bonusDisplayMeals} POUR LE PRIX DE {bonusTierMeals}
+                                                                        </Badge>
+                                                                    </div>
+                                                                )}
                                                                 <div className={cn(
                                                                     "absolute top-4 right-4 h-5 w-5 rounded-full flex items-center justify-center border-2 transition-all duration-500",
                                                                     isSelected ? "bg-brand-rose border-brand-rose text-white shadow-md" : "bg-transparent border-stone-100 text-transparent"
@@ -271,9 +299,18 @@ export function SimulatorForm({ promoConfig }: SimulatorFormProps) {
                                                                     )}>
                                                                         {tier.meals}
                                                                     </span>
-                                                                    <span className="text-sm font-bold text-stone-900 leading-tight">
-                                                                        Recettes <br /> / semaine
-                                                                    </span>
+                                                                    {tierShowsBonus(tier.meals) ? (
+                                                                        <span className="text-xs font-bold text-stone-900 leading-tight text-center">
+                                                                            Recettes payées
+                                                                            <span className={cn("block font-black", isSelected ? "text-brand-rose" : "text-stone-400")}>
+                                                                                → {bonusDisplayMeals} livrées !
+                                                                            </span>
+                                                                        </span>
+                                                                    ) : (
+                                                                        <span className="text-sm font-bold text-stone-900 leading-tight">
+                                                                            Recettes <br /> / semaine
+                                                                        </span>
+                                                                    )}
                                                                 </div>
                                                             </motion.button>
                                                         </div>
@@ -404,7 +441,11 @@ export function SimulatorForm({ promoConfig }: SimulatorFormProps) {
                                                     <motion.div className="absolute top-1.5 bottom-1.5 w-[calc(50%-6px)] md:w-[calc(50%-8px)] rounded-full shadow-lg z-0" animate={{ x: isSubscribed ? "100%" : "0%", backgroundColor: isSubscribed ? "#10b981" : (isPromoActive ? "#fb7185" : "#FFFFFF") }} transition={{ type: "spring", stiffness: 400, damping: 30 }} />
                                                     <button onClick={() => setIsSubscribed(false)} className={cn("flex-1 py-3 md:py-4 text-[10px] md:text-xs font-black uppercase tracking-widest rounded-full relative z-10 transition-colors duration-300", !isSubscribed ? (isPromoActive ? "text-white" : "text-stone-900") : "text-stone-400")}>
                                                         Unique
-                                                        {isPromoActive && <span className={cn("ml-2 px-1.5 py-0.5 rounded-full text-[8px] font-black shadow-sm", !isSubscribed ? "bg-white text-brand-rose" : "bg-brand-rose text-white")}>-{activeDiscount}%</span>}
+                                                        {isPromoActive && (
+                                                            <span className={cn("ml-2 px-1.5 py-0.5 rounded-full text-[8px] font-black shadow-sm", !isSubscribed ? "bg-white text-brand-rose" : "bg-brand-rose text-white")}>
+                                                                {isBonusQtyPromo ? `+${bonusExtra} 🎁` : `-${activeDiscount}%`}
+                                                            </span>
+                                                        )}
                                                     </button>
                                                     <button onClick={() => setIsSubscribed(true)} className={cn("flex-1 py-3 md:py-4 text-[10px] md:text-xs font-black uppercase tracking-widest rounded-full relative z-10 flex items-center justify-center gap-1.5 md:gap-2 transition-colors duration-300", isSubscribed ? "text-white" : "text-stone-400")}>Essai Abo <span className={cn("bg-brand-rose text-white px-1.5 py-0.5 rounded-full text-[8px] md:text-[9px] font-black shadow-md", isSubscribed ? "bg-stone-900" : "")}>-15%</span></button>
                                                 </div>
@@ -446,8 +487,15 @@ export function SimulatorForm({ promoConfig }: SimulatorFormProps) {
                                                     {!isSubscribed && isPromoActive && (
                                                         <motion.div initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} className="pt-6 border-t border-brand-rose/10 space-y-4">
                                                             <motion.div className="flex items-center gap-3 bg-brand-rose/5 p-4 rounded-[1.5rem] border border-brand-rose/10 shadow-sm">
-                                                                <div className="h-8 w-8 rounded-lg bg-brand-rose flex items-center justify-center shadow-lg shadow-brand-rose/20"><Flame className="h-4 w-4 text-white" /></div>
-                                                                <p className="font-bold text-brand-rose text-xs">Offre exceptionnelle : {activeDiscount}% de réduction immédiate !</p>
+                                                                <div className="h-8 w-8 rounded-lg bg-brand-rose flex items-center justify-center shadow-lg shadow-brand-rose/20">
+                                                                    {isBonusQtyPromo ? <span className="text-base">🎁</span> : <Flame className="h-4 w-4 text-white" />}
+                                                                </div>
+                                                                <p className="font-bold text-brand-rose text-xs">
+                                                                    {isBonusQtyPromo
+                                                                        ? `Sélectionnez ${bonusTierMeals} recettes et recevez ${bonusDisplayMeals} — ${bonusExtra} offerte !`
+                                                                        : `Offre exceptionnelle : ${activeDiscount}% de réduction immédiate !`
+                                                                    }
+                                                                </p>
                                                             </motion.div>
                                                         </motion.div>
                                                     )}
@@ -493,9 +541,15 @@ export function SimulatorForm({ promoConfig }: SimulatorFormProps) {
                                             <p className="text-xs text-stone-600 leading-relaxed">
                                                 Vous avez sélectionné un menu de <span className="font-bold text-brand-rose">{calculation.tier.meals} recettes</span>, cuisiné sur-mesure pour régaler <span className="font-bold text-brand-rose">{people} {people > 1 ? "personnes" : "personne"}</span>.
                                             </p>
-                                            <p className="text-[11px] text-stone-500 italic mt-2">
-                                                🍽️ Cette formule couvrira <span className="font-bold text-stone-700">{calculation.tier.meals} repas complets</span> pour tout votre foyer. L'idéal pour partager de délicieux dîners sans passer par la cuisine !
+                                            {hasActiveBonus ? (
+                                            <p className="text-[11px] text-brand-rose font-bold italic mt-2">
+                                                🎁 Grâce à l&apos;offre <span className="underline">{bonusDisplayMeals} pour le prix de {bonusTierMeals}</span>, vous recevrez en réalité <span className="font-black">{bonusDisplayMeals} recettes</span> — {bonusExtra} offerte !
                                             </p>
+                                        ) : (
+                                            <p className="text-[11px] text-stone-500 italic mt-2">
+                                                🍽️ Cette formule couvrira <span className="font-bold text-stone-700">{calculation.tier.meals} repas complets</span> pour tout votre foyer. L&apos;idéal pour partager de délicieux dîners sans passer par la cuisine !
+                                            </p>
+                                        )}
                                         </div>
                                     </div>
                                 </motion.div>
@@ -607,15 +661,17 @@ export function SimulatorForm({ promoConfig }: SimulatorFormProps) {
                                 <div className="bg-white rounded-[2.5rem] shadow-xl border border-stone-100 overflow-hidden">
                                     <div className="p-8 space-y-8">
                                         <div className="space-y-6">
-                                            {/* 1. Original Price at Top */}
-                                            <div className="flex justify-between items-center px-1">
-                                                <span className="text-sm text-stone-400">Prix de la prestation</span>
-                                                <span className="text-base font-bold text-stone-400 line-through decoration-stone-200 flex items-center">
-                                                    <PriceDisplay amount={calculation.originalServicePrice} />
-                                                </span>
-                                            </div>
+                                            {/* 1. Original Price at Top — only show with strikethrough if there's an actual discount */}
+                                            {!isBonusQtyPromo && (
+                                                <div className="flex justify-between items-center px-1">
+                                                    <span className="text-sm text-stone-400">Prix de la prestation</span>
+                                                    <span className="text-base font-bold text-stone-400 line-through decoration-stone-200 flex items-center">
+                                                        <PriceDisplay amount={calculation.originalServicePrice} />
+                                                    </span>
+                                                </div>
+                                            )}
 
-                                            {/* 2. Applicable Discounts */}
+                                            {/* 2. Applicable Discounts / Bonus */}
                                             {isSubscribed && calculation.serviceDiscount > 0 && (
                                                 <div className="flex justify-between items-center px-1">
                                                     <span className="text-sm text-emerald-500 font-medium italic">Avantage Abonnement (-15%)</span>
@@ -626,6 +682,12 @@ export function SimulatorForm({ promoConfig }: SimulatorFormProps) {
                                                 <div className="flex justify-between items-center px-1">
                                                     <span className="text-sm text-brand-rose font-medium italic">Offre exceptionnelle : {activeDiscount}% de réduction !</span>
                                                     <span className="text-base font-bold text-brand-rose flex items-center">-<PriceDisplay amount={calculation.flashSaleAmount} /></span>
+                                                </div>
+                                            )}
+                                            {hasActiveBonus && (
+                                                <div className="flex items-center gap-2 px-3 py-2 bg-brand-rose/5 rounded-xl border border-brand-rose/10">
+                                                    <span className="text-base">🎁</span>
+                                                    <span className="text-sm text-brand-rose font-bold">+{bonusExtra} recette offerte !</span>
                                                 </div>
                                             )}
 
@@ -708,9 +770,15 @@ export function SimulatorForm({ promoConfig }: SimulatorFormProps) {
                                                 <p className="text-xs text-stone-600 leading-relaxed">
                                                     Vous avez sélectionné un menu de <span className="font-bold text-brand-rose">{calculation.tier.meals} recettes</span>, cuisiné sur-mesure pour régaler <span className="font-bold text-brand-rose">{people} {people > 1 ? "personnes" : "personne"}</span>.
                                                 </p>
-                                                <p className="text-[11px] text-stone-500 italic mt-2">
-                                                    🍽️ Cette formule couvrira <span className="font-bold text-stone-700">{calculation.tier.meals} repas complets</span> pour tout votre foyer. L'idéal pour partager de délicieux dîners sans passer par la cuisine !
+                                                {hasActiveBonus ? (
+                                                <p className="text-[11px] text-brand-rose font-bold italic mt-2">
+                                                    🎁 Grâce à l&apos;offre <span className="underline">{bonusDisplayMeals} pour le prix de {bonusTierMeals}</span>, vous recevrez en réalité <span className="font-black">{bonusDisplayMeals} recettes</span> — {bonusExtra} offerte !
                                                 </p>
+                                            ) : (
+                                                <p className="text-[11px] text-stone-500 italic mt-2">
+                                                    🍽️ Cette formule couvrira <span className="font-bold text-stone-700">{calculation.tier.meals} repas complets</span> pour tout votre foyer. L&apos;idéal pour partager de délicieux dîners sans passer par la cuisine !
+                                                </p>
+                                            )}
                                             </div>
                                         </div>
                                     </motion.div>
@@ -735,15 +803,17 @@ export function SimulatorForm({ promoConfig }: SimulatorFormProps) {
                                     <div className="bg-white rounded-[3rem] shadow-xl border border-stone-100 overflow-hidden">
                                         <div className="p-10 md:p-12 space-y-10">
                                             <div className="space-y-8">
-                                                {/* 1. Original Price at Top */}
-                                                <div className="flex justify-between items-center px-2">
-                                                    <span className="text-stone-400 text-lg font-medium">Prix de la prestation</span>
-                                                    <span className="text-2xl font-bold text-stone-300 line-through decoration-stone-200 flex items-center">
-                                                        <PriceDisplay amount={calculation.originalServicePrice} />
-                                                    </span>
-                                                </div>
+                                                {/* 1. Original Price at Top — only show with strikethrough if there's an actual discount */}
+                                                {!isBonusQtyPromo && (
+                                                    <div className="flex justify-between items-center px-2">
+                                                        <span className="text-stone-400 text-lg font-medium">Prix de la prestation</span>
+                                                        <span className="text-2xl font-bold text-stone-300 line-through decoration-stone-200 flex items-center">
+                                                            <PriceDisplay amount={calculation.originalServicePrice} />
+                                                        </span>
+                                                    </div>
+                                                )}
 
-                                                {/* 2. Applicable Discounts */}
+                                                {/* 2. Applicable Discounts / Bonus */}
                                                 {isSubscribed && calculation.serviceDiscount > 0 && (
                                                     <div className="flex justify-between items-center px-2">
                                                         <span className="text-emerald-500 font-bold text-xl italic">Avantage Abonnement (-15%)</span>
@@ -754,6 +824,12 @@ export function SimulatorForm({ promoConfig }: SimulatorFormProps) {
                                                     <div className="flex justify-between items-center px-2">
                                                         <span className="text-brand-rose font-bold text-xl italic leading-tight">Offre exceptionnelle :<br />{activeDiscount}% de réduction !</span>
                                                         <span className="text-base font-bold text-brand-rose flex items-center">-<PriceDisplay amount={calculation.flashSaleAmount} /></span>
+                                                    </div>
+                                                )}
+                                                {hasActiveBonus && (
+                                                    <div className="flex items-center gap-3 px-4 py-3 bg-brand-rose/5 rounded-2xl border border-brand-rose/10">
+                                                        <span className="text-2xl">🎁</span>
+                                                        <span className="text-brand-rose font-bold text-lg">+{bonusExtra} recette offerte !</span>
                                                     </div>
                                                 )}
 

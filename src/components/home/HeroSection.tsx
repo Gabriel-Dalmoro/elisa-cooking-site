@@ -31,7 +31,12 @@ export async function HeroSection() {
                             {isPromoActive && (
                                 <div className="flex items-center gap-2 px-4 py-1.5 bg-brand-rose/10 text-brand-rose rounded-full text-xs font-black uppercase tracking-widest shadow-sm animate-pulse">
                                     <Flame className="h-3 w-3 fill-current" />
-                                    <span>{config?.promoLabel || 'Flash Sale'} : -{config?.promoDiscount}%</span>
+                                    <span>
+                                        {config?.promoType === 'bonus_qty'
+                                            ? `${config.promoLabel} : ${config.promoGetQty} pour le prix de ${config.promoBuyQty} !`
+                                            : `${config?.promoLabel || 'Flash Sale'} : -${config?.promoDiscount}%`
+                                        }
+                                    </span>
                                 </div>
                             )}
                             <Button

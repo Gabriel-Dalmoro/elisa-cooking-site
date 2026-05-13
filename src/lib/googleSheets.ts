@@ -16,6 +16,9 @@ export interface SiteConfig {
     promoLabel: string;
     promoExpiry: string; // ISO string or Date string
     promoActive: boolean;
+    promoType: 'percentage' | 'bonus_qty'; // NEW: type of promo
+    promoBuyQty: number; // NEW: tier meals count the bonus applies to (e.g. 3)
+    promoGetQty: number; // NEW: what they actually receive (e.g. 4)
 }
 
 
@@ -106,11 +109,11 @@ export async function getSiteConfig(): Promise<SiteConfig | null> {
         const spreadsheetId = process.env.GOOGLE_SHEETS_SPREADSHEET_ID;
 
         // Fetch from 'Promo' sheet. Row 1: Headers, Row 2: Data
-        // Columns: A: Active (TRUE/FALSE), B: Discount %, C: Label, D: Expiry Date
-        console.log('[GoogleSheets] Fetching Promo Config from range Promo!A1:F50...');
+        // Columns: B: Active, C: Discount %, D: Label, E: Expiry, F: Type (percentage|bonus_qty), G: Buy Qty, H: Get Qty
+        console.log('[GoogleSheets] Fetching Promo Config from range Promo!A1:H50...');
         const response = await sheets.spreadsheets.values.get({
             spreadsheetId,
-            range: 'Promo!A1:F50',
+            range: 'Promo!A1:H50',
         });
 
         const rows = response.data.values;
@@ -123,6 +126,9 @@ export async function getSiteConfig(): Promise<SiteConfig | null> {
                 promoDiscount: 0,
                 promoLabel: '',
                 promoExpiry: '',
+                promoType: 'percentage',
+                promoBuyQty: 0,
+                promoGetQty: 0,
             };
         }
 
@@ -141,6 +147,9 @@ export async function getSiteConfig(): Promise<SiteConfig | null> {
                 promoDiscount: 0,
                 promoLabel: '',
                 promoExpiry: '',
+                promoType: 'percentage',
+                promoBuyQty: 0,
+                promoGetQty: 0,
             };
         }
 
@@ -149,6 +158,10 @@ export async function getSiteConfig(): Promise<SiteConfig | null> {
         const discount = dataRow[2];
         const label = dataRow[3];
         const expiryStr = dataRow[4];
+        const promoTypeRaw = dataRow[5]?.toLowerCase()?.trim() || 'percentage';
+        const promoType = (promoTypeRaw === 'bonus_qty' ? 'bonus_qty' : 'percentage') as 'percentage' | 'bonus_qty';
+        const promoBuyQty = parseInt(dataRow[6] || '0') || 0;
+        const promoGetQty = parseInt(dataRow[7] || '0') || 0;
 
         // Robust date parsing (handles DD/MM/YY, DD/MM/YYYY etc)
         const parseDate = (str: string) => {
@@ -176,15 +189,21 @@ export async function getSiteConfig(): Promise<SiteConfig | null> {
 
         // Strict Promo Validation:
         // 1. Must be set to TRUE in sheet
-        // 2. Must have a valid discount > 0
+        // 2. Must have a valid offer (discount > 0 for percentage, or buyQty/getQty for bonus_qty)
         // 3. Must NOT be expired (if expiry date exists)
-        const isActive = (active?.toUpperCase() === 'TRUE') && (discountValue > 0) && !isExpired;
+        const hasValidOffer = promoType === 'bonus_qty'
+            ? (promoBuyQty > 0 && promoGetQty > promoBuyQty)
+            : discountValue > 0;
+        const isActive = (active?.toUpperCase() === 'TRUE') && hasValidOffer && !isExpired;
 
         const config = {
             promoActive: isActive,
             promoDiscount: discountValue,
             promoLabel: label || '',
             promoExpiry: expiryDate ? expiryDate.toISOString() : '',
+            promoType,
+            promoBuyQty,
+            promoGetQty,
         };
 
         console.log('[GoogleSheets] Final Parsed Config:', config);
@@ -196,6 +215,9 @@ export async function getSiteConfig(): Promise<SiteConfig | null> {
             promoDiscount: 0,
             promoLabel: '',
             promoExpiry: '',
+            promoType: 'percentage' as const,
+            promoBuyQty: 0,
+            promoGetQty: 0,
         };
     }
 }

@@ -60,7 +60,10 @@ export function PromoBanner({ config }: PromoBannerProps) {
                     {/* Left: Info */}
                     <div className="flex items-center gap-4">
                         <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-brand-rose text-white shadow-xl shadow-brand-rose/40 ring-4 ring-white/10 animate-pulse">
-                            <Flame className="h-7 w-7 fill-current" />
+                            {config.promoType === 'bonus_qty'
+                                ? <span className="text-2xl">🎁</span>
+                                : <Flame className="h-7 w-7 fill-current" />
+                            }
                         </div>
                         <div className="flex flex-col">
                             <div className="flex items-center gap-2">
@@ -70,7 +73,10 @@ export function PromoBanner({ config }: PromoBannerProps) {
                                 </p>
                             </div>
                             <p className="text-base sm:text-lg font-black text-white leading-tight">
-                                Remise exceptionnelle de <span className="text-brand-rose">-{config.promoDiscount}%</span>
+                                {config.promoType === 'bonus_qty'
+                                    ? <>{config.promoGetQty} recettes pour le prix de {config.promoBuyQty} <span className="text-brand-rose">— {config.promoGetQty - config.promoBuyQty} offerte !</span></>
+                                    : <>Remise exceptionnelle de <span className="text-brand-rose">-{config.promoDiscount}%</span></>
+                                }
                             </p>
                         </div>
                     </div>
