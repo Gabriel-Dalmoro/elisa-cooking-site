@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bon Cadeau - Violette Eichenlaub</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&family=Montserrat:wght@300;400;500;600;700&family=Dancing+Script:wght@600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --brand-rose: #E1567A;
+            --brand-gold: #F2C94C;
+            --bg-stone: #fafaf9;
+            --text-dark: #292524;
+            --text-muted: #57534e;
+            --font-serif: 'Playfair Display', serif;
+            --font-sans: 'Montserrat', sans-serif;
+            --font-script: 'Dancing Script', cursive;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: var(--font-sans);
+            background-color: #e7e5e4;
+            color: var(--text-dark);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 40px 0;
+            gap: 40px;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+        }
+
+        /* A4 Landscape Dimensions */
+        .page {
+            width: 297mm;
+            height: 210mm;
+            background-color: var(--bg-stone);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            padding: 20px;
+        }
+
+        /* Border accent */
+        .page-border {
+            border: 1px solid var(--brand-gold);
+            height: 100%;
+            width: 100%;
+            display: flex;
+            position: relative;
+        }
+
+        /* --- PAGE 1: FRONT (THE CARD IMAGE) --- */
+        .front-content {
+            width: 100%;
+            height: 100%;
+            background-image: url('images/bon-cadeau-violette.png');
+            background-size: cover;
+            background-position: center;
+        }
+
+        /* --- PAGE 2: BACK (MARKETING & HOW TO REDEEM) --- */
+        .back-container {
+            display: flex;
+            width: 100%;
+            height: 100%;
+            padding: 40px 60px;
+            gap: 60px;
+        }
+
+        .back-left {
+            flex: 1.2;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .welcome-title {
+            font-family: var(--font-serif);
+            font-size: 28px;
+            color: var(--brand-rose);
+            margin-bottom: 15px;
+            font-weight: 600;
+        }
+
+        .welcome-text {
+            font-size: 14px;
+            line-height: 1.6;
+            color: var(--text-muted);
+            margin-bottom: 25px;
+        }
+
+        .value-propositions {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .value-item {
+            display: flex;
+            gap: 15px;
+            align-items: flex-start;
+        }
+
+        .value-icon {
+            font-size: 20px;
+            color: var(--brand-gold);
+            font-weight: bold;
+            line-height: 1;
+            margin-top: 2px;
+        }
+
+        .value-title {
+            font-weight: 700;
+            font-size: 13px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--text-dark);
+            margin-bottom: 3px;
+        }
+
+        .value-desc {
+            font-size: 12px;
+            color: var(--text-muted);
+            line-height: 1.4;
+        }
+
+        .back-right {
+            flex: 0.8;
+            border-left: 1px dashed rgba(242, 201, 76, 0.4);
+            padding-left: 60px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        .section-title {
+            font-family: var(--font-serif);
+            font-size: 18px;
+            color: var(--text-dark);
+            margin-bottom: 15px;
+            font-weight: 600;
+        }
+
+        .steps {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .step {
+            font-size: 12px;
+            line-height: 1.5;
+            color: var(--text-muted);
+        }
+
+        .step strong {
+            color: var(--text-dark);
+        }
+
+        .card-details {
+            margin-top: auto;
+            border-top: 1px solid rgba(242, 201, 76, 0.2);
+            padding-top: 20px;
+        }
+
+        .detail-row {
+            display: flex;
+            justify-content: space-between;
+            font-size: 11px;
+            color: var(--text-muted);
+            margin-bottom: 8px;
+        }
+
+        .detail-row strong {
+            color: var(--text-dark);
+        }
+
+        .expiry-badge {
+            display: inline-block;
+            background-color: rgba(225, 86, 122, 0.1);
+            color: var(--brand-rose);
+            font-weight: 700;
+            font-size: 11px;
+            padding: 4px 10px;
+            border-radius: 4px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-top: 10px;
+        }
+
+        .footer-logo {
+            text-align: center;
+            font-family: var(--font-serif);
+            font-size: 14px;
+            color: var(--brand-gold);
+            font-weight: 700;
+            letter-spacing: 1px;
+            margin-top: 15px;
+        }
+
+        /* Controls for printing */
+        .controls {
+            background-color: white;
+            padding: 15px 30px;
+            border-radius: 50px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.05);
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            z-index: 10;
+        }
+
+        .btn {
+            background-color: var(--brand-rose);
+            color: white;
+            border: none;
+            padding: 10px 24px;
+            border-radius: 20px;
+            font-family: var(--font-sans);
+            font-weight: 600;
+            font-size: 13px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn:hover {
+            opacity: 0.9;
+            transform: translateY(-1px);
+        }
+
+        .btn-secondary {
+            background-color: transparent;
+            border: 1px solid var(--text-muted);
+            color: var(--text-muted);
+        }
+
+        @media print {
+            body {
+                background-color: transparent;
+                padding: 0;
+                margin: 0;
+            }
+            .page {
+                box-shadow: none;
+                page-break-after: always;
+                margin: 0;
+            }
+            .controls {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="controls">
+        <span style="font-size: 13px; color: var(--text-muted); font-weight: 500;">Bon Cadeau Violette Eichenlaub — A4 Paysage</span>
+        <button class="btn" onclick="window.print()">Enregistrer en PDF / Imprimer</button>
+    </div>
+
+    <!-- PAGE 1: FRONT -->
+    <div class="page">
+        <div class="page-border" style="display: flex; flex-direction: column; justify-content: center; align-items: center; background-color: var(--bg-stone); gap: 25px; padding: 30px 0;">
+            <img src="images/bon-cadeau-violette.png" alt="Bon Cadeau" style="max-height: 72%; max-width: 75%; object-fit: contain; box-shadow: 0 10px 30px rgba(0,0,0,0.06); border-radius: 6px;">
+            <div style="font-family: var(--font-serif); font-size: 36px; font-weight: 700; color: var(--brand-rose); letter-spacing: 2px; text-transform: uppercase; text-shadow: 0 1px 2px rgba(0,0,0,0.02);">
+                Elisa <span style="color: var(--brand-gold);">Batch Cooking</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- PAGE 2: BACK -->
+    <div class="page">
+        <div class="page-border">
+            <div class="back-container">
+                
+                <div class="back-left">
+                    <h1 class="welcome-title">Félicitations Violette !</h1>
+                    <p class="welcome-text">
+                        Pour vous entourer de douceur et vous accompagner dans cette merveilleuse aventure à 4, Nathalie a le plaisir de vous offrir une semaine de sérénité culinaire. Savourez pleinement votre nouveau-né, on s'occupe du reste.
+                    </p>
+
+                    <div class="value-propositions">
+                        <div class="value-item">
+                            <span class="value-icon">✦</span>
+                            <div>
+                                <h3 class="value-title">Zéro Charge Mentale</h3>
+                                <p class="value-desc">Je planifie les menus avec vous, j'établis votre liste de courses sur-mesure, je cuisine à votre domicile et je laisse votre cuisine étincelante.</p>
+                            </div>
+                        </div>
+                        <div class="value-item">
+                            <span class="value-icon">✦</span>
+                            <div>
+                                <h3 class="value-title">Repas Sains & Réconfortants</h3>
+                                <p class="value-desc">4 délicieux plats faits maison pour 4 personnes, adaptés à vos goûts et besoins nutritionnels, prêts à être dégustés ou réchauffés au cours de votre semaine.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="back-right">
+                    <div>
+                        <h2 class="section-title">Comment en profiter ?</h2>
+                        <div class="steps">
+                            <div class="step">
+                                <strong>1. Contactez Elisa</strong><br>
+                                Par e-mail à <em>contactchefelisa@gmail.com</em> ou par téléphone au <em>06 52 07 72 03</em> en mentionnant votre code cadeau.
+                            </div>
+                            <div class="step">
+                                <strong>2. Personnalisez votre Menu</strong><br>
+                                Choisissez vos 4 plats préférés parmi les propositions de saison.
+                            </div>
+                            <div class="step">
+                                <strong>3. Fixez la Date</strong><br>
+                                Déterminez le jour idéal pour ma venue à votre domicile à Annecy.
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card-details">
+                        <div class="detail-row">
+                            <span>Code Unique :</span>
+                            <strong>ELISA-VIOLETTE-4P</strong>
+                        </div>
+                        <div class="detail-row">
+                            <span>Prestation :</span>
+                            <strong>1 Session de Batch Cooking (4 plats pour 4 personnes)</strong>
+                        </div>
+                        <div class="detail-row">
+                            <span>Date de validité :</span>
+                            <span class="expiry-badge">Jusqu'au 26 Novembre 2026</span>
+                        </div>
+                        <div class="footer-logo">Elisa Batch Cooking</div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+</body>
+</html>

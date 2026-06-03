@@ -395,21 +395,26 @@ export function SimulatorForm({ promoConfig }: SimulatorFormProps) {
                                                     Pour <span className="text-6xl md:text-7xl text-brand-rose font-black leading-none">{people}</span> convives
                                                 </div>
                                                 <div className="px-4 mb-8">
-                                                    <Slider value={[people]} onValueChange={(val) => setPeople(val[0])} max={6} min={1} step={1} className="[&_[role=slider]]:h-8 [&_[role=slider]]:w-8 [&_[role=slider]]:border-4 [&_[role=slider]]:border-white [&_[role=slider]]:bg-brand-rose [&_[role=slider]]:shadow-xl" />
+                                                    <Slider value={[people]} onValueChange={(val) => setPeople(val[0])} max={6} min={2} step={1} className="[&_[role=slider]]:h-8 [&_[role=slider]]:w-8 [&_[role=slider]]:border-4 [&_[role=slider]]:border-white [&_[role=slider]]:bg-brand-rose [&_[role=slider]]:shadow-xl" />
                                                     <div className="flex justify-between mt-4 text-[10px] font-black uppercase tracking-widest text-stone-300">
-                                                        <span>Solo</span><span>6 personnes</span>
+                                                        <span>2 personnes</span><span>6 personnes</span>
                                                     </div>
                                                 </div>
-                                                <div className="min-h-[50px] flex justify-center items-center">
+                                                <div className="min-h-[50px] flex justify-center items-center w-full">
                                                     <AnimatePresence mode="wait">
-                                                        {people === 1 && (
-                                                            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
-                                                                <Badge className="bg-brand-gold/10 text-stone-700 border-brand-gold/20 px-4 py-2 rounded-xl text-[11px] font-medium flex items-center gap-2 shadow-sm mx-auto"><Lightbulb className="h-4 w-4 text-brand-gold" /> Astuce : Passez à 2 personnes pour réduire le coût des ingrédients de ~25%.</Badge>
+                                                        {people < 4 ? (
+                                                            <motion.div key="hint-less-than-4" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="w-full">
+                                                                <div className="bg-brand-gold/10 text-stone-700 border border-brand-gold/20 px-4 py-2.5 rounded-xl text-[11px] font-medium flex items-center justify-center gap-2 shadow-sm mx-auto max-w-full whitespace-normal text-center leading-normal">
+                                                                    <Lightbulb className="h-4 w-4 text-brand-gold shrink-0" />
+                                                                    <span>Astuce : Passez à <strong className="font-extrabold text-stone-900">4 personnes</strong> pour réduire le coût des ingrédients.</span>
+                                                                </div>
                                                             </motion.div>
-                                                        )}
-                                                        {people >= 4 && (
-                                                            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
-                                                                <Badge className="bg-emerald-50 text-emerald-700 border-emerald-100 px-4 py-2 rounded-xl text-[11px] font-medium flex items-center gap-2 shadow-sm mx-auto"><Check className="h-4 w-4 text-emerald-500" /> Tarif Ingrédients Optimisé (Achat Vrac).</Badge>
+                                                        ) : (
+                                                            <motion.div key="hint-optimized" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="w-full">
+                                                                <div className="bg-emerald-50 text-emerald-700 border border-emerald-100 px-4 py-2.5 rounded-xl text-[11px] font-medium flex items-center justify-center gap-2 shadow-sm mx-auto max-w-full whitespace-normal text-center leading-normal">
+                                                                    <Check className="h-4 w-4 text-emerald-500 shrink-0" />
+                                                                    <span>Tarif Ingrédients Optimisé (Achat Vrac).</span>
+                                                                </div>
                                                             </motion.div>
                                                         )}
                                                     </AnimatePresence>
