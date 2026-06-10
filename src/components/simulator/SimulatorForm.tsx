@@ -89,8 +89,88 @@ export function SimulatorForm({ promoConfig }: SimulatorFormProps) {
 
     const activeDiscount = isPromoActive ? (promoConfig?.promoDiscount || 0) : 0;
 
-    const calculation = usePricingCalculation(tierId, people, isSubscribed, frequency, activeDiscount);
+    const baseCalculation = usePricingCalculation(tierId, people, isSubscribed, frequency, activeDiscount);
     const groceryUnit = getGroceryUnitCost(people);
+
+    // Gift Card State
+    const [giftCode, setGiftCode] = useState("");
+    const [isValidatingCode, setIsValidatingCode] = useState(false);
+    const [appliedGiftCard, setAppliedGiftCard] = useState<any | null>(null);
+    const [giftCodeError, setGiftCodeError] = useState("");
+
+    const handleValidateCode = async () => {
+        if (!giftCode.trim()) return;
+        setIsValidatingCode(true);
+        setGiftCodeError("");
+        try {
+            const res = await fetch("/api/gift-card/validate", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ code: giftCode.trim() }),
+            });
+            const data = await res.json();
+            if (data.success) {
+                setAppliedGiftCard(data.giftCard);
+                setPeople(data.giftCard.people);
+                if (data.giftCard.packageType !== "custom") {
+                    setTierId(data.giftCard.packageType);
+                }
+                setIsSubscribed(false);
+            } else {
+                setGiftCodeError(data.error || "Code invalide.");
+            }
+        } catch (err) {
+            setGiftCodeError("Erreur lors de la validation du code.");
+        } finally {
+            setIsValidatingCode(false);
+        }
+    };
+
+    const handleRemoveCode = () => {
+        setAppliedGiftCard(null);
+        setGiftCode("");
+        setGiftCodeError("");
+    };
+
+    // Override calculation if gift card is applied
+    const calculation = useMemo(() => {
+        if (appliedGiftCard) {
+            const peopleCount = appliedGiftCard.people;
+            const recipesCount = appliedGiftCard.recipes;
+            const groceryUnitForCard = getGroceryUnitCost(peopleCount);
+            const groceryRange = appliedGiftCard.includeGroceries
+                ? { min: 0, max: 0 }
+                : {
+                    min: recipesCount * peopleCount * groceryUnitForCard.min,
+                    max: recipesCount * peopleCount * groceryUnitForCard.max
+                  };
+            return {
+                originalServicePrice: baseCalculation.originalServicePrice,
+                serviceDiscount: 0,
+                flashSaleAmount: 0,
+                amountToPayElisa: 0,
+                taxCredit: 0,
+                finalPocketCost: 0,
+                groceryRange,
+                tier: {
+                    id: appliedGiftCard.packageType,
+                    label: `${recipesCount} Recettes`,
+                    basePrice: 0,
+                    meals: recipesCount,
+                    savings: {
+                        planning: 30,
+                        shoppingList: 15,
+                        groceryRun: 60,
+                        packing: 15,
+                        cookingCleaning: 240,
+                        total: "6h 00min"
+                    }
+                },
+                visitsPerMonth: 1
+            };
+        }
+        return baseCalculation;
+    }, [baseCalculation, appliedGiftCard]);
 
     // Scroll to top when step changes
     React.useEffect(() => {
@@ -120,8 +200,8 @@ export function SimulatorForm({ promoConfig }: SimulatorFormProps) {
                 biweekly: "Bi-mensuel",
                 monthly: "Mensuel"
             };
-            const frequencyLabel = isSubscribed ? frequencyMap[frequency] : "Une seule fois";
-            const engagementLabel = isSubscribed ? "Essai Sérénité ( Abonnement -15% )" : "Commande Ponctuelle";
+            const frequencyLabel = appliedGiftCard ? "Bon Cadeau" : (isSubscribed ? frequencyMap[frequency] : "Une seule fois");
+            const engagementLabel = appliedGiftCard ? `Prestation offerte par ${appliedGiftCard.giver}` : (isSubscribed ? "Essai Sérénité ( Abonnement -15% )" : "Commande Ponctuelle");
 
             const payload = {
                 type: 'simulator_lead',
@@ -130,22 +210,26 @@ export function SimulatorForm({ promoConfig }: SimulatorFormProps) {
                 client_phone: formData.phone,
                 client_address: addressDetails?.address || "",
                 service_distance: addressDetails?.distance,
-                meals_count: currentTier.meals,
+                meals_count: calculation.tier.meals,
                 people_count: people,
-                is_subscribed: isSubscribed,
+                is_subscribed: appliedGiftCard ? false : isSubscribed,
                 frequency_label: frequencyLabel,
                 engagement_type: engagementLabel,
                 has_sweet_addon: hasSweetAddon ? "Oui" : "Non",
-                total_price: `${formatPrice(calculation.finalPocketCost)}€`,
-                billed_total: `${formatPrice(calculation.amountToPayElisa)}€`,
+                total_price: appliedGiftCard ? "0€ (Cadeau)" : `${formatPrice(calculation.finalPocketCost)}€`,
+                billed_total: appliedGiftCard ? "0€ (Cadeau)" : `${formatPrice(calculation.amountToPayElisa)}€`,
                 grocery_min: `${formatPrice(calculation.groceryRange.min)}€`,
                 grocery_max: `${formatPrice(calculation.groceryRange.max)}€`,
-                custom_message: formData.message,
-                promo_applied: isPromoActive
-                    ? (isBonusQtyPromo
-                        ? `${promoConfig?.promoLabel} (+${bonusExtra} recette offerte)`
-                        : `${promoConfig?.promoLabel} (-${activeDiscount}%)`)
-                    : "Aucune",
+                custom_message: appliedGiftCard 
+                    ? `[CODE CADEAU: ${appliedGiftCard.code} - Offert par ${appliedGiftCard.giver} pour ${appliedGiftCard.recipient}] ${formData.message}`
+                    : formData.message,
+                promo_applied: appliedGiftCard 
+                    ? `Code Cadeau: ${appliedGiftCard.code}` 
+                    : (isPromoActive
+                        ? (isBonusQtyPromo
+                            ? `${promoConfig?.promoLabel} (+${bonusExtra} recette offerte)`
+                            : `${promoConfig?.promoLabel} (-${activeDiscount}%)`)
+                        : "Aucune"),
                 ingredient_consent: formData.ingredientConsent ? "Validé" : "Non validé"
             };
 
@@ -162,6 +246,14 @@ export function SimulatorForm({ promoConfig }: SimulatorFormProps) {
             });
 
             if (response.ok) {
+                // Redeem the gift card if one was applied
+                if (appliedGiftCard) {
+                    await fetch("/api/gift-card/redeem", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ code: appliedGiftCard.code }),
+                    });
+                }
                 setIsSubmitSuccess(true);
                 setFormData({ name: "", email: "", phone: "", message: "", ingredientConsent: false });
                 setAddressDetails(null);
@@ -261,14 +353,16 @@ export function SimulatorForm({ promoConfig }: SimulatorFormProps) {
                                                     return (
                                                         <div key={tier.id} className="flex">
                                                             <motion.button
-                                                                whileHover={{ scale: 1.02, y: -4 }}
-                                                                whileTap={{ scale: 0.98 }}
-                                                                onClick={() => setTierId(tier.id)}
+                                                                whileHover={appliedGiftCard ? {} : { scale: 1.02, y: -4 }}
+                                                                whileTap={appliedGiftCard ? {} : { scale: 0.98 }}
+                                                                disabled={appliedGiftCard !== null}
+                                                                onClick={() => !appliedGiftCard && setTierId(tier.id)}
                                                                 className={cn(
                                                                     "group relative flex-1 flex flex-col items-center p-6 md:p-8 rounded-[2rem] border-2 transition-all duration-500 shadow-sm",
                                                                     isSelected
                                                                         ? "bg-rose-50 border-brand-rose shadow-xl shadow-brand-rose/5 opacity-100 z-10"
-                                                                        : "bg-white border-stone-100 opacity-80 hover:opacity-100 hover:border-stone-200"
+                                                                        : "bg-white border-stone-100 opacity-80 hover:opacity-100 hover:border-stone-200",
+                                                                    appliedGiftCard && "cursor-not-allowed"
                                                                 )}
                                                             >
                                                                 {tier.isRecommended && (
@@ -317,6 +411,12 @@ export function SimulatorForm({ promoConfig }: SimulatorFormProps) {
                                                     );
                                                 })}
                                             </div>
+
+                                            {appliedGiftCard && (
+                                                <div className="bg-emerald-50 text-emerald-700 border border-emerald-100 p-4 rounded-2xl text-xs font-semibold text-center flex items-center justify-center gap-2 shadow-sm">
+                                                    <span>🔒 Formule de recettes verrouillée par votre bon cadeau ({appliedGiftCard.recipes} recettes).</span>
+                                                </div>
+                                            )}
 
                                             {/* Sweet Add-on Option */}
                                             <motion.div
@@ -395,10 +495,15 @@ export function SimulatorForm({ promoConfig }: SimulatorFormProps) {
                                                     Pour <span className="text-6xl md:text-7xl text-brand-rose font-black leading-none">{people}</span> convives
                                                 </div>
                                                 <div className="px-4 mb-8">
-                                                    <Slider value={[people]} onValueChange={(val) => setPeople(val[0])} max={6} min={2} step={1} className="[&_[role=slider]]:h-8 [&_[role=slider]]:w-8 [&_[role=slider]]:border-4 [&_[role=slider]]:border-white [&_[role=slider]]:bg-brand-rose [&_[role=slider]]:shadow-xl" />
+                                                    <Slider disabled={appliedGiftCard !== null} value={[people]} onValueChange={(val) => !appliedGiftCard && setPeople(val[0])} max={6} min={2} step={1} className="[&_[role=slider]]:h-8 [&_[role=slider]]:w-8 [&_[role=slider]]:border-4 [&_[role=slider]]:border-white [&_[role=slider]]:bg-brand-rose [&_[role=slider]]:shadow-xl" />
                                                     <div className="flex justify-between mt-4 text-[10px] font-black uppercase tracking-widest text-stone-300">
                                                         <span>2 personnes</span><span>6 personnes</span>
                                                     </div>
+                                                    {appliedGiftCard && (
+                                                        <p className="text-[10px] font-medium text-emerald-600 mt-4 text-center">
+                                                            🔒 Nombre de convives verrouillé par votre bon cadeau ({appliedGiftCard.people} convives).
+                                                        </p>
+                                                    )}
                                                 </div>
                                                 <div className="min-h-[50px] flex justify-center items-center w-full">
                                                     <AnimatePresence mode="wait">
@@ -444,7 +549,7 @@ export function SimulatorForm({ promoConfig }: SimulatorFormProps) {
                                                 <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-100/30 rounded-full -mr-16 -mt-16 blur-3xl opacity-50" />
                                                 <div className="bg-stone-100/80 p-1.5 md:p-2 rounded-full flex relative mb-8 shadow-inner border border-stone-200/50">
                                                     <motion.div className="absolute top-1.5 bottom-1.5 w-[calc(50%-6px)] md:w-[calc(50%-8px)] rounded-full shadow-lg z-0" animate={{ x: isSubscribed ? "100%" : "0%", backgroundColor: isSubscribed ? "#10b981" : (isPromoActive ? "#fb7185" : "#FFFFFF") }} transition={{ type: "spring", stiffness: 400, damping: 30 }} />
-                                                    <button onClick={() => setIsSubscribed(false)} className={cn("flex-1 py-3 md:py-4 text-[10px] md:text-xs font-black uppercase tracking-widest rounded-full relative z-10 transition-colors duration-300", !isSubscribed ? (isPromoActive ? "text-white" : "text-stone-900") : "text-stone-400")}>
+                                                    <button disabled={appliedGiftCard !== null} onClick={() => !appliedGiftCard && setIsSubscribed(false)} className={cn("flex-1 py-3 md:py-4 text-[10px] md:text-xs font-black uppercase tracking-widest rounded-full relative z-10 transition-colors duration-300", !isSubscribed ? (isPromoActive ? "text-white" : "text-stone-900") : "text-stone-400", appliedGiftCard && "cursor-not-allowed")}>
                                                         Unique
                                                         {isPromoActive && (
                                                             <span className={cn("ml-2 px-1.5 py-0.5 rounded-full text-[8px] font-black shadow-sm", !isSubscribed ? "bg-white text-brand-rose" : "bg-brand-rose text-white")}>
@@ -452,12 +557,12 @@ export function SimulatorForm({ promoConfig }: SimulatorFormProps) {
                                                             </span>
                                                         )}
                                                     </button>
-                                                    <button onClick={() => setIsSubscribed(true)} className={cn("flex-1 py-3 md:py-4 text-[10px] md:text-xs font-black uppercase tracking-widest rounded-full relative z-10 flex items-center justify-center gap-1.5 md:gap-2 transition-colors duration-300", isSubscribed ? "text-white" : "text-stone-400")}>Essai Abo <span className={cn("bg-brand-rose text-white px-1.5 py-0.5 rounded-full text-[8px] md:text-[9px] font-black shadow-md", isSubscribed ? "bg-stone-900" : "")}>-15%</span></button>
+                                                    <button disabled={appliedGiftCard !== null} onClick={() => !appliedGiftCard && setIsSubscribed(true)} className={cn("flex-1 py-3 md:py-4 text-[10px] md:text-xs font-black uppercase tracking-widest rounded-full relative z-10 flex items-center justify-center gap-1.5 md:gap-2 transition-colors duration-300", isSubscribed ? "text-white" : "text-stone-400", appliedGiftCard && "cursor-not-allowed")}>Essai Abo <span className={cn("bg-brand-rose text-white px-1.5 py-0.5 rounded-full text-[8px] md:text-[9px] font-black shadow-md", isSubscribed ? "bg-stone-900" : "")}>-15%</span></button>
                                                 </div>
 
                                                 <div className="space-y-4 relative z-10 text-stone-900">
-                                                    <h4 className="text-lg md:text-xl font-bold mb-1">{isSubscribed ? "L'Essai Abonnement Sérénité" : "Une prestation ponctuelle"}</h4>
-                                                    <p className="text-stone-500 text-sm md:text-base leading-relaxed">{isSubscribed ? <><span className="font-bold text-stone-700">Testez avec une 1ère session à -15%.</span> Si l'expérience vous séduit, sécurisez votre créneau mensuel (engagement 3 mois, facturation mensuelle 100% automatisée).</> : "Idéale pour un besoin spécifique ou pour tester. Une expérience culinaire d'exception, sans engagement."}</p>
+                                                    <h4 className="text-lg md:text-xl font-bold mb-1">{appliedGiftCard ? "Bon cadeau appliqué" : (isSubscribed ? "L'Essai Abonnement Sérénité" : "Une prestation ponctuelle")}</h4>
+                                                    <p className="text-stone-500 text-sm md:text-base leading-relaxed">{appliedGiftCard ? `Votre prestation est offerte par ${appliedGiftCard.giver}. Profitez d'une session de cuisine sereine et de repas gourmands.` : (isSubscribed ? <><span className="font-bold text-stone-700">Testez avec une 1ère session à -15%.</span> Si l'expérience vous séduit, sécurisez votre créneau mensuel (engagement 3 mois, facturation mensuelle 100% automatisée).</> : "Idéale pour un besoin spécifique ou pour tester. Une expérience culinaire d'exception, sans engagement.")}</p>
 
                                                     {isSubscribed && (
                                                         <div className="pt-6 border-t border-emerald-100/50 space-y-4">
@@ -665,18 +770,64 @@ export function SimulatorForm({ promoConfig }: SimulatorFormProps) {
 
                                 <div className="bg-white rounded-[2.5rem] shadow-xl border border-stone-100 overflow-hidden">
                                     <div className="p-8 space-y-8">
+                                        {/* Code Cadeau input */}
+                                        <div className="border-b border-stone-100/50 pb-6 space-y-3">
+                                            <Label className="text-[10px] font-black uppercase tracking-widest text-stone-400">Vous avez un bon cadeau ?</Label>
+                                            {!appliedGiftCard ? (
+                                                <div className="flex gap-2">
+                                                    <Input
+                                                        placeholder="Ex: ELISA-GIFT-XXXX"
+                                                        value={giftCode}
+                                                        onChange={(e) => setGiftCode(e.target.value.toUpperCase())}
+                                                        className="rounded-xl border-stone-100 bg-stone-50 h-10 text-xs text-stone-900 placeholder:text-stone-300 focus:ring-brand-rose"
+                                                    />
+                                                    <Button
+                                                        disabled={isValidatingCode || !giftCode.trim()}
+                                                        onClick={handleValidateCode}
+                                                        className="h-10 bg-stone-900 text-white rounded-xl text-xs font-bold px-4 hover:bg-stone-800 disabled:opacity-50"
+                                                    >
+                                                        {isValidatingCode ? "Vérification..." : "Appliquer"}
+                                                    </Button>
+                                                </div>
+                                            ) : (
+                                                <div className="flex items-center justify-between bg-emerald-50 border border-emerald-100 p-3 rounded-xl">
+                                                    <div className="flex flex-col text-left">
+                                                        <span className="text-[9px] font-black uppercase text-emerald-600">Bon Cadeau Appliqué</span>
+                                                        <span className="text-xs font-bold text-stone-900">{appliedGiftCard.code}</span>
+                                                        <span className="text-[10px] text-stone-500">Offert par {appliedGiftCard.giver}</span>
+                                                    </div>
+                                                    <button
+                                                        type="button"
+                                                        onClick={handleRemoveCode}
+                                                        className="text-xs font-bold text-red-500 hover:underline px-2"
+                                                    >
+                                                        Retirer
+                                                    </button>
+                                                </div>
+                                            )}
+                                            {giftCodeError && (
+                                                <p className="text-[10px] font-medium text-red-500 mt-1">{giftCodeError}</p>
+                                            )}
+                                        </div>
+
                                         <div className="space-y-6">
-                                            {/* 1. Original Price at Top — only show with strikethrough if there's an actual discount */}
-                                            {!isBonusQtyPromo && (
+                                            {/* 1. Original Price at Top — show with strikethrough if discount or card applies */}
+                                            {(!isBonusQtyPromo || appliedGiftCard) && (
                                                 <div className="flex justify-between items-center px-1">
                                                     <span className="text-sm text-stone-400">Prix de la prestation</span>
-                                                    <span className="text-base font-bold text-stone-400 line-through decoration-stone-200 flex items-center">
+                                                    <span className={cn("text-base font-bold text-stone-400 flex items-center", appliedGiftCard && "line-through decoration-stone-200")}>
                                                         <PriceDisplay amount={calculation.originalServicePrice} />
                                                     </span>
                                                 </div>
                                             )}
 
                                             {/* 2. Applicable Discounts / Bonus */}
+                                            {appliedGiftCard && (
+                                                <div className="flex justify-between items-center px-1">
+                                                    <span className="text-sm text-emerald-500 font-medium italic">Bon Cadeau Appliqué ({appliedGiftCard.code})</span>
+                                                    <span className="text-base font-bold text-emerald-500 flex items-center">-<PriceDisplay amount={calculation.originalServicePrice} /></span>
+                                                </div>
+                                            )}
                                             {isSubscribed && calculation.serviceDiscount > 0 && (
                                                 <div className="flex justify-between items-center px-1">
                                                     <span className="text-sm text-emerald-500 font-medium italic">Avantage Abonnement (-15%)</span>
@@ -724,7 +875,11 @@ export function SimulatorForm({ promoConfig }: SimulatorFormProps) {
                                             <div className="pt-6 border-t border-stone-50">
                                                 <div className="flex justify-between items-center bg-stone-50/80 p-4 rounded-xl">
                                                     <span className="text-xs font-bold text-stone-900 uppercase tracking-widest">Budget Ingrédients</span>
-                                                    <span className="text-sm text-stone-400 font-bold italic flex items-center gap-1">~<PriceDisplay amount={calculation.groceryRange.min} /> - <PriceDisplay amount={calculation.groceryRange.max} /></span>
+                                                    {appliedGiftCard?.includeGroceries ? (
+                                                        <span className="text-xs font-bold text-emerald-500">Ingrédients prépayés par le donateur</span>
+                                                    ) : (
+                                                        <span className="text-sm text-stone-400 font-bold italic flex items-center gap-1">~<PriceDisplay amount={calculation.groceryRange.min} /> - <PriceDisplay amount={calculation.groceryRange.max} /></span>
+                                                    )}
                                                 </div>
                                             </div>
                                         </div>
@@ -808,17 +963,23 @@ export function SimulatorForm({ promoConfig }: SimulatorFormProps) {
                                     <div className="bg-white rounded-[3rem] shadow-xl border border-stone-100 overflow-hidden">
                                         <div className="p-10 md:p-12 space-y-10">
                                             <div className="space-y-8">
-                                                {/* 1. Original Price at Top — only show with strikethrough if there's an actual discount */}
-                                                {!isBonusQtyPromo && (
+                                                {/* 1. Original Price at Top — show with strikethrough if discount or card applies */}
+                                                {(!isBonusQtyPromo || appliedGiftCard) && (
                                                     <div className="flex justify-between items-center px-2">
                                                         <span className="text-stone-400 text-lg font-medium">Prix de la prestation</span>
-                                                        <span className="text-2xl font-bold text-stone-300 line-through decoration-stone-200 flex items-center">
+                                                        <span className={cn("text-2xl font-bold text-stone-300 flex items-center", appliedGiftCard && "line-through decoration-stone-200")}>
                                                             <PriceDisplay amount={calculation.originalServicePrice} />
                                                         </span>
                                                     </div>
                                                 )}
 
                                                 {/* 2. Applicable Discounts / Bonus */}
+                                                {appliedGiftCard && (
+                                                    <div className="flex justify-between items-center px-2">
+                                                        <span className="text-emerald-500 font-bold text-xl italic">Bon Cadeau Appliqué ({appliedGiftCard.code})</span>
+                                                        <span className="text-2xl font-black text-emerald-500 flex items-center">-<PriceDisplay amount={calculation.originalServicePrice} /></span>
+                                                    </div>
+                                                )}
                                                 {isSubscribed && calculation.serviceDiscount > 0 && (
                                                     <div className="flex justify-between items-center px-2">
                                                         <span className="text-emerald-500 font-bold text-xl italic">Avantage Abonnement (-15%)</span>
@@ -866,7 +1027,11 @@ export function SimulatorForm({ promoConfig }: SimulatorFormProps) {
                                                 <div className="pt-10 border-t border-stone-100">
                                                     <div className="flex justify-between items-center bg-stone-50 p-6 rounded-[2rem] border border-stone-100">
                                                         <span className="text-xl font-black text-stone-900 uppercase tracking-widest">Budget Ingrédients</span>
-                                                        <span className="text-xl text-stone-400 font-bold italic flex items-center gap-1">~<PriceDisplay amount={calculation.groceryRange.min} /> - <PriceDisplay amount={calculation.groceryRange.max} /></span>
+                                                        {appliedGiftCard?.includeGroceries ? (
+                                                            <span className="text-lg font-bold text-emerald-500">Ingrédients prépayés par le donateur</span>
+                                                        ) : (
+                                                            <span className="text-xl text-stone-400 font-bold italic flex items-center gap-1">~<PriceDisplay amount={calculation.groceryRange.min} /> - <PriceDisplay amount={calculation.groceryRange.max} /></span>
+                                                        )}
                                                     </div>
                                                 </div>
                                             </div>
@@ -1108,7 +1273,7 @@ export function SimulatorForm({ promoConfig }: SimulatorFormProps) {
                                         <div className="flex items-center justify-between mb-4">
                                             <p className="text-[11px] font-black uppercase tracking-widest text-stone-400">Votre Configuration</p>
                                             <Badge className="bg-brand-rose text-white border-none text-[9px] font-black uppercase tracking-widest px-2.5 py-1 shadow-md shadow-brand-rose/10">
-                                                {!isSubscribed ? "Engagement Unique" : frequency === 'weekly' ? "Hebdomadaire" : frequency === 'biweekly' ? "Bi-mensuel" : "Mensuel"}
+                                                {appliedGiftCard ? "Bon Cadeau Appliqué" : (!isSubscribed ? "Engagement Unique" : (frequency === 'weekly' ? "Hebdomadaire" : frequency === 'biweekly' ? "Bi-mensuel" : "Mensuel"))}
                                             </Badge>
                                         </div>
                                         <div className="flex items-center gap-4">
@@ -1117,7 +1282,7 @@ export function SimulatorForm({ promoConfig }: SimulatorFormProps) {
                                             </div>
                                             <div className="space-y-0.5">
                                                 <span className="text-xl font-black text-stone-900 block leading-none">
-                                                    {currentTier.meals} Recettes <span className="text-stone-300 font-light mx-1">•</span> {people} Personnes
+                                                    {calculation.tier.meals} Recettes <span className="text-stone-300 font-light mx-1">•</span> {people} Personnes
                                                 </span>
                                                 <p className="text-[11px] text-stone-500 font-medium">Préparé par Chef Elisa chez vous.</p>
                                             </div>
