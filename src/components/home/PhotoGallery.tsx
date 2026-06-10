@@ -6,9 +6,9 @@ import { motion } from "framer-motion";
 const GALLERY_IMAGES = [
     { src: "/images/gallery/img1.jpeg", alt: "Plats gourmands", width: 1274, height: 1600 },
     { src: "/images/gallery/img2.jpeg", alt: "Ingrédients frais", width: 1200, height: 1600 },
-    { src: "/images/gallery/img3.jpeg", alt: "Cuisine saine", width: 1200, height: 1600 },
-    { src: "/images/gallery/img4.jpeg", alt: "Préparations maison", width: 1200, height: 1600 },
-    { src: "/images/gallery/img5.jpeg", alt: "Batch cooking", width: 1600, height: 1200 },
+    { src: "/images/gallery/img3_new.jpg", alt: "Plats cuisinés et légumes farcis", width: 768, height: 1024 },
+    { src: "/images/gallery/img4_new.jpg", alt: "Empanadas et légumes de saison", width: 576, height: 1024 },
+    { src: "/images/gallery/img5_new.jpg", alt: "Batch cooking sain et varié", width: 764, height: 1024 },
     { src: "/images/gallery/img6.jpeg", alt: "Organisation de la semaine", width: 1200, height: 1600 },
 ];
 
