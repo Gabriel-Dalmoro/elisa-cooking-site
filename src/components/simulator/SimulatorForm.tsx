@@ -890,6 +890,26 @@ export function SimulatorForm({ promoConfig }: SimulatorFormProps) {
                                             </p>
                                         </div>
                                     </div>
+
+                                    {/* Gift Card Promo Callout */}
+                                    <div className="bg-gradient-to-br from-brand-rose/10 to-brand-gold/10 p-5 rounded-[2rem] border border-brand-rose/10 flex items-center justify-between gap-4 shadow-sm hover:shadow-md transition-all duration-300">
+                                        <div className="flex items-center gap-3">
+                                            <span className="text-2xl animate-pulse">🎁</span>
+                                            <div className="text-left">
+                                                <h4 className="text-xs font-bold text-stone-900 leading-tight">Envie de faire plaisir ?</h4>
+                                                <p className="text-[10px] text-stone-600 mt-1 leading-normal">
+                                                    Offrez une session de batch cooking sous forme de bon cadeau personnalisé en 2 clics.
+                                                </p>
+                                            </div>
+                                        </div>
+                                        <Link
+                                            href="/carte-cadeau"
+                                            className="shrink-0 bg-white hover:bg-brand-rose hover:text-white border border-stone-200 hover:border-brand-rose text-stone-850 px-3 py-1.5 rounded-xl text-[10px] font-bold shadow-sm transition-all flex items-center gap-1"
+                                        >
+                                            Offrir
+                                            <ArrowRight className="h-3 w-3" />
+                                        </Link>
+                                    </div>
                                 </div>
                             </motion.div>
                         </div>
@@ -1042,6 +1062,28 @@ export function SimulatorForm({ promoConfig }: SimulatorFormProps) {
                                                 </p>
                                             </div>
                                         </div>
+                                    </div>
+                                </div>
+
+                                {/* Gift Card Promo Callout (Step 3) */}
+                                <div className="max-w-md mx-auto w-full mt-6">
+                                    <div className="bg-gradient-to-br from-brand-rose/10 to-brand-gold/10 p-5 rounded-[2rem] border border-brand-rose/10 flex items-center justify-between gap-4 shadow-sm hover:shadow-md transition-all duration-300">
+                                        <div className="flex items-center gap-3">
+                                            <span className="text-2xl animate-pulse">🎁</span>
+                                            <div className="text-left">
+                                                <h4 className="text-xs font-bold text-stone-900 leading-tight">Envie d'offrir cette formule ?</h4>
+                                                <p className="text-[10px] text-stone-600 mt-1 leading-normal">
+                                                    Offrez une session de batch cooking sous forme de bon cadeau personnalisé en 2 clics.
+                                                </p>
+                                            </div>
+                                        </div>
+                                        <Link
+                                            href="/carte-cadeau"
+                                            className="shrink-0 bg-white hover:bg-brand-rose hover:text-white border border-stone-200 hover:border-brand-rose text-stone-850 px-3 py-1.5 rounded-xl text-[10px] font-bold shadow-sm transition-all flex items-center gap-1"
+                                        >
+                                            Offrir
+                                            <ArrowRight className="h-3 w-3" />
+                                        </Link>
                                     </div>
                                 </div>
 

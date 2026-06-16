@@ -53,6 +53,7 @@ export function Footer() {
                             <Link href="/" className="hover:text-brand-rose transition-colors">Accueil</Link>
                             <Link href="/menu" className="hover:text-brand-rose transition-colors">Le Menu</Link>
                             <Link href="/simulateur" className="hover:text-brand-rose transition-colors">Tarifs</Link>
+                            <Link href="/carte-cadeau" className="hover:text-brand-rose transition-colors">Bons Cadeaux</Link>
                             <Link href="/credit-impot" className="hover:text-brand-rose transition-colors">Crédit d'impôt</Link>
                             <Link href="/a-propos" className="hover:text-brand-rose transition-colors">À propos</Link>
                             <Link href="/contact" className="hover:text-brand-rose transition-colors">Contact</Link>

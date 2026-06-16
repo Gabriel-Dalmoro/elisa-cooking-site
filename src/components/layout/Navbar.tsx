@@ -4,7 +4,7 @@ import * as React from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
-import { Menu, Home, Calculator, Wallet, User, MessageSquare, ArrowRight, Utensils, BookOpen } from "lucide-react";
+import { Menu, Home, Calculator, Wallet, User, MessageSquare, ArrowRight, Utensils, BookOpen, Gift } from "lucide-react";
 import { motion } from "framer-motion";
 
 import { cn } from "@/lib/utils";
@@ -20,6 +20,7 @@ const NAV_LINKS = [
     { name: "Le Menu", href: "/menu", icon: Utensils },
     { name: "Blog", href: "/blog", icon: BookOpen },
     { name: "Tarifs", href: "/simulateur", icon: Calculator },
+    { name: "Bons Cadeaux", href: "/carte-cadeau", icon: Gift },
     { name: "Crédit d'impôt", href: "/credit-impot", icon: Wallet },
     { name: "À propos", href: "/a-propos", icon: User },
     { name: "Contact", href: "/contact", icon: MessageSquare },
