@@ -161,7 +161,7 @@ export function GiftCardSection() {
                                             ? "none"
                                             : "box-shadow 0.5s cubic-bezier(0.25, 1, 0.5, 1)",
                                 }}
-                                className="bg-gradient-to-br from-stone-50 via-white to-rose-50/15 rounded-[2.5rem] p-6 sm:p-10 border border-stone-100/80 overflow-hidden relative w-full h-full flex flex-col justify-between select-none cursor-default group shadow-lg"
+                                className="bg-gradient-to-br from-stone-50 via-white to-rose-50/15 rounded-[2rem] sm:rounded-[2.5rem] p-5 sm:p-10 border border-stone-100/80 overflow-hidden relative w-full h-full flex flex-col justify-between select-none cursor-default group shadow-lg"
                             >
                                 {/* Dynamic Glare Effect overlay */}
                                 <div
@@ -174,18 +174,18 @@ export function GiftCardSection() {
                                 />
 
                                 {/* Card borders */}
-                                <div style={{ transform: "translateZ(20px)" }} className="absolute inset-4 border-2 sm:border-[3px] border-brand-gold/45 rounded-[1.75rem] pointer-events-none transition-transform duration-200" />
-                                <div className="absolute inset-4.5 border border-stone-100/30 rounded-[1.70rem] pointer-events-none" />
+                                <div style={{ transform: "translateZ(20px)" }} className="absolute inset-3 sm:inset-4.5 border-2 sm:border-[3px] border-brand-gold/45 rounded-[1.45rem] sm:rounded-[1.75rem] pointer-events-none transition-transform duration-200" />
+                                <div className="absolute inset-3.5 sm:inset-5 border border-stone-100/30 rounded-[1.40rem] sm:rounded-[1.70rem] pointer-events-none" />
                                 
                                 {/* Card Header */}
                                 <div style={{ transform: "translateZ(35px)" }} className="flex justify-between items-center w-full z-10 transition-transform duration-200">
-                                    <div className="flex items-center gap-3 sm:gap-4">
+                                    <div className="flex items-center gap-2 sm:gap-4">
                                         <img
                                             src="/images/logo.jpg"
                                             alt="Logo"
-                                            className="h-10 w-10 sm:h-12 sm:w-12 object-contain rounded-full border border-stone-200/50 shadow-sm transition-transform duration-500 group-hover:rotate-[360deg]"
+                                            className="h-9 w-9 sm:h-12 sm:w-12 object-contain rounded-full border border-stone-200/50 shadow-sm transition-transform duration-500 group-hover:rotate-[360deg]"
                                         />
-                                        <span className="text-sm sm:text-base md:text-lg font-black tracking-tight text-stone-900">
+                                        <span className="text-xs sm:text-base md:text-lg font-black tracking-tight text-stone-900">
                                             Elisa <span className="text-brand-rose">Batch Cooking</span>
                                         </span>
                                     </div>
@@ -195,8 +195,8 @@ export function GiftCardSection() {
                                 </div>
 
                                 {/* Card Content Cursive Text */}
-                                <div style={{ transform: "translateZ(50px)" }} className="my-auto px-4 py-4 flex flex-col justify-center items-center text-center z-10 transition-transform duration-200">
-                                    <p className="font-handwriting text-brand-rose text-base sm:text-xl md:text-2xl leading-relaxed max-w-[90%] mx-auto">
+                                <div style={{ transform: "translateZ(50px)" }} className="my-auto px-2 py-2 sm:py-4 flex flex-col justify-center items-center text-center z-10 transition-transform duration-200">
+                                    <p className="font-handwriting text-brand-rose text-xs sm:text-xl md:text-2xl leading-relaxed max-w-[90%] mx-auto">
                                         Pour une séance de Batch Cooking avec de délicieux plats faits maison préparés chez vous
                                     </p>
                                 </div>
@@ -205,17 +205,17 @@ export function GiftCardSection() {
                                 <div style={{ transform: "translateZ(30px)" }} className="flex justify-between items-end text-stone-900 z-10 transition-transform duration-200">
                                     <div className="text-left space-y-0.5">
                                         <div>
-                                            <span className="text-[6px] font-bold text-stone-400 uppercase tracking-widest block leading-none">Pour</span>
-                                            <span className="text-[10px] sm:text-xs font-black text-stone-850 block leading-tight">Marie & Julien</span>
+                                            <span className="text-[7px] font-bold text-stone-400 uppercase tracking-widest block leading-none">Pour</span>
+                                            <span className="text-[9px] sm:text-xs font-black text-stone-850 block leading-tight">Marie & Julien</span>
                                         </div>
-                                        <div className="pt-1">
-                                            <span className="text-[6px] font-bold text-stone-400 uppercase tracking-widest block leading-none">De la part de</span>
-                                            <span className="text-[10px] sm:text-xs font-black text-stone-850 block leading-tight">Nathalie</span>
+                                        <div className="pt-0.5 sm:pt-1">
+                                            <span className="text-[7px] font-bold text-stone-400 uppercase tracking-widest block leading-none">De la part de</span>
+                                            <span className="text-[9px] sm:text-xs font-black text-stone-850 block leading-tight">Nathalie</span>
                                         </div>
                                     </div>
-                                    <div className="text-right pb-1">
-                                        <span className="text-[6px] font-bold text-stone-400 uppercase tracking-widest block leading-none">Validité</span>
-                                        <span className="text-[10px] sm:text-xs font-black text-stone-850 block leading-tight">6 mois</span>
+                                    <div className="text-right pb-0.5">
+                                        <span className="text-[7px] font-bold text-stone-400 uppercase tracking-widest block leading-none">Validité</span>
+                                        <span className="text-[9px] sm:text-xs font-black text-stone-850 block leading-tight">6 mois</span>
                                     </div>
                                 </div>
                             </motion.div>
