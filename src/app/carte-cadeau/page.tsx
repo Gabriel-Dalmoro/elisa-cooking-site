@@ -52,6 +52,8 @@ const PACKAGES = [
 export default function GiftCardPage() {
     const [step, setStep] = useState(0);
     const [selectedPackId, setSelectedPackId] = useState('special');
+    const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
+    const [hasAcceptedTerms, setHasAcceptedTerms] = useState(false);
     
     const [formData, setFormData] = useState({
         senderName: '',
@@ -332,12 +334,6 @@ export default function GiftCardPage() {
                                             <span className="font-bold text-stone-900">{selectedPack.price}€</span>
                                         </div>
                                         <div className="flex justify-between items-center pb-3 border-b border-stone-200/50">
-                                            <span className="font-bold text-stone-400">Coût des ingrédients :</span>
-                                            <span className="font-bold text-stone-500 italic">
-                                                Non inclus (À la charge du bénéficiaire lors de la séance)
-                                            </span>
-                                        </div>
-                                        <div className="flex justify-between items-center pb-3 border-b border-stone-200/50">
                                             <span className="font-bold text-stone-400">Offert par :</span>
                                             <span className="font-black text-brand-rose">{formData.senderName || 'Thomas Bernard'}</span>
                                         </div>
@@ -359,14 +355,6 @@ export default function GiftCardPage() {
                                         </div>
                                     </div>
 
-                                    {/* Expiry notice */}
-                                    <div className="bg-amber-50/50 border border-amber-100 p-3 rounded-2xl flex gap-2 text-amber-800">
-                                        <Info className="h-4 w-4 shrink-0 text-amber-500 mt-0.5" />
-                                        <p className="text-[10px] leading-relaxed font-medium">
-                                            <strong>Durée de validité :</strong> Le bon cadeau sera valable pendant 6 mois à compter de la date d&apos;achat pour planifier et effectuer la séance.
-                                        </p>
-                                    </div>
-
                                     {/* SAP Tax credit warning/disclaimer */}
                                     <div className="bg-emerald-50/50 border border-emerald-100 p-4 rounded-2xl flex gap-3 text-emerald-800">
                                         <Info className="h-5 w-5 shrink-0 text-emerald-500 mt-0.5" />
@@ -381,11 +369,10 @@ export default function GiftCardPage() {
                                         <button type="button" onClick={handlePrev} className="rounded-full px-5 py-3 text-xs font-bold text-stone-400 hover:text-stone-900 flex items-center gap-1.5 cursor-pointer border-none bg-transparent"><ArrowLeft className="h-4 w-4" /> Retour</button>
                                         <button
                                             type="button"
-                                            disabled={isSubmitting}
-                                            onClick={handleCheckout}
-                                            className="rounded-full px-8 py-4 bg-brand-rose hover:bg-brand-rose/90 text-white font-bold shadow-xl shadow-brand-rose/20 text-sm flex items-center gap-2 group cursor-pointer disabled:opacity-50 border-none"
+                                            onClick={() => setIsConfirmModalOpen(true)}
+                                            className="rounded-full px-8 py-4 bg-brand-rose hover:bg-brand-rose/90 text-white font-bold shadow-xl shadow-brand-rose/20 text-sm flex items-center gap-2 group cursor-pointer border-none"
                                         >
-                                            {isSubmitting ? 'Redirection...' : 'Payer'} {selectedPack.price}€
+                                            Payer {selectedPack.price}€
                                             <ShieldCheck className="h-4 w-4 transition-transform group-hover:scale-110" />
                                         </button>
                                     </div>
@@ -462,6 +449,95 @@ export default function GiftCardPage() {
                     </div>
                 </div>
             </div>
+
+            {/* Custom Terms Confirmation Modal */}
+            <AnimatePresence>
+                {isConfirmModalOpen && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+                        {/* Backdrop */}
+                        <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            onClick={() => setIsConfirmModalOpen(false)}
+                            className="absolute inset-0 bg-stone-900/60 backdrop-blur-sm"
+                        />
+
+                        {/* Modal card */}
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                            exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                            transition={{ type: "spring", duration: 0.5 }}
+                            className="bg-white rounded-[2.5rem] p-6 md:p-8 max-w-md w-full shadow-2xl border border-stone-100 space-y-6 relative z-10"
+                        >
+                            <div>
+                                <h3 className="text-xl font-bold tracking-tight text-stone-900 mb-1">Conditions de votre Bon Cadeau</h3>
+                                <p className="text-stone-400 text-xs font-medium">Veuillez accepter les conditions ci-dessous pour finaliser l&apos;achat.</p>
+                            </div>
+
+                            <div className="space-y-4">
+                                <div className="flex gap-3 items-start bg-rose-50/35 p-4 rounded-2xl border border-rose-100/30">
+                                    <Info className="h-5 w-5 text-brand-rose shrink-0 mt-0.5" />
+                                    <div>
+                                        <h4 className="text-xs font-bold text-stone-900 mb-1">Coût des ingrédients</h4>
+                                        <p className="text-[10px] text-stone-600 leading-relaxed font-medium">
+                                            Les ingrédients ne sont <strong>pas inclus</strong> dans le prix de la formule. Le coût des courses reste entièrement à la charge du bénéficiaire lors de la séance de batch cooking (il varie selon les plats choisis).
+                                        </p>
+                                    </div>
+                                </div>
+
+                                <div className="flex gap-3 items-start bg-amber-50/35 p-4 rounded-2xl border border-amber-100/30">
+                                    <Info className="h-5 w-5 text-amber-500 shrink-0 mt-0.5" />
+                                    <div>
+                                        <h4 className="text-xs font-bold text-stone-900 mb-1">Durée de validité (6 mois)</h4>
+                                        <p className="text-[10px] text-stone-600 leading-relaxed font-medium">
+                                            Le bon cadeau est valable pendant <strong>6 mois</strong> à compter de la date d&apos;achat pour planifier et effectuer la séance.
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Acceptance checkbox */}
+                            <div className="flex items-start gap-3 p-3 bg-stone-50 rounded-2xl border border-stone-100/60">
+                                <input
+                                    type="checkbox"
+                                    id="termsCheck"
+                                    checked={hasAcceptedTerms}
+                                    onChange={(e) => setHasAcceptedTerms(e.target.checked)}
+                                    className="mt-0.5 h-4 w-4 rounded border-stone-300 text-brand-rose focus:ring-brand-rose cursor-pointer accent-brand-rose"
+                                />
+                                <label htmlFor="termsCheck" className="text-[10px] sm:text-[11px] font-bold text-stone-700 cursor-pointer leading-snug">
+                                    Je confirme avoir pris connaissance et accepter ces conditions d&apos;achat et de validité.
+                                </label>
+                            </div>
+
+                            {/* Buttons */}
+                            <div className="flex gap-3 pt-2">
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setIsConfirmModalOpen(false);
+                                        setHasAcceptedTerms(false);
+                                    }}
+                                    className="flex-1 rounded-full py-3 bg-stone-100 hover:bg-stone-200 text-stone-500 hover:text-stone-900 text-xs font-bold transition-colors cursor-pointer border-none"
+                                >
+                                    Annuler
+                                </button>
+                                <button
+                                    type="button"
+                                    disabled={!hasAcceptedTerms || isSubmitting}
+                                    onClick={handleCheckout}
+                                    className="flex-1 rounded-full py-3 bg-brand-rose hover:bg-brand-rose/90 text-white text-xs font-bold transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed border-none flex items-center justify-center gap-1.5"
+                                >
+                                    {isSubmitting ? 'Redirection...' : 'Confirmer & Payer'}
+                                    <ShieldCheck className="h-4 w-4" />
+                                </button>
+                            </div>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
         </main>
     );
 }
