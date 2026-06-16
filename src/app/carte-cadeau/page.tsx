@@ -24,8 +24,7 @@ const PACKAGES = [
         price: 190,
         groceryEstimate: 80,
         description: 'Notre formule sur-mesure la plus demandée pour offrir en cadeau de naissance.',
-        badge: 'Populaire',
-        isRecommended: true,
+        badge: 'Idéal Naissance',
     },
     {
         id: 'family',
@@ -35,7 +34,8 @@ const PACKAGES = [
         price: 230,
         groceryEstimate: 100,
         description: 'Une semaine complète de repas sains et réconfortants cuisinés pour toute la famille.',
-        badge: 'Idéal Famille',
+        badge: 'Populaire',
+        isRecommended: true,
     },
     {
         id: 'comfort',
@@ -51,7 +51,7 @@ const PACKAGES = [
 
 export default function GiftCardPage() {
     const [step, setStep] = useState(0);
-    const [selectedPackId, setSelectedPackId] = useState('special');
+    const [selectedPackId, setSelectedPackId] = useState('family');
     const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
     const [hasAcceptedTerms, setHasAcceptedTerms] = useState(false);
     
@@ -389,7 +389,7 @@ export default function GiftCardPage() {
 
                         {/* Interactive dynamic gift card container (Bigger & More Premium) */}
                         <div className="bg-gradient-to-br from-stone-50 via-white to-rose-50/15 rounded-[2.5rem] p-6 sm:p-8 md:p-10 shadow-[0_25px_60px_rgba(225,86,122,0.12)] border border-stone-100/80 overflow-hidden relative w-full max-w-xl aspect-[1.58/1] flex flex-col justify-between select-none">
-                            <div className="absolute inset-4 border border-brand-gold/30 rounded-[1.75rem] pointer-events-none" />
+                            <div className="absolute inset-4 border-2 sm:border-[3px] border-brand-gold/45 rounded-[1.75rem] pointer-events-none" />
                             <div className="absolute inset-4.5 border border-stone-100/30 rounded-[1.70rem] pointer-events-none" />
                             
                             {/* Header row */}
@@ -400,8 +400,8 @@ export default function GiftCardPage() {
                                         alt="Logo"
                                         className="h-8 w-8 object-contain rounded-full border border-stone-200/50 shadow-sm"
                                     />
-                                    <span className="text-[9px] sm:text-xs font-black uppercase tracking-[0.15em] text-brand-gold font-serif">
-                                        Elisa Batch Cooking
+                                    <span className="text-xs sm:text-sm font-black tracking-tight text-stone-900">
+                                        Elisa <span className="text-brand-rose">Batch Cooking</span>
                                     </span>
                                 </div>
                                 <div className="text-[9px] sm:text-xs font-black tracking-[0.2em] text-stone-400 uppercase">
@@ -413,9 +413,6 @@ export default function GiftCardPage() {
                             <div className="my-auto px-4 py-4 flex flex-col justify-center items-center text-center z-10">
                                 <p className="font-handwriting text-brand-rose text-sm sm:text-base md:text-lg lg:text-base xl:text-xl leading-relaxed max-w-[85%] mx-auto">
                                     Pour une séance de Batch Cooking avec {selectedPack.recipes} plats maison pour {selectedPack.people} personnes préparés chez vous
-                                </p>
-                                <p className="text-[8px] sm:text-[9px] text-stone-400 font-medium italic mt-2 max-w-[85%] mx-auto leading-normal">
-                                    * Note : Seul le coût des ingrédients (courses) reste à la charge du bénéficiaire lors de la séance.
                                 </p>
                             </div>
 
@@ -482,7 +479,7 @@ export default function GiftCardPage() {
                                     <div>
                                         <h4 className="text-xs font-bold text-stone-900 mb-1">Coût des ingrédients</h4>
                                         <p className="text-[10px] text-stone-600 leading-relaxed font-medium">
-                                            Les ingrédients ne sont <strong>pas inclus</strong> dans le prix de la formule. Le coût des courses reste entièrement à la charge du bénéficiaire lors de la séance de batch cooking (il varie selon les plats choisis).
+                                            Les ingrédients ne sont <strong>pas inclus</strong>. Le coût des courses reste entièrement à la charge du bénéficiaire lors de la séance (il varie selon les plats choisis).
                                         </p>
                                     </div>
                                 </div>
@@ -496,7 +493,29 @@ export default function GiftCardPage() {
                                         </p>
                                     </div>
                                 </div>
+
+                                <div className="flex gap-3 items-start bg-emerald-50/35 p-4 rounded-2xl border border-emerald-100/30">
+                                    <Info className="h-5 w-5 text-emerald-500 shrink-0 mt-0.5" />
+                                    <div>
+                                        <h4 className="text-xs font-bold text-stone-900 mb-1">Réglementation fiscale (SAP)</h4>
+                                        <p className="text-[10px] text-stone-600 leading-relaxed font-medium">
+                                            L&apos;achat d&apos;un bon cadeau n&apos;ouvre pas droit au crédit d&apos;impôt pour l&apos;acheteur. Aucun avantage fiscal ne s&apos;appliquera sur cette session.
+                                        </p>
+                                    </div>
+                                </div>
                             </div>
+
+                            <p className="text-[10px] text-stone-400 text-center leading-normal">
+                                Retrouvez tous les détails dans nos{" "}
+                                <Link
+                                    href="/cgv"
+                                    target="_blank"
+                                    className="text-brand-rose underline font-bold hover:text-brand-rose/80"
+                                >
+                                    Conditions Générales de Vente
+                                </Link>
+                                .
+                            </p>
 
                             {/* Acceptance checkbox */}
                             <div className="flex items-start gap-3 p-3 bg-stone-50 rounded-2xl border border-stone-100/60">

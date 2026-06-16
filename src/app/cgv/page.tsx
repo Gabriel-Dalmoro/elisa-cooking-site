@@ -1,5 +1,5 @@
 import React from "react";
-import { MoveLeft, AlertCircle, ShieldCheck, Scale, CreditCard, CalendarClock, Euro, RefreshCcw } from "lucide-react";
+import { MoveLeft, AlertCircle, ShieldCheck, Scale, CreditCard, CalendarClock, Euro, RefreshCcw, Gift } from "lucide-react";
 import Link from "next/link";
 
 export const metadata = {
@@ -182,7 +182,67 @@ export default function CGVPage() {
 
                         {/* Section 8 */}
                         <section className="space-y-4">
-                            <h2 className="text-2xl font-black text-stone-900 m-0">8. Litiges</h2>
+                            <div className="flex items-center gap-3 mb-6">
+                                <div className="bg-stone-100 text-stone-600 p-2.5 rounded-xl">
+                                    <Gift className="h-6 w-6" />
+                                </div>
+                                <h2 className="text-2xl font-black text-stone-900 m-0">8. Bons Cadeaux</h2>
+                            </div>
+                            <p className="text-lg">
+                                Le Prestataire propose l'achat de bons cadeaux sous forme de forfaits de services (Packs Découverte, Spécial, Famille ou Confort) pour des séances de batch cooking à domicile. Les dispositions suivantes régissent l'achat et l'utilisation de ces bons cadeaux :
+                            </p>
+                            <div className="space-y-6">
+                                <div>
+                                    <h3 className="text-lg font-bold text-stone-900 mb-2">8.1 Processus d'Achat et Livraison</h3>
+                                    <p className="text-lg">
+                                        Les bons cadeaux sont achetés en ligne et payés intégralement au moment de la commande via la plateforme sécurisée de paiement. Une fois le paiement validé, un bon cadeau au format numérique (PDF) est envoyé par courrier électronique à l'adresse indiquée par le Client.
+                                    </p>
+                                </div>
+                                <div>
+                                    <h3 className="text-lg font-bold text-stone-900 mb-2">8.2 Durée de Validité</h3>
+                                    <p className="text-lg">
+                                        Chaque bon cadeau est valable pour une durée de <strong>six (6) mois</strong> à compter de sa date d'achat. La séance de batch cooking correspondante doit être planifiée et réalisée avant la date d'expiration du bon. Passé ce délai de six mois, le bon cadeau devient caduc et ne peut plus être utilisé ni donner lieu à un quelconque remboursement ou dédommagement.
+                                    </p>
+                                </div>
+                                <div>
+                                    <h3 className="text-lg font-bold text-stone-900 mb-2">8.3 Exclusion du Coût des Ingrédients</h3>
+                                    <p className="text-lg">
+                                        Le prix d'achat du bon cadeau couvre exclusivement les honoraires de service du Chef (temps de préparation, planification du menu, courses et déplacement selon les conditions de l'Article 6). Il <strong>n'inclut pas</strong> le coût des ingrédients et denrées alimentaires nécessaires à la réalisation des recettes. Le remboursement des courses reste à la charge exclusive du bénéficiaire du bon cadeau et s'effectue conformément à l'Article 6.3.
+                                    </p>
+                                </div>
+                                <div>
+                                    <h3 className="text-lg font-bold text-stone-900 mb-2">8.4 Réglementation Fiscale (Exclusion du Crédit d'Impôt)</h3>
+                                    <p className="text-lg">
+                                        Conformément à la réglementation des Services à la Personne (SAP) :
+                                    </p>
+                                    <ul className="list-disc pl-6 space-y-2 text-lg">
+                                        <li>L'achat d'un bon cadeau <strong>n'ouvre pas droit au crédit d'impôt</strong> de 50% pour le Client acquéreur.</li>
+                                        <li>La prestation étant offerte à titre gratuit au bénéficiaire, ce dernier ne peut prétendre à aucun avantage fiscal ni crédit d'impôt au titre de la session réalisée.</li>
+                                    </ul>
+                                </div>
+                                <div>
+                                    <h3 className="text-lg font-bold text-stone-900 mb-2">8.5 Non-Remboursable et Non-Échangeable</h3>
+                                    <p className="text-lg">
+                                        Les bons cadeaux sont nominatifs et fermes. Ils ne sont ni remboursables (sauf exercice du droit de rétractation légal par l'acheteur dans les conditions de l'Article 7), ni échangeables contre des espèces ou d'autres prestations non prévues par le pack acheté.
+                                    </p>
+                                </div>
+                                <div>
+                                    <h3 className="text-lg font-bold text-stone-900 mb-2">8.6 Réservation de la Session</h3>
+                                    <p className="text-lg">
+                                        Le bénéficiaire du bon cadeau doit contacter le Prestataire pour convenir d'une date de prestation. La planification de la séance s'effectue selon les disponibilités du Prestataire. Il est recommandé de réserver le créneau au moins plusieurs semaines à l'avance.
+                                    </p>
+                                </div>
+                            </div>
+                        </section>
+
+                        {/* Section 9 */}
+                        <section className="space-y-4">
+                            <div className="flex items-center gap-3 mb-6">
+                                <div className="bg-stone-100 text-stone-600 p-2.5 rounded-xl">
+                                    <Scale className="h-6 w-6" />
+                                </div>
+                                <h2 className="text-2xl font-black text-stone-900 m-0">9. Litiges</h2>
+                            </div>
                             <p className="text-lg">
                                 En cas de litige, une solution amiable sera recherchée en priorité. À défaut, les tribunaux français seront seuls compétents pour régler le différend.
                             </p>
