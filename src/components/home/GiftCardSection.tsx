@@ -37,8 +37,6 @@ export function GiftCardSection() {
         setTilt({ x: 0, y: 0, glareX: 50, glareY: 50, active: false });
     };
 
-    const cardRef = React.useRef<HTMLDivElement>(null);
-    const [scrollTilt, setScrollTilt] = useState({ x: 0, y: 0, glareX: 50, glareY: 50 });
     const [isMobile, setIsMobile] = useState(false);
 
     React.useEffect(() => {
@@ -49,44 +47,6 @@ export function GiftCardSection() {
         window.addEventListener("resize", checkMobile);
         return () => window.removeEventListener("resize", checkMobile);
     }, []);
-
-    React.useEffect(() => {
-        if (!isMobile) return;
-
-        const handleScroll = () => {
-            const card = cardRef.current;
-            if (!card) return;
-
-            const rect = card.getBoundingClientRect();
-            const viewportHeight = window.innerHeight;
-            
-            // Calculate card center relative to viewport
-            const cardCenterY = rect.top + rect.height / 2;
-            
-            // Progress: 0 at top, 1 at bottom of viewport
-            const rawProgress = cardCenterY / viewportHeight;
-            const progress = Math.max(0, Math.min(1, rawProgress));
-            
-            // Map to rotateX (X-axis tilt) and rotateY (Y-axis tilt)
-            const rotateX = (progress - 0.5) * 16; 
-            const rotateY = -(progress - 0.5) * 6; 
-            const glareX = 50 + rotateY * 2.5; 
-            const glareY = progress * 100;
-            
-            setScrollTilt({ x: rotateY, y: rotateX, glareX, glareY });
-        };
-
-        window.addEventListener("scroll", handleScroll, { passive: true });
-        handleScroll(); // Run initially
-
-        return () => window.removeEventListener("scroll", handleScroll);
-    }, [isMobile]);
-
-    const showActiveEffects = isMobile || tilt.active;
-    const currentTiltX = isMobile ? scrollTilt.x : tilt.x;
-    const currentTiltY = isMobile ? scrollTilt.y : tilt.y;
-    const currentGlareX = isMobile ? scrollTilt.glareX : tilt.glareX;
-    const currentGlareY = isMobile ? scrollTilt.glareY : tilt.glareY;
 
     return (
         <section className="py-20 md:py-28 relative overflow-hidden bg-gradient-to-b from-stone-50 via-white to-stone-50">
@@ -174,13 +134,59 @@ export function GiftCardSection() {
                             style={{ perspective: 1000 }}
                             className="relative w-full max-w-lg aspect-[1.58/1] flex items-center justify-center"
                         >
+                            {/* CSS Keyframes for mobile auto-tilt */}
+                            <style>{`
+                                @keyframes cardWobble {
+                                    0% {
+                                        transform: rotateY(-8deg) rotateX(2deg);
+                                        box-shadow: 15px 2px 30px rgba(0,0,0,0.05), 30px 4px 45px rgba(225,29,72,0.03);
+                                    }
+                                    50% {
+                                        transform: rotateY(8deg) rotateX(-2deg);
+                                        box-shadow: -15px -2px 30px rgba(0,0,0,0.05), -30px -4px 45px rgba(225,29,72,0.03);
+                                    }
+                                    100% {
+                                        transform: rotateY(-8deg) rotateX(2deg);
+                                        box-shadow: 15px 2px 30px rgba(0,0,0,0.05), 30px 4px 45px rgba(225,29,72,0.03);
+                                    }
+                                }
+                                @keyframes floorShadowWobble {
+                                    0% {
+                                        transform: translateX(10px) translateY(3px) scale(0.94);
+                                        opacity: 0.1;
+                                    }
+                                    50% {
+                                        transform: translateX(-10px) translateY(3px) scale(0.94);
+                                        opacity: 0.1;
+                                    }
+                                    100% {
+                                        transform: translateX(10px) translateY(3px) scale(0.94);
+                                        opacity: 0.1;
+                                    }
+                                }
+                                @keyframes glareWobble {
+                                    0% {
+                                        background: radial-gradient(circle at 20% 50%, rgba(255,255,255,0.22) 0%, transparent 55%);
+                                    }
+                                    50% {
+                                        background: radial-gradient(circle at 80% 50%, rgba(255,255,255,0.22) 0%, transparent 55%);
+                                    }
+                                    100% {
+                                        background: radial-gradient(circle at 20% 50%, rgba(255,255,255,0.22) 0%, transparent 55%);
+                                    }
+                                }
+                            `}</style>
+
                             {/* Realistic Floor Shadow */}
                             <div
                                 style={{
-                                    transform: showActiveEffects 
-                                        ? `translateX(${-currentTiltX * 1.5}px) translateY(${4 + currentTiltY * 0.5}px) scale(0.92)` 
-                                        : "none",
-                                    opacity: showActiveEffects ? 0.08 : 0.15,
+                                    transform: isMobile 
+                                        ? undefined 
+                                        : tilt.active 
+                                            ? `translateX(${-tilt.x * 1.5}px) translateY(${4 + tilt.y * 0.5}px) scale(0.92)` 
+                                            : "none",
+                                    opacity: isMobile ? undefined : tilt.active ? 0.08 : 0.15,
+                                    animation: isMobile ? "floorShadowWobble 6s ease-in-out infinite" : "none",
                                     transition: isMobile
                                         ? "none"
                                         : isEntering
@@ -194,22 +200,24 @@ export function GiftCardSection() {
 
                             {/* Mockup Card with 3D tilt effect */}
                             <motion.div
-                                ref={cardRef}
                                 onMouseMove={handleMouseMove}
                                 onMouseLeave={handleMouseLeave}
-                                animate={{
-                                    rotateX: currentTiltY,
-                                    rotateY: currentTiltX,
+                                animate={isMobile ? undefined : {
+                                    rotateX: tilt.y,
+                                    rotateY: tilt.x,
                                     y: tilt.active ? -12 : 0, // Lift
                                 }}
                                 transition={{ type: "spring", stiffness: 150, damping: 22, mass: 0.5 }}
                                 style={{
                                     transformStyle: "preserve-3d",
                                     perspective: 1000,
-                                    boxShadow: showActiveEffects
-                                        ? `${-currentTiltX * 2.5}px ${currentTiltY * 2.5}px ${25 + Math.sqrt(currentTiltX*currentTiltX + currentTiltY*currentTiltY) * 2}px rgba(0, 0, 0, ${0.07 + (Math.sqrt(currentTiltX*currentTiltX + currentTiltY*currentTiltY) / 250)}),
-                                           ${-currentTiltX * 5}px ${currentTiltY * 5}px ${60 + Math.sqrt(currentTiltX*currentTiltX + currentTiltY*currentTiltY) * 2.5}px rgba(225, 29, 72, ${0.05 + (Math.sqrt(currentTiltX*currentTiltX + currentTiltY*currentTiltY) / 350)})`
-                                        : "0 15px 40px -10px rgba(0, 0, 0, 0.08), 0 20px 40px -15px rgba(225, 29, 72, 0.04)",
+                                    boxShadow: isMobile
+                                        ? undefined
+                                        : tilt.active
+                                            ? `${-tilt.x * 2.5}px ${tilt.y * 2.5}px ${25 + Math.sqrt(tilt.x*tilt.x + tilt.y*tilt.y) * 2}px rgba(0, 0, 0, ${0.07 + (Math.sqrt(tilt.x*tilt.x + tilt.y*tilt.y) / 250)}),
+                                               ${-tilt.x * 5}px ${tilt.y * 5}px ${60 + Math.sqrt(tilt.x*tilt.x + tilt.y*tilt.y) * 2.5}px rgba(225, 29, 72, ${0.05 + (Math.sqrt(tilt.x*tilt.x + tilt.y*tilt.y) / 350)})`
+                                            : "0 15px 40px -10px rgba(0, 0, 0, 0.08), 0 20px 40px -15px rgba(225, 29, 72, 0.04)",
+                                    animation: isMobile ? "cardWobble 6s ease-in-out infinite" : "none",
                                     transition: isMobile
                                         ? "none"
                                         : isEntering
@@ -223,9 +231,12 @@ export function GiftCardSection() {
                                 {/* Dynamic Glare Effect overlay */}
                                 <div
                                     style={{
-                                        background: showActiveEffects
-                                            ? `radial-gradient(circle at ${currentGlareX}% ${currentGlareY}%, rgba(255,255,255,0.22) 0%, transparent 55%)`
-                                            : "transparent",
+                                        background: isMobile 
+                                            ? undefined 
+                                            : tilt.active
+                                                ? `radial-gradient(circle at ${tilt.glareX}% ${tilt.glareY}%, rgba(255,255,255,0.22) 0%, transparent 55%)`
+                                                : "transparent",
+                                        animation: isMobile ? "glareWobble 6s ease-in-out infinite" : "none",
                                     }}
                                     className="absolute inset-0 pointer-events-none z-30 transition-opacity duration-300"
                                 />
