@@ -112,7 +112,7 @@ export default function GiftCardPage() {
             <div className="absolute top-0 right-0 w-1/3 h-1/3 bg-brand-rose/5 blur-[120px] rounded-full -mr-20 -mt-20 -z-10" />
             <div className="absolute bottom-0 left-0 w-1/4 h-1/4 bg-brand-gold/5 blur-[100px] rounded-full -ml-20 -mb-20 -z-10" />
 
-            <div className="container mx-auto px-4 max-w-4xl relative z-10">
+            <div className="container mx-auto px-4 max-w-6xl relative z-10">
                 {/* Header */}
                 <header className="text-center mb-12">
                     <motion.div
@@ -401,7 +401,7 @@ export default function GiftCardPage() {
                         </div>
 
                         {/* Interactive dynamic gift card container (Bigger & More Premium) */}
-                        <div className="bg-gradient-to-br from-stone-50 via-white to-rose-50/15 rounded-[2.5rem] p-8 md:p-10 shadow-[0_25px_60px_rgba(225,86,122,0.12)] border border-stone-100/80 overflow-hidden relative w-full max-w-xl aspect-[1.58/1] flex flex-col justify-between select-none">
+                        <div className="bg-gradient-to-br from-stone-50 via-white to-rose-50/15 rounded-[2.5rem] p-6 sm:p-8 md:p-10 shadow-[0_25px_60px_rgba(225,86,122,0.12)] border border-stone-100/80 overflow-hidden relative w-full max-w-xl aspect-[1.58/1] flex flex-col justify-between select-none">
                             <div className="absolute inset-4 border border-brand-gold/30 rounded-[1.75rem] pointer-events-none" />
                             <div className="absolute inset-4.5 border border-stone-100/30 rounded-[1.70rem] pointer-events-none" />
                             
@@ -411,23 +411,23 @@ export default function GiftCardPage() {
                                     <img
                                         src="images/logo.jpg"
                                         alt="Logo"
-                                        className="h-10 w-10 object-contain rounded-full border border-stone-200/50 shadow-sm"
+                                        className="h-8 w-8 object-contain rounded-full border border-stone-200/50 shadow-sm"
                                     />
-                                    <span className="text-[10px] sm:text-xs font-black uppercase tracking-[0.2em] text-brand-gold font-serif">
+                                    <span className="text-[9px] sm:text-xs font-black uppercase tracking-[0.15em] text-brand-gold font-serif">
                                         Elisa Batch Cooking
                                     </span>
                                 </div>
-                                <div className="text-[10px] sm:text-xs font-black tracking-[0.25em] text-stone-400 uppercase">
+                                <div className="text-[9px] sm:text-xs font-black tracking-[0.2em] text-stone-400 uppercase">
                                     BON CADEAU
                                 </div>
                             </div>
 
                             {/* Main message */}
-                            <div className="my-auto px-6 py-6 flex flex-col justify-center items-center text-center z-10">
-                                <p className="font-handwriting text-brand-rose text-xl sm:text-2xl md:text-3xl lg:text-xl xl:text-3xl leading-relaxed max-w-[90%] mx-auto">
+                            <div className="my-auto px-4 py-4 flex flex-col justify-center items-center text-center z-10">
+                                <p className="font-handwriting text-brand-rose text-sm sm:text-base md:text-lg lg:text-base xl:text-xl leading-relaxed max-w-[85%] mx-auto">
                                     Pour une séance de Batch Cooking avec {selectedPack.recipes} plats maison pour {selectedPack.people} personnes préparés chez vous
                                 </p>
-                                <p className="text-[9px] sm:text-[10px] text-stone-400 font-medium italic mt-3 max-w-[90%] mx-auto leading-normal">
+                                <p className="text-[8px] sm:text-[9px] text-stone-400 font-medium italic mt-2 max-w-[85%] mx-auto leading-normal">
                                     * Note : Seul le coût des ingrédients (courses) reste à la charge du bénéficiaire lors de la séance.
                                 </p>
                             </div>
@@ -435,16 +435,16 @@ export default function GiftCardPage() {
                             {/* Footer info */}
                             <div className="flex justify-between items-end text-stone-900 z-10">
                                 {/* Left Side: Names */}
-                                <div className="text-left space-y-1">
+                                <div className="text-left space-y-0.5">
                                     <div>
-                                        <span className="text-[7px] font-bold text-stone-400 uppercase tracking-widest block leading-none">Offert à</span>
-                                        <span className="text-xs sm:text-sm font-black text-stone-850 leading-tight block">
+                                        <span className="text-[6px] font-bold text-stone-400 uppercase tracking-widest block leading-none">Offert à</span>
+                                        <span className="text-[10px] sm:text-xs font-black text-stone-850 leading-tight block">
                                             {formData.recipientName || 'Marie Martin'}
                                         </span>
                                     </div>
-                                    <div className="pt-1.5">
-                                        <span className="text-[7px] font-bold text-stone-400 uppercase tracking-widest block leading-none">De la part de</span>
-                                        <span className="text-xs sm:text-sm font-black text-stone-850 leading-tight block">
+                                    <div className="pt-1">
+                                        <span className="text-[6px] font-bold text-stone-400 uppercase tracking-widest block leading-none">De la part de</span>
+                                        <span className="text-[10px] sm:text-xs font-black text-stone-850 leading-tight block">
                                             {formData.senderName || 'Thomas Bernard'}
                                         </span>
                                     </div>
@@ -452,8 +452,8 @@ export default function GiftCardPage() {
 
                                 {/* Right Side: Expiry */}
                                 <div className="text-right pb-1">
-                                    <span className="text-[7px] font-bold text-stone-400 uppercase tracking-widest block leading-none">Validité</span>
-                                    <span className="text-xs sm:text-sm font-black text-stone-850 leading-tight block">
+                                    <span className="text-[6px] font-bold text-stone-400 uppercase tracking-widest block leading-none">Validité</span>
+                                    <span className="text-[10px] sm:text-xs font-black text-stone-850 leading-tight block">
                                         6 mois
                                     </span>
                                 </div>
