@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono, Caveat, Playfair_Display } from "next/font/google";
+import { Geist, Geist_Mono, Dancing_Script, Playfair_Display } from "next/font/google";
 import "./globals.css";
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
@@ -20,7 +20,7 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
-const fontHandwriting = Caveat({
+const fontHandwriting = Dancing_Script({
   variable: "--font-handwriting",
   subsets: ["latin"],
 });

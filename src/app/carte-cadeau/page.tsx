@@ -144,7 +144,7 @@ export default function GiftCardPage() {
 
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
                     {/* Left Panel: Form Steps */}
-                    <div className="lg:col-span-7 bg-white p-6 md:p-8 rounded-[2.5rem] shadow-xl border border-stone-100 min-h-[420px] flex flex-col justify-between">
+                    <div className="lg:col-span-6 bg-white p-6 md:p-8 rounded-[2.5rem] shadow-xl border border-stone-100 min-h-[420px] flex flex-col justify-between">
                         <AnimatePresence mode="wait">
                             {step === 0 && (
                                 <motion.div
@@ -395,45 +395,45 @@ export default function GiftCardPage() {
                     </div>
 
                     {/* Right Panel: Live Visual Card Preview */}
-                    <div className="lg:col-span-5 lg:sticky lg:top-8 space-y-6 flex flex-col items-center">
+                    <div className="lg:col-span-6 lg:sticky lg:top-8 space-y-6 flex flex-col items-center w-full">
                         <div className="text-center">
                             <span className="text-[10px] font-black uppercase tracking-widest text-stone-400">Aperçu en temps réel</span>
                         </div>
 
                         {/* Interactive dynamic gift card container (Bigger & More Premium) */}
-                        <div className="bg-gradient-to-br from-stone-50 via-white to-rose-50/15 rounded-[2.5rem] p-8 shadow-[0_20px_50px_rgba(225,86,122,0.12)] border border-stone-100/80 overflow-hidden relative w-full max-w-lg lg:max-w-xl aspect-[1.58/1] flex flex-col justify-between select-none">
+                        <div className="bg-gradient-to-br from-stone-50 via-white to-rose-50/15 rounded-[2.5rem] p-8 md:p-10 shadow-[0_25px_60px_rgba(225,86,122,0.12)] border border-stone-100/80 overflow-hidden relative w-full max-w-xl aspect-[1.58/1] flex flex-col justify-between select-none">
                             <div className="absolute inset-4 border border-brand-gold/30 rounded-[1.75rem] pointer-events-none" />
                             <div className="absolute inset-4.5 border border-stone-100/30 rounded-[1.70rem] pointer-events-none" />
                             
-                            {/* Logo and company name */}
-                            <div className="absolute top-7 left-10 flex items-center gap-3">
-                                <img
-                                    src="images/logo.jpg"
-                                    alt="Logo"
-                                    className="h-10 w-10 object-contain rounded-full border border-stone-200/50 shadow-sm"
-                                />
-                                <span className="text-[10px] sm:text-xs font-black uppercase tracking-[0.2em] text-brand-gold font-serif">
-                                    Elisa Batch Cooking
-                                </span>
-                            </div>
-
-                            {/* "BON CADEAU" text */}
-                            <div className="absolute top-8 right-10 text-[10px] sm:text-xs font-black tracking-[0.25em] text-stone-400 uppercase">
-                                BON CADEAU
+                            {/* Header row */}
+                            <div className="flex justify-between items-center w-full z-10">
+                                <div className="flex items-center gap-3">
+                                    <img
+                                        src="images/logo.jpg"
+                                        alt="Logo"
+                                        className="h-10 w-10 object-contain rounded-full border border-stone-200/50 shadow-sm"
+                                    />
+                                    <span className="text-[10px] sm:text-xs font-black uppercase tracking-[0.2em] text-brand-gold font-serif">
+                                        Elisa Batch Cooking
+                                    </span>
+                                </div>
+                                <div className="text-[10px] sm:text-xs font-black tracking-[0.25em] text-stone-400 uppercase">
+                                    BON CADEAU
+                                </div>
                             </div>
 
                             {/* Main message */}
-                            <div className="my-auto px-8 py-10 flex flex-col justify-center items-center text-center">
-                                <p className="font-handwriting text-brand-rose text-lg sm:text-xl md:text-2xl lg:text-lg xl:text-xl leading-relaxed max-w-[85%] mx-auto">
+                            <div className="my-auto px-6 py-6 flex flex-col justify-center items-center text-center z-10">
+                                <p className="font-handwriting text-brand-rose text-xl sm:text-2xl md:text-3xl lg:text-xl xl:text-3xl leading-relaxed max-w-[90%] mx-auto">
                                     Pour une séance de Batch Cooking avec {selectedPack.recipes} plats maison pour {selectedPack.people} personnes préparés chez vous
                                 </p>
-                                <p className="text-[9px] sm:text-[10px] text-stone-400 font-medium italic mt-3 max-w-[85%] mx-auto leading-normal">
+                                <p className="text-[9px] sm:text-[10px] text-stone-400 font-medium italic mt-3 max-w-[90%] mx-auto leading-normal">
                                     * Note : Seul le coût des ingrédients (courses) reste à la charge du bénéficiaire lors de la séance.
                                 </p>
                             </div>
 
                             {/* Footer info */}
-                            <div className="absolute bottom-8 left-10 right-10 flex justify-between items-end text-stone-900">
+                            <div className="flex justify-between items-end text-stone-900 z-10">
                                 {/* Left Side: Names */}
                                 <div className="text-left space-y-1">
                                     <div>
