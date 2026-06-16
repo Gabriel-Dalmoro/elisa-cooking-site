@@ -2,7 +2,7 @@
 
 import React, { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, ArrowRight, Gift, Heart, Info, Mail, MessageSquare, ShieldCheck, User, Clock } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Gift, Heart, Info, Mail, MessageSquare, ShieldCheck, User, Clock, Sparkles } from 'lucide-react';
 import Link from 'next/link';
 
 const PACKAGES = [
@@ -357,14 +357,16 @@ export default function GiftCardPage() {
                                             <span className="font-bold text-stone-900 uppercase">Total à régler :</span>
                                             <span className="text-lg font-black text-brand-rose">{selectedPack.price}€</span>
                                         </div>
-                                        <div className="bg-brand-rose/5 border border-brand-rose/10 p-4 rounded-2xl flex items-center gap-3.5 text-stone-850 mt-4">
-                                            <div className="h-10 w-10 shrink-0 rounded-xl bg-brand-rose/10 flex items-center justify-center text-brand-rose">
-                                                <Clock className="h-5 w-5 animate-pulse" />
+                                        <div className="bg-gradient-to-br from-rose-50/50 via-white to-amber-50/30 border border-brand-rose/15 p-5 rounded-2xl flex items-start gap-4 text-stone-850 mt-4 shadow-sm relative overflow-hidden">
+                                            <div className="absolute top-0 right-0 w-24 h-24 bg-brand-rose/5 rounded-full blur-xl -mr-12 -mt-12 pointer-events-none" />
+                                            <div className="h-10 w-10 shrink-0 rounded-xl bg-brand-rose/10 flex items-center justify-center text-brand-rose shadow-inner">
+                                                <Sparkles className="h-5 w-5 animate-pulse" />
                                             </div>
-                                            <div className="text-left space-y-1">
-                                                <p className="text-[10px] uppercase font-black text-stone-400 tracking-widest leading-none">Cadeau de sérénité</p>
-                                                <p className="text-[11px] font-semibold text-stone-700 leading-normal">
-                                                    Offrez environ <span className="text-brand-rose font-black">{selectedPack.timeSaved}</span> de temps libre libéré au bénéficiaire (planification, courses, cuisine et rangement de sa cuisine).
+                                            <div className="text-left space-y-1 z-10">
+                                                <p className="text-[10px] uppercase font-black text-brand-rose tracking-wider leading-none mb-1">Le cadeau idéal</p>
+                                                <h4 className="text-xs font-bold text-stone-900 leading-tight">Offrez-lui {selectedPack.timeSaved} de pure liberté !</h4>
+                                                <p className="text-[11px] font-medium text-stone-600 leading-relaxed">
+                                                    C&apos;est le luxe ultime de ne pas avoir à planifier, faire les courses, cuisiner ni nettoyer pendant toute une semaine. Autant d&apos;heures libérées pour prendre soin de soi et profiter de ses proches.
                                                 </p>
                                             </div>
                                         </div>
