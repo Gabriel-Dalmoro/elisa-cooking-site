@@ -69,6 +69,8 @@ export default function GiftCardPage() {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [errorMsg, setErrorMsg] = useState('');
     const [tilt, setTilt] = useState({ x: 0, y: 0, glareX: 50, glareY: 50, active: false });
+    const [isEntering, setIsEntering] = useState(false);
+    const enterTimeoutRef = React.useRef<any>(null);
 
     const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
         const card = e.currentTarget;
@@ -79,10 +81,21 @@ export default function GiftCardPage() {
         const rotateY = (x / (box.width / 2)) * 18;
         const gX = ((e.clientX - box.left) / box.width) * 100;
         const gY = ((e.clientY - box.top) / box.height) * 100;
+
+        if (!tilt.active) {
+            setIsEntering(true);
+            if (enterTimeoutRef.current) clearTimeout(enterTimeoutRef.current);
+            enterTimeoutRef.current = setTimeout(() => {
+                setIsEntering(false);
+            }, 300);
+        }
+
         setTilt({ x: rotateY, y: rotateX, glareX: gX, glareY: gY, active: true });
     };
 
     const handleMouseLeave = () => {
+        if (enterTimeoutRef.current) clearTimeout(enterTimeoutRef.current);
+        setIsEntering(false);
         setTilt({ x: 0, y: 0, glareX: 50, glareY: 50, active: false });
     };
 
@@ -425,7 +438,11 @@ export default function GiftCardPage() {
                                         ? `translateX(${-tilt.x * 1.5}px) translateY(${4 + tilt.y * 0.5}px) scale(0.92)` 
                                         : "none",
                                     opacity: tilt.active ? 0.08 : 0.15,
-                                    transition: tilt.active ? "none" : "transform 0.5s cubic-bezier(0.25, 1, 0.5, 1), opacity 0.5s cubic-bezier(0.25, 1, 0.5, 1)",
+                                    transition: isEntering
+                                        ? "transform 0.3s cubic-bezier(0.25, 1, 0.5, 1), opacity 0.3s cubic-bezier(0.25, 1, 0.5, 1)"
+                                        : tilt.active
+                                            ? "none"
+                                            : "transform 0.5s cubic-bezier(0.25, 1, 0.5, 1), opacity 0.5s cubic-bezier(0.25, 1, 0.5, 1)",
                                 }}
                                 className="absolute bottom-[-15px] left-[8%] right-[8%] h-6 bg-brand-rose/25 rounded-full blur-xl pointer-events-none -z-10"
                             />
@@ -447,7 +464,11 @@ export default function GiftCardPage() {
                                         ? `${-tilt.x * 2.5}px ${tilt.y * 2.5}px ${25 + Math.sqrt(tilt.x*tilt.x + tilt.y*tilt.y) * 2}px rgba(0, 0, 0, ${0.07 + (Math.sqrt(tilt.x*tilt.x + tilt.y*tilt.y) / 250)}),
                                            ${-tilt.x * 5}px ${tilt.y * 5}px ${60 + Math.sqrt(tilt.x*tilt.x + tilt.y*tilt.y) * 2.5}px rgba(225, 29, 72, ${0.05 + (Math.sqrt(tilt.x*tilt.x + tilt.y*tilt.y) / 350)})`
                                         : "0 15px 40px -10px rgba(0, 0, 0, 0.08), 0 20px 40px -15px rgba(225, 29, 72, 0.04)",
-                                    transition: tilt.active ? "none" : "box-shadow 0.5s cubic-bezier(0.25, 1, 0.5, 1)",
+                                    transition: isEntering
+                                        ? "box-shadow 0.3s cubic-bezier(0.25, 1, 0.5, 1)"
+                                        : tilt.active
+                                            ? "none"
+                                            : "box-shadow 0.5s cubic-bezier(0.25, 1, 0.5, 1)",
                                 }}
                                 className="bg-gradient-to-br from-stone-50 via-white to-rose-50/15 rounded-[2.5rem] p-6 sm:p-8 md:p-10 border border-stone-100/80 overflow-hidden relative w-full h-full flex flex-col justify-between select-none cursor-default shadow-lg"
                             >
