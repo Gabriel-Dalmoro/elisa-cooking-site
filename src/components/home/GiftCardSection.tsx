@@ -6,20 +6,22 @@ import { Gift, Sparkles, Check } from "lucide-react";
 import { motion } from "framer-motion";
 
 export function GiftCardSection() {
-    const [tilt, setTilt] = useState({ x: 0, y: 0, active: false });
+    const [tilt, setTilt] = useState({ x: 0, y: 0, glareX: 50, glareY: 50, active: false });
 
     const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
         const card = e.currentTarget;
         const box = card.getBoundingClientRect();
         const x = e.clientX - box.left - box.width / 2;
         const y = e.clientY - box.top - box.height / 2;
-        const rotateX = -(y / (box.height / 2)) * 12; // 12 degrees max tilt
+        const rotateX = -(y / (box.height / 2)) * 12;
         const rotateY = (x / (box.width / 2)) * 12;
-        setTilt({ x: rotateY, y: rotateX, active: true });
+        const gX = ((e.clientX - box.left) / box.width) * 100;
+        const gY = ((e.clientY - box.top) / box.height) * 100;
+        setTilt({ x: rotateY, y: rotateX, glareX: gX, glareY: gY, active: true });
     };
 
     const handleMouseLeave = () => {
-        setTilt({ x: 0, y: 0, active: false });
+        setTilt({ x: 0, y: 0, glareX: 50, glareY: 50, active: false });
     };
     return (
         <section className="py-20 md:py-28 relative overflow-hidden bg-gradient-to-b from-stone-50 via-white to-stone-50">
@@ -102,72 +104,90 @@ export function GiftCardSection() {
                         {/* Background glowing rings */}
                         <div className="absolute inset-0 bg-gradient-to-tr from-brand-rose/10 via-transparent to-brand-gold/15 rounded-[3rem] blur-3xl pointer-events-none -z-10 scale-95" />
                         
-                        {/* Card Mockup with 3D tilt effect */}
-                        <motion.div
-                            onMouseMove={handleMouseMove}
-                            onMouseLeave={handleMouseLeave}
-                            animate={{
-                                rotateX: tilt.y,
-                                rotateY: tilt.x,
-                                scale: tilt.active ? 1.05 : 1,
-                            }}
-                            transition={{ type: "spring", stiffness: 300, damping: 25, mass: 0.5 }}
-                            style={{
-                                transformStyle: "preserve-3d",
-                                perspective: 1000,
-                            }}
-                            className={`bg-gradient-to-br from-stone-50 via-white to-rose-50/15 rounded-[2.5rem] p-6 sm:p-10 border border-stone-100/80 overflow-hidden relative w-full max-w-lg aspect-[1.58/1] flex flex-col justify-between select-none cursor-default group transition-shadow duration-300 ${
-                                tilt.active
-                                    ? 'shadow-[0_50px_95px_rgba(225,86,122,0.22),0_15px_35px_rgba(0,0,0,0.15)]'
-                                    : 'shadow-[0_30px_70px_rgba(225,86,122,0.12)]'
-                            }`}
-                        >
-                            {/* Card borders */}
-                            <div style={{ transform: "translateZ(20px)" }} className="absolute inset-4 border-2 sm:border-[3px] border-brand-gold/45 rounded-[1.75rem] pointer-events-none transition-transform duration-200" />
-                            <div className="absolute inset-4.5 border border-stone-100/30 rounded-[1.70rem] pointer-events-none" />
-                            
-                            {/* Card Header */}
-                            <div style={{ transform: "translateZ(35px)" }} className="flex justify-between items-center w-full z-10 transition-transform duration-200">
-                                <div className="flex items-center gap-3 sm:gap-4">
-                                    <img
-                                        src="/images/logo.jpg"
-                                        alt="Logo"
-                                        className="h-10 w-10 sm:h-12 sm:w-12 object-contain rounded-full border border-stone-200/50 shadow-sm transition-transform duration-500 group-hover:rotate-[360deg]"
-                                    />
-                                    <span className="text-sm sm:text-base md:text-lg font-black tracking-tight text-stone-900">
-                                        Elisa <span className="text-brand-rose">Batch Cooking</span>
+                        {/* Wrapper for floating card and floor shadow */}
+                        <div className="relative w-full max-w-lg aspect-[1.58/1] flex items-center justify-center">
+                            {/* Realistic Floor Shadow */}
+                            <div
+                                className={`absolute bottom-[-15px] left-[8%] right-[8%] h-6 bg-brand-rose/25 rounded-full blur-xl pointer-events-none transition-all duration-300 -z-10 ${
+                                    tilt.active 
+                                        ? "opacity-12 scale-90 blur-2xl translate-y-4" 
+                                        : "opacity-30 scale-100"
+                                }`}
+                            />
+
+                            {/* Mockup Card with 3D tilt effect */}
+                            <motion.div
+                                onMouseMove={handleMouseMove}
+                                onMouseLeave={handleMouseLeave}
+                                animate={{
+                                    rotateX: tilt.y,
+                                    rotateY: tilt.x,
+                                    y: tilt.active ? -12 : 0, // Lift
+                                }}
+                                transition={{ type: "spring", stiffness: 150, damping: 22, mass: 0.5 }}
+                                style={{
+                                    transformStyle: "preserve-3d",
+                                    perspective: 1000,
+                                }}
+                                className="bg-gradient-to-br from-stone-50 via-white to-rose-50/15 rounded-[2.5rem] p-6 sm:p-10 border border-stone-100/80 overflow-hidden relative w-full h-full flex flex-col justify-between select-none cursor-default group shadow-lg"
+                            >
+                                {/* Dynamic Glare Effect overlay */}
+                                <div
+                                    style={{
+                                        background: tilt.active
+                                            ? `radial-gradient(circle at ${tilt.glareX}% ${tilt.glareY}%, rgba(255,255,255,0.22) 0%, transparent 55%)`
+                                            : "transparent",
+                                    }}
+                                    className="absolute inset-0 pointer-events-none z-30 transition-opacity duration-300"
+                                />
+
+                                {/* Card borders */}
+                                <div style={{ transform: "translateZ(20px)" }} className="absolute inset-4 border-2 sm:border-[3px] border-brand-gold/45 rounded-[1.75rem] pointer-events-none transition-transform duration-200" />
+                                <div className="absolute inset-4.5 border border-stone-100/30 rounded-[1.70rem] pointer-events-none" />
+                                
+                                {/* Card Header */}
+                                <div style={{ transform: "translateZ(35px)" }} className="flex justify-between items-center w-full z-10 transition-transform duration-200">
+                                    <div className="flex items-center gap-3 sm:gap-4">
+                                        <img
+                                            src="/images/logo.jpg"
+                                            alt="Logo"
+                                            className="h-10 w-10 sm:h-12 sm:w-12 object-contain rounded-full border border-stone-200/50 shadow-sm transition-transform duration-500 group-hover:rotate-[360deg]"
+                                        />
+                                        <span className="text-sm sm:text-base md:text-lg font-black tracking-tight text-stone-900">
+                                            Elisa <span className="text-brand-rose">Batch Cooking</span>
+                                        </span>
+                                    </div>
+                                    <span className="text-[9px] sm:text-xs font-black tracking-[0.2em] text-stone-400 uppercase">
+                                        BON CADEAU
                                     </span>
                                 </div>
-                                <span className="text-[9px] sm:text-xs font-black tracking-[0.2em] text-stone-400 uppercase">
-                                    BON CADEAU
-                                </span>
-                            </div>
 
-                            {/* Card Content Cursive Text */}
-                            <div style={{ transform: "translateZ(50px)" }} className="my-auto px-4 py-4 flex flex-col justify-center items-center text-center z-10 transition-transform duration-200">
-                                <p className="font-handwriting text-brand-rose text-base sm:text-xl md:text-2xl leading-relaxed max-w-[90%] mx-auto">
-                                    Pour une séance de Batch Cooking avec de délicieux plats faits maison préparés chez vous
-                                </p>
-                            </div>
+                                {/* Card Content Cursive Text */}
+                                <div style={{ transform: "translateZ(50px)" }} className="my-auto px-4 py-4 flex flex-col justify-center items-center text-center z-10 transition-transform duration-200">
+                                    <p className="font-handwriting text-brand-rose text-base sm:text-xl md:text-2xl leading-relaxed max-w-[90%] mx-auto">
+                                        Pour une séance de Batch Cooking avec de délicieux plats faits maison préparés chez vous
+                                    </p>
+                                </div>
 
-                            {/* Card Footer Info */}
-                            <div style={{ transform: "translateZ(30px)" }} className="flex justify-between items-end text-stone-900 z-10 transition-transform duration-200">
-                                <div className="text-left space-y-0.5">
-                                    <div>
-                                        <span className="text-[6px] font-bold text-stone-400 uppercase tracking-widest block leading-none">Pour</span>
-                                        <span className="text-[10px] sm:text-xs font-black text-stone-850 block leading-tight">Marie & Julien</span>
+                                {/* Card Footer Info */}
+                                <div style={{ transform: "translateZ(30px)" }} className="flex justify-between items-end text-stone-900 z-10 transition-transform duration-200">
+                                    <div className="text-left space-y-0.5">
+                                        <div>
+                                            <span className="text-[6px] font-bold text-stone-400 uppercase tracking-widest block leading-none">Pour</span>
+                                            <span className="text-[10px] sm:text-xs font-black text-stone-850 block leading-tight">Marie & Julien</span>
+                                        </div>
+                                        <div className="pt-1">
+                                            <span className="text-[6px] font-bold text-stone-400 uppercase tracking-widest block leading-none">De la part de</span>
+                                            <span className="text-[10px] sm:text-xs font-black text-stone-850 block leading-tight">Nathalie</span>
+                                        </div>
                                     </div>
-                                    <div className="pt-1">
-                                        <span className="text-[6px] font-bold text-stone-400 uppercase tracking-widest block leading-none">De la part de</span>
-                                        <span className="text-[10px] sm:text-xs font-black text-stone-850 block leading-tight">Nathalie</span>
+                                    <div className="text-right pb-1">
+                                        <span className="text-[6px] font-bold text-stone-400 uppercase tracking-widest block leading-none">Validité</span>
+                                        <span className="text-[10px] sm:text-xs font-black text-stone-850 block leading-tight">6 mois</span>
                                     </div>
                                 </div>
-                                <div className="text-right pb-1">
-                                    <span className="text-[6px] font-bold text-stone-400 uppercase tracking-widest block leading-none">Validité</span>
-                                    <span className="text-[10px] sm:text-xs font-black text-stone-850 block leading-tight">6 mois</span>
-                                </div>
-                            </div>
-                        </motion.div>
+                            </motion.div>
+                        </div>
                     </div>
 
                 </div>
