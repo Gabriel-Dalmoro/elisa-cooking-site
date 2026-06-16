@@ -2,7 +2,7 @@
 
 import React, { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, ArrowRight, Gift, Heart, Info, Mail, MessageSquare, ShieldCheck, User } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Gift, Heart, Info, Mail, MessageSquare, ShieldCheck, User, Clock } from 'lucide-react';
 import Link from 'next/link';
 
 const PACKAGES = [
@@ -15,6 +15,7 @@ const PACKAGES = [
         groceryEstimate: 60,
         description: 'La formule idéale pour faire découvrir le confort du batch cooking.',
         badge: 'Le plus accessible',
+        timeSaved: '4h 45',
     },
     {
         id: 'special',
@@ -25,6 +26,7 @@ const PACKAGES = [
         groceryEstimate: 80,
         description: 'Notre formule sur-mesure la plus demandée pour offrir en cadeau de naissance.',
         badge: 'Idéal Naissance',
+        timeSaved: '6h 00',
     },
     {
         id: 'family',
@@ -36,6 +38,7 @@ const PACKAGES = [
         description: 'Une semaine complète de repas sains et réconfortants cuisinés pour toute la famille.',
         badge: 'Populaire',
         isRecommended: true,
+        timeSaved: '7h 05',
     },
     {
         id: 'comfort',
@@ -46,6 +49,7 @@ const PACKAGES = [
         groceryEstimate: 120,
         description: 'Le summum de la sérénité culinaire : 6 repas cuisinés sur-mesure.',
         badge: 'Grand Confort',
+        timeSaved: '8h 15',
     },
 ];
 
@@ -353,14 +357,17 @@ export default function GiftCardPage() {
                                             <span className="font-bold text-stone-900 uppercase">Total à régler :</span>
                                             <span className="text-lg font-black text-brand-rose">{selectedPack.price}€</span>
                                         </div>
-                                    </div>
-
-                                    {/* SAP Tax credit warning/disclaimer */}
-                                    <div className="bg-emerald-50/50 border border-emerald-100 p-4 rounded-2xl flex gap-3 text-emerald-800">
-                                        <Info className="h-5 w-5 shrink-0 text-emerald-500 mt-0.5" />
-                                        <p className="text-[10px] leading-relaxed font-medium">
-                                            <strong>Réglementation fiscale (Services à la Personne) :</strong> L&apos;achat d&apos;un bon cadeau n&apos;ouvre pas droit au crédit d&apos;impôt pour l&apos;acheteur. La prestation étant offerte gratuitement au bénéficiaire, aucun avantage fiscal ne s&apos;appliquera sur cette session.
-                                        </p>
+                                        <div className="bg-brand-rose/5 border border-brand-rose/10 p-4 rounded-2xl flex items-center gap-3.5 text-stone-850 mt-4">
+                                            <div className="h-10 w-10 shrink-0 rounded-xl bg-brand-rose/10 flex items-center justify-center text-brand-rose">
+                                                <Clock className="h-5 w-5 animate-pulse" />
+                                            </div>
+                                            <div className="text-left space-y-1">
+                                                <p className="text-[10px] uppercase font-black text-stone-400 tracking-widest leading-none">Cadeau de sérénité</p>
+                                                <p className="text-[11px] font-semibold text-stone-700 leading-normal">
+                                                    Offrez environ <span className="text-brand-rose font-black">{selectedPack.timeSaved}</span> de temps libre libéré au bénéficiaire (planification, courses, cuisine et rangement de sa cuisine).
+                                                </p>
+                                            </div>
+                                        </div>
                                     </div>
 
                                     {errorMsg && <p className="text-red-500 text-xs font-bold leading-none">{errorMsg}</p>}
@@ -394,13 +401,13 @@ export default function GiftCardPage() {
                             
                             {/* Header row */}
                             <div className="flex justify-between items-center w-full z-10">
-                                <div className="flex items-center gap-3">
+                                <div className="flex items-center gap-3 sm:gap-4">
                                     <img
                                         src="images/logo.jpg"
                                         alt="Logo"
-                                        className="h-8 w-8 object-contain rounded-full border border-stone-200/50 shadow-sm"
+                                        className="h-10 w-10 sm:h-12 sm:w-12 object-contain rounded-full border border-stone-200/50 shadow-sm"
                                     />
-                                    <span className="text-xs sm:text-sm font-black tracking-tight text-stone-900">
+                                    <span className="text-sm sm:text-base md:text-lg font-black tracking-tight text-stone-900">
                                         Elisa <span className="text-brand-rose">Batch Cooking</span>
                                     </span>
                                 </div>
