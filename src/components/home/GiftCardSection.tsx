@@ -115,7 +115,7 @@ export function GiftCardSection() {
                                     transform: tilt.active 
                                         ? `translateX(${-tilt.x * 1.5}px) translateY(${4 + tilt.y * 0.5}px) scale(0.92)` 
                                         : "none",
-                                    opacity: tilt.active ? 0.16 : 0.3
+                                    opacity: tilt.active ? 0.08 : 0.15
                                 }}
                                 className="absolute bottom-[-15px] left-[8%] right-[8%] h-6 bg-brand-rose/25 rounded-full blur-xl pointer-events-none transition-all duration-300 -z-10"
                             />
@@ -134,9 +134,9 @@ export function GiftCardSection() {
                                     transformStyle: "preserve-3d",
                                     perspective: 1000,
                                     boxShadow: tilt.active
-                                        ? `${-tilt.x * 2.5}px ${tilt.y * 2.5}px ${20 + Math.sqrt(tilt.x*tilt.x + tilt.y*tilt.y) * 2.5}px rgba(0, 0, 0, ${0.15 + (Math.sqrt(tilt.x*tilt.x + tilt.y*tilt.y) / 80)}),
-                                           ${-tilt.x * 5}px ${tilt.y * 5}px ${50 + Math.sqrt(tilt.x*tilt.x + tilt.y*tilt.y) * 3}px rgba(225, 29, 72, ${0.16 + (Math.sqrt(tilt.x*tilt.x + tilt.y*tilt.y) / 60)})`
-                                        : "0 15px 45px -10px rgba(0, 0, 0, 0.12), 0 25px 55px -15px rgba(225, 29, 72, 0.08)",
+                                        ? `${-tilt.x * 2.5}px ${tilt.y * 2.5}px ${25 + Math.sqrt(tilt.x*tilt.x + tilt.y*tilt.y) * 2}px rgba(0, 0, 0, ${0.07 + (Math.sqrt(tilt.x*tilt.x + tilt.y*tilt.y) / 250)}),
+                                           ${-tilt.x * 5}px ${tilt.y * 5}px ${60 + Math.sqrt(tilt.x*tilt.x + tilt.y*tilt.y) * 2.5}px rgba(225, 29, 72, ${0.05 + (Math.sqrt(tilt.x*tilt.x + tilt.y*tilt.y) / 350)})`
+                                        : "0 15px 40px -10px rgba(0, 0, 0, 0.08), 0 20px 40px -15px rgba(225, 29, 72, 0.04)",
                                 }}
                                 className="bg-gradient-to-br from-stone-50 via-white to-rose-50/15 rounded-[2.5rem] p-6 sm:p-10 border border-stone-100/80 overflow-hidden relative w-full h-full flex flex-col justify-between select-none cursor-default group shadow-lg"
                             >
