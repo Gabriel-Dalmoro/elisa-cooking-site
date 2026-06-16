@@ -68,6 +68,21 @@ export default function GiftCardPage() {
 
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [errorMsg, setErrorMsg] = useState('');
+    const [tilt, setTilt] = useState({ x: 0, y: 0, active: false });
+
+    const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+        const card = e.currentTarget;
+        const box = card.getBoundingClientRect();
+        const x = e.clientX - box.left - box.width / 2;
+        const y = e.clientY - box.top - box.height / 2;
+        const rotateX = -(y / (box.height / 2)) * 10;
+        const rotateY = (x / (box.width / 2)) * 10;
+        setTilt({ x: rotateY, y: rotateX, active: true });
+    };
+
+    const handleMouseLeave = () => {
+        setTilt({ x: 0, y: 0, active: false });
+    };
 
     const selectedPack = useMemo(() => {
         return PACKAGES.find(p => p.id === selectedPackId) || PACKAGES[1];
@@ -397,12 +412,30 @@ export default function GiftCardPage() {
                         </div>
 
                         {/* Interactive dynamic gift card container (Bigger & More Premium) */}
-                        <div className="bg-gradient-to-br from-stone-50 via-white to-rose-50/15 rounded-[2.5rem] p-6 sm:p-8 md:p-10 shadow-[0_25px_60px_rgba(225,86,122,0.12)] border border-stone-100/80 overflow-hidden relative w-full max-w-xl aspect-[1.58/1] flex flex-col justify-between select-none">
-                            <div className="absolute inset-4 border-2 sm:border-[3px] border-brand-gold/45 rounded-[1.75rem] pointer-events-none" />
+                        <motion.div
+                            onMouseMove={handleMouseMove}
+                            onMouseLeave={handleMouseLeave}
+                            animate={{
+                                rotateX: tilt.y,
+                                rotateY: tilt.x,
+                                scale: tilt.active ? 1.03 : 1,
+                            }}
+                            transition={{ type: "spring", stiffness: 300, damping: 25, mass: 0.5 }}
+                            style={{
+                                transformStyle: "preserve-3d",
+                                perspective: 1000,
+                            }}
+                            className={`bg-gradient-to-br from-stone-50 via-white to-rose-50/15 rounded-[2.5rem] p-6 sm:p-8 md:p-10 border border-stone-100/80 overflow-hidden relative w-full max-w-xl aspect-[1.58/1] flex flex-col justify-between select-none transition-shadow duration-300 ${
+                                tilt.active 
+                                    ? 'shadow-[0_45px_85px_rgba(225,86,122,0.18),0_15px_35px_rgba(0,0,0,0.08)]' 
+                                    : 'shadow-[0_25px_60px_rgba(225,86,122,0.12)]'
+                            }`}
+                        >
+                            <div style={{ transform: "translateZ(20px)" }} className="absolute inset-4 border-2 sm:border-[3px] border-brand-gold/45 rounded-[1.75rem] pointer-events-none transition-transform duration-200" />
                             <div className="absolute inset-4.5 border border-stone-100/30 rounded-[1.70rem] pointer-events-none" />
                             
                             {/* Header row */}
-                            <div className="flex justify-between items-center w-full z-10">
+                            <div style={{ transform: "translateZ(35px)" }} className="flex justify-between items-center w-full z-10 transition-transform duration-200">
                                 <div className="flex items-center gap-3 sm:gap-4">
                                     <img
                                         src="images/logo.jpg"
@@ -419,14 +452,14 @@ export default function GiftCardPage() {
                             </div>
 
                             {/* Main message */}
-                            <div className="my-auto px-4 py-4 flex flex-col justify-center items-center text-center z-10">
+                            <div style={{ transform: "translateZ(50px)" }} className="my-auto px-4 py-4 flex flex-col justify-center items-center text-center z-10 transition-transform duration-200">
                                 <p className="font-handwriting text-brand-rose text-sm sm:text-base md:text-lg lg:text-base xl:text-xl leading-relaxed max-w-[85%] mx-auto">
                                     Pour une séance de Batch Cooking avec {selectedPack.recipes} plats maison pour {selectedPack.people} personnes préparés chez vous
                                 </p>
                             </div>
 
                             {/* Footer info */}
-                            <div className="flex justify-between items-end text-stone-900 z-10">
+                            <div style={{ transform: "translateZ(30px)" }} className="flex justify-between items-end text-stone-900 z-10 transition-transform duration-200">
                                 {/* Left Side: Names */}
                                 <div className="text-left space-y-0.5">
                                     <div>
@@ -451,7 +484,7 @@ export default function GiftCardPage() {
                                     </span>
                                 </div>
                             </div>
-                        </div>
+                        </motion.div>
                     </div>
                 </div>
             </div>
