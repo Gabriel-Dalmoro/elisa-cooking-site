@@ -36,6 +36,58 @@ export function GiftCardSection() {
         setIsEntering(false);
         setTilt({ x: 0, y: 0, glareX: 50, glareY: 50, active: false });
     };
+
+    const cardRef = React.useRef<HTMLDivElement>(null);
+    const [scrollTilt, setScrollTilt] = useState({ x: 0, y: 0, glareX: 50, glareY: 50 });
+    const [isMobile, setIsMobile] = useState(false);
+
+    React.useEffect(() => {
+        const checkMobile = () => {
+            setIsMobile(window.innerWidth < 768);
+        };
+        checkMobile();
+        window.addEventListener("resize", checkMobile);
+        return () => window.removeEventListener("resize", checkMobile);
+    }, []);
+
+    React.useEffect(() => {
+        if (!isMobile) return;
+
+        const handleScroll = () => {
+            const card = cardRef.current;
+            if (!card) return;
+
+            const rect = card.getBoundingClientRect();
+            const viewportHeight = window.innerHeight;
+            
+            // Calculate card center relative to viewport
+            const cardCenterY = rect.top + rect.height / 2;
+            
+            // Progress: 0 at top, 1 at bottom of viewport
+            const rawProgress = cardCenterY / viewportHeight;
+            const progress = Math.max(0, Math.min(1, rawProgress));
+            
+            // Map to rotateX (X-axis tilt) and rotateY (Y-axis tilt)
+            const rotateX = (progress - 0.5) * 16; 
+            const rotateY = -(progress - 0.5) * 6; 
+            const glareX = 50 + rotateY * 2.5; 
+            const glareY = progress * 100;
+            
+            setScrollTilt({ x: rotateY, y: rotateX, glareX, glareY });
+        };
+
+        window.addEventListener("scroll", handleScroll, { passive: true });
+        handleScroll(); // Run initially
+
+        return () => window.removeEventListener("scroll", handleScroll);
+    }, [isMobile]);
+
+    const showActiveEffects = isMobile || tilt.active;
+    const currentTiltX = isMobile ? scrollTilt.x : tilt.x;
+    const currentTiltY = isMobile ? scrollTilt.y : tilt.y;
+    const currentGlareX = isMobile ? scrollTilt.glareX : tilt.glareX;
+    const currentGlareY = isMobile ? scrollTilt.glareY : tilt.glareY;
+
     return (
         <section className="py-20 md:py-28 relative overflow-hidden bg-gradient-to-b from-stone-50 via-white to-stone-50">
             {/* Background decorative elements */}
@@ -125,49 +177,54 @@ export function GiftCardSection() {
                             {/* Realistic Floor Shadow */}
                             <div
                                 style={{
-                                    transform: tilt.active 
-                                        ? `translateX(${-tilt.x * 1.5}px) translateY(${4 + tilt.y * 0.5}px) scale(0.92)` 
+                                    transform: showActiveEffects 
+                                        ? `translateX(${-currentTiltX * 1.5}px) translateY(${4 + currentTiltY * 0.5}px) scale(0.92)` 
                                         : "none",
-                                    opacity: tilt.active ? 0.08 : 0.15,
-                                    transition: isEntering
-                                        ? "transform 0.3s cubic-bezier(0.25, 1, 0.5, 1), opacity 0.3s cubic-bezier(0.25, 1, 0.5, 1)"
-                                        : tilt.active
-                                            ? "none"
-                                            : "transform 0.5s cubic-bezier(0.25, 1, 0.5, 1), opacity 0.5s cubic-bezier(0.25, 1, 0.5, 1)",
+                                    opacity: showActiveEffects ? 0.08 : 0.15,
+                                    transition: isMobile
+                                        ? "none"
+                                        : isEntering
+                                            ? "transform 0.3s cubic-bezier(0.25, 1, 0.5, 1), opacity 0.3s cubic-bezier(0.25, 1, 0.5, 1)"
+                                            : tilt.active
+                                                ? "none"
+                                                : "transform 0.5s cubic-bezier(0.25, 1, 0.5, 1), opacity 0.5s cubic-bezier(0.25, 1, 0.5, 1)",
                                 }}
                                 className="absolute bottom-[-15px] left-[8%] right-[8%] h-6 bg-brand-rose/25 rounded-full blur-xl pointer-events-none -z-10"
                             />
 
                             {/* Mockup Card with 3D tilt effect */}
                             <motion.div
+                                ref={cardRef}
                                 onMouseMove={handleMouseMove}
                                 onMouseLeave={handleMouseLeave}
                                 animate={{
-                                    rotateX: tilt.y,
-                                    rotateY: tilt.x,
+                                    rotateX: currentTiltY,
+                                    rotateY: currentTiltX,
                                     y: tilt.active ? -12 : 0, // Lift
                                 }}
                                 transition={{ type: "spring", stiffness: 150, damping: 22, mass: 0.5 }}
                                 style={{
                                     transformStyle: "preserve-3d",
                                     perspective: 1000,
-                                    boxShadow: tilt.active
-                                        ? `${-tilt.x * 2.5}px ${tilt.y * 2.5}px ${25 + Math.sqrt(tilt.x*tilt.x + tilt.y*tilt.y) * 2}px rgba(0, 0, 0, ${0.07 + (Math.sqrt(tilt.x*tilt.x + tilt.y*tilt.y) / 250)}),
-                                           ${-tilt.x * 5}px ${tilt.y * 5}px ${60 + Math.sqrt(tilt.x*tilt.x + tilt.y*tilt.y) * 2.5}px rgba(225, 29, 72, ${0.05 + (Math.sqrt(tilt.x*tilt.x + tilt.y*tilt.y) / 350)})`
+                                    boxShadow: showActiveEffects
+                                        ? `${-currentTiltX * 2.5}px ${currentTiltY * 2.5}px ${25 + Math.sqrt(currentTiltX*currentTiltX + currentTiltY*currentTiltY) * 2}px rgba(0, 0, 0, ${0.07 + (Math.sqrt(currentTiltX*currentTiltX + currentTiltY*currentTiltY) / 250)}),
+                                           ${-currentTiltX * 5}px ${currentTiltY * 5}px ${60 + Math.sqrt(currentTiltX*currentTiltX + currentTiltY*currentTiltY) * 2.5}px rgba(225, 29, 72, ${0.05 + (Math.sqrt(currentTiltX*currentTiltX + currentTiltY*currentTiltY) / 350)})`
                                         : "0 15px 40px -10px rgba(0, 0, 0, 0.08), 0 20px 40px -15px rgba(225, 29, 72, 0.04)",
-                                    transition: isEntering
-                                        ? "box-shadow 0.3s cubic-bezier(0.25, 1, 0.5, 1)"
-                                        : tilt.active
-                                            ? "none"
-                                            : "box-shadow 0.5s cubic-bezier(0.25, 1, 0.5, 1)",
+                                    transition: isMobile
+                                        ? "none"
+                                        : isEntering
+                                            ? "box-shadow 0.3s cubic-bezier(0.25, 1, 0.5, 1)"
+                                            : tilt.active
+                                                ? "none"
+                                                : "box-shadow 0.5s cubic-bezier(0.25, 1, 0.5, 1)",
                                 }}
                                 className="bg-gradient-to-br from-stone-50 via-white to-rose-50/15 rounded-[2rem] sm:rounded-[2.5rem] p-5 sm:p-10 border border-stone-100/80 overflow-hidden relative w-full h-full flex flex-col justify-between select-none cursor-default group shadow-lg"
                             >
                                 {/* Dynamic Glare Effect overlay */}
                                 <div
                                     style={{
-                                        background: tilt.active
-                                            ? `radial-gradient(circle at ${tilt.glareX}% ${tilt.glareY}%, rgba(255,255,255,0.22) 0%, transparent 55%)`
+                                        background: showActiveEffects
+                                            ? `radial-gradient(circle at ${currentGlareX}% ${currentGlareY}%, rgba(255,255,255,0.22) 0%, transparent 55%)`
                                             : "transparent",
                                     }}
                                     className="absolute inset-0 pointer-events-none z-30 transition-opacity duration-300"
