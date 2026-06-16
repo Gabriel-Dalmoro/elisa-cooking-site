@@ -75,8 +75,8 @@ export default function GiftCardPage() {
         const box = card.getBoundingClientRect();
         const x = e.clientX - box.left - box.width / 2;
         const y = e.clientY - box.top - box.height / 2;
-        const rotateX = -(y / (box.height / 2)) * 12;
-        const rotateY = (x / (box.width / 2)) * 12;
+        const rotateX = -(y / (box.height / 2)) * 18;
+        const rotateY = (x / (box.width / 2)) * 18;
         const gX = ((e.clientX - box.left) / box.width) * 100;
         const gY = ((e.clientY - box.top) / box.height) * 100;
         setTilt({ x: rotateY, y: rotateX, glareX: gX, glareY: gY, active: true });
@@ -413,15 +413,20 @@ export default function GiftCardPage() {
                             <span className="text-[10px] font-black uppercase tracking-widest text-stone-400">Aperçu en temps réel</span>
                         </div>
 
-                        {/* Wrapper for floating card and floor shadow */}
-                        <div className="relative w-full max-w-xl aspect-[1.58/1] flex items-center justify-center mt-4">
+                        {/* Wrapper for floating card and floor shadow (with parent perspective) */}
+                        <div 
+                            style={{ perspective: 1000 }}
+                            className="relative w-full max-w-xl aspect-[1.58/1] flex items-center justify-center mt-4"
+                        >
                             {/* Realistic Floor Shadow */}
                             <div
-                                className={`absolute bottom-[-15px] left-[8%] right-[8%] h-6 bg-brand-rose/25 rounded-full blur-xl pointer-events-none transition-all duration-300 -z-10 ${
-                                    tilt.active 
-                                        ? "opacity-12 scale-90 blur-2xl translate-y-4" 
-                                        : "opacity-30 scale-100"
-                                }`}
+                                style={{
+                                    transform: tilt.active 
+                                        ? `translateX(${-tilt.x * 1.5}px) translateY(${4 + tilt.y * 0.5}px) scale(0.92)` 
+                                        : "none",
+                                    opacity: tilt.active ? 0.16 : 0.3
+                                }}
+                                className="absolute bottom-[-15px] left-[8%] right-[8%] h-6 bg-brand-rose/25 rounded-full blur-xl pointer-events-none transition-all duration-300 -z-10"
                             />
 
                             {/* Interactive dynamic gift card container (Bigger & More Premium) */}
@@ -437,6 +442,10 @@ export default function GiftCardPage() {
                                 style={{
                                     transformStyle: "preserve-3d",
                                     perspective: 1000,
+                                    boxShadow: tilt.active
+                                        ? `${-tilt.x * 2.5}px ${tilt.y * 2.5}px ${20 + Math.sqrt(tilt.x*tilt.x + tilt.y*tilt.y) * 2.5}px rgba(0, 0, 0, ${0.15 + (Math.sqrt(tilt.x*tilt.x + tilt.y*tilt.y) / 80)}),
+                                           ${-tilt.x * 5}px ${tilt.y * 5}px ${50 + Math.sqrt(tilt.x*tilt.x + tilt.y*tilt.y) * 3}px rgba(225, 29, 72, ${0.16 + (Math.sqrt(tilt.x*tilt.x + tilt.y*tilt.y) / 60)})`
+                                        : "0 15px 45px -10px rgba(0, 0, 0, 0.12), 0 25px 55px -15px rgba(225, 29, 72, 0.08)",
                                 }}
                                 className="bg-gradient-to-br from-stone-50 via-white to-rose-50/15 rounded-[2.5rem] p-6 sm:p-8 md:p-10 border border-stone-100/80 overflow-hidden relative w-full h-full flex flex-col justify-between select-none cursor-default shadow-lg"
                             >
