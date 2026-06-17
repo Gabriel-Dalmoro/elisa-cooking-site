@@ -79,8 +79,6 @@ export async function POST(request: Request) {
                 deliveryEmail,
                 recipes: selectedPack.recipes.toString(),
                 people: selectedPack.people.toString(),
-                includeGroceries: 'false',
-                groceriesAmount: '0',
             },
         });
 

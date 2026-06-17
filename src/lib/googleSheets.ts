@@ -346,10 +346,10 @@ export async function getGiftCard(code: string): Promise<GiftCard | null> {
         const sheets = google.sheets({ version: 'v4', auth });
         const spreadsheetId = process.env.GOOGLE_SHEETS_SPREADSHEET_ID;
 
-        // Fetch from 'GiftCards' sheet. Columns: A:Code, B:PackageType, C:Giver, D:Recipient, E:ExpiryDate, F:Status, G:Recipes, H:People, I:IncludeGroceries, J:GroceriesAmount
+        // Fetch from 'GiftCards' sheet. Columns: A:Code, B:PackageType, C:Giver, D:Recipient, E:ExpiryDate, F:Status, G:Recipes, H:People
         const response = await sheets.spreadsheets.values.get({
             spreadsheetId,
-            range: 'GiftCards!A2:J500', // Skip header row
+            range: 'GiftCards!A2:H500', // Skip header row
         });
 
         const rows = response.data.values;
@@ -372,8 +372,6 @@ export async function getGiftCard(code: string): Promise<GiftCard | null> {
             status: isExpired ? 'Expired' : (row[5] || 'Active') as GiftCard['status'],
             recipes: parseInt(row[6]) || 4,
             people: parseInt(row[7]) || 4,
-            includeGroceries: row[8]?.toUpperCase() === 'TRUE',
-            groceriesAmount: parseFloat(row[9]) || 0,
         };
     } catch (error) {
         console.error('Error fetching Gift Card:', error);
@@ -434,8 +432,6 @@ export async function createGiftCard(data: {
     expiryDate: string;
     recipes: number;
     people: number;
-    includeGroceries: boolean;
-    groceriesAmount: number;
 }): Promise<boolean> {
     try {
         const auth = new google.auth.GoogleAuth({
@@ -451,7 +447,7 @@ export async function createGiftCard(data: {
         const sheets = google.sheets({ version: 'v4', auth });
         const spreadsheetId = process.env.GOOGLE_SHEETS_SPREADSHEET_ID;
 
-        // Append row: [Code, PackageType, Giver, Recipient, ExpiryDate, Status, Recipes, People, IncludeGroceries, GroceriesAmount]
+        // Append row: [Code, PackageType, Giver, Recipient, ExpiryDate, Status, Recipes, People]
         const values = [
             [
                 data.code.toUpperCase(),
@@ -461,15 +457,13 @@ export async function createGiftCard(data: {
                 data.expiryDate,
                 'Active',
                 data.recipes.toString(),
-                data.people.toString(),
-                data.includeGroceries ? 'TRUE' : 'FALSE',
-                data.groceriesAmount.toString()
+                data.people.toString()
             ]
         ];
 
         await sheets.spreadsheets.values.append({
             spreadsheetId,
-            range: 'GiftCards!A:J',
+            range: 'GiftCards!A:H',
             valueInputOption: 'USER_ENTERED',
             requestBody: {
                 values,

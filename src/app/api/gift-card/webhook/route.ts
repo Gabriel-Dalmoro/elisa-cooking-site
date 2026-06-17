@@ -37,7 +37,7 @@ export async function POST(request: Request) {
             const metadata = session.metadata;
 
             if (metadata) {
-                const { packageId, senderName, recipientName, message, deliveryEmail, recipes, people, includeGroceries, groceriesAmount } = metadata;
+                const { packageId, senderName, recipientName, message, deliveryEmail, recipes, people } = metadata;
 
                 // Create Voucher Details
                 const voucherCode = generateVoucherCode();
@@ -57,8 +57,6 @@ export async function POST(request: Request) {
                     expiryDate: expiryDateStr,
                     recipes: parseInt(recipes) || 4,
                     people: parseInt(people) || 4,
-                    includeGroceries: includeGroceries === 'true',
-                    groceriesAmount: parseFloat(groceriesAmount) || 0,
                 });
 
                 if (!sheetSuccess) {
@@ -79,11 +77,9 @@ export async function POST(request: Request) {
                     people_count: parseInt(people) || 4,
                     stripe_session_id: session.id,
                     amount_paid: session.amount_total ? session.amount_total / 100 : 0,
-                    include_groceries: includeGroceries === 'true',
-                    groceries_amount: parseFloat(groceriesAmount) || 0,
                 };
 
-                const productionUrl = process.env.NEXT_PUBLIC_N8N_WEBHOOK_URL || 'https://n8n-production-ced7.up.railway.app/webhook/lead-submit';
+                const productionUrl = process.env.NEXT_PUBLIC_N8N_GIFTCARD_WEBHOOK_URL || 'https://n8n-production-ced7.up.railway.app/webhook/lead-submit';
                 try {
                     await fetch(productionUrl, {
                         method: 'POST',
