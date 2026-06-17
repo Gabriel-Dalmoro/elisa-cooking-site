@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nouveau Bon Cadeau Vendu - Elisa Batch Cooking</title>
+    <style>
+        /* Base Styles */
+        body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; background-color: #fafaf9; margin: 0; padding: 0; color: #1c1917; line-height: 1.6; }
+        
+        /* 1. FLOATING BRAND HEADER */
+        .brand-header-external {
+            text-align: center;
+            padding: 30px 20px 15px 20px;
+        }
+        .logo-img { 
+            display: block; 
+            margin: 0 auto 10px auto; 
+            width: 80px; 
+            height: auto; 
+            border-radius: 50%;
+        }
+        .business-name { 
+            color: #E1567A; 
+            font-size: 12px; 
+            font-weight: 700; 
+            text-transform: uppercase; 
+            letter-spacing: 2px; 
+        }
+
+        /* 2. THE MAIN CARD CONTAINER */
+        .container { 
+            max-width: 600px; 
+            margin: 0 auto 40px auto; 
+            background: #ffffff; 
+            border-radius: 20px; 
+            overflow: hidden; 
+            box-shadow: 0 15px 35px rgba(0,0,0,0.04); 
+            border: 1px solid #e7e5e4; 
+        }
+
+        /* 3. THE BRAND-ROSE TITLE BANNER */
+        .title-banner {
+            background-color: #E1567A; /* brand-rose for admin notification alert */
+            color: #ffffff; 
+            text-align: center;
+            padding: 18px;
+            font-size: 18px;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        /* Content Layout */
+        .content { padding: 35px 40px; }
+        .greeting { font-size: 22px; font-weight: 800; letter-spacing: -0.5px; color: #1c1917; margin-bottom: 15px; text-align: center; }
+        .intro-text { color: #57534e; font-size: 15px; text-align: center; margin-bottom: 25px; }
+        
+        /* Summary Card */
+        .summary-card { background: #fafaf9; border-radius: 16px; padding: 25px; margin: 20px 0; border: 1px solid #f5f5f4; position: relative; }
+        .summary-card::before { content: ''; position: absolute; top: -1px; left: 50%; transform: translateX(-50%); width: 40px; height: 4px; background: #E1567A; border-radius: 0 0 8px 8px; }
+        
+        .label { color: #a8a29e; font-size: 10px; text-transform: uppercase; font-weight: 900; letter-spacing: 1px; display: block; margin-bottom: 2px; }
+        .value { color: #1c1917; font-size: 16px; font-weight: 700; }
+        .data-item { margin-bottom: 15px; border-bottom: 1px dashed #e7e5e4; padding-bottom: 12px; }
+        .data-item:last-child { margin-bottom: 0; border-bottom: none; padding-bottom: 0; }
+        
+        /* Footer */
+        .footer { padding: 30px; text-align: center; font-size: 12px; color: #a8a29e; background: #fafaf9; border-top: 1px solid #e7e5e4; }
+    </style>
+</head>
+<body>
+    
+    <div class="brand-header-external">
+        <img src="https://www.elisabatchcooking.com/images/logo.jpg" alt="Chef Elisa" class="logo-img" width="80" height="80">
+        <div class="business-name">ELISA BATCH COOKING</div>
+    </div>
+
+    <div class="container">
+        
+        <div class="title-banner">
+            NOTIFICATION DE VENTE 🎁
+        </div>
+        
+        <div class="content">
+            <div class="greeting">Nouveau Bon Cadeau Vendu !</div>
+            
+            <p class="intro-text">
+                Une commande de bon cadeau vient d'être validée par Stripe. Le bon cadeau a bien été enregistré dans le fichier de suivi Google Sheets et le PDF a été transmis à l'acheteur.
+            </p>
+            
+            <div class="summary-card">
+                <div class="data-item">
+                    <span class="label">Code Cadeau</span>
+                    <span class="value" style="font-family: monospace; font-size: 18px; color: #E1567A; letter-spacing: 1px;">{{ code }}</span>
+                </div>
+                <div class="data-item">
+                    <span class="label">Formule Sélectionnée</span>
+                    <span class="value">{{ recipes_count }} Recettes / {{ people_count }} Personnes</span>
+                </div>
+                <div class="data-item">
+                    <span class="label">Bénéficiaire (Pour)</span>
+                    <span class="value">{{ recipient_name }}</span>
+                </div>
+                <div class="data-item">
+                    <span class="label">Donateur (De la part de)</span>
+                    <span class="value">{{ giver_name }}</span>
+                </div>
+                <div class="data-item">
+                    <span class="label">Message d'accompagnement</span>
+                    <span class="value" style="font-style: italic; font-weight: normal; color: #57534e;">"{{ message }}"</span>
+                </div>
+                <div class="data-item">
+                    <span class="label">Date de Validité</span>
+                    <span class="value">Valable jusqu'au {{ expiry_date }}</span>
+                </div>
+                <div class="data-item">
+                    <span class="label">E-mail de Livraison (Acheteur)</span>
+                    <span class="value">{{ delivery_email }}</span>
+                </div>
+                <div class="data-item">
+                    <span class="label">Montant Payé</span>
+                    <span class="value">{{ amount_paid }} €</span>
+                </div>
+                <div class="data-item" style="border-bottom: none; padding-bottom: 0;">
+                    <span class="label">Stripe Session ID</span>
+                    <span class="value" style="font-size: 12px; font-family: monospace; color: #78716c;">{{ stripe_session_id }}</span>
+                </div>
+            </div>
+
+        </div>
+
+        <div class="footer">
+            <p>&copy; 2026 Elisa Batch Cooking • Notification Automatique Chef</p>
+        </div>
+    </div>
+</body>
+</html>
