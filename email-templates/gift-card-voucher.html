@@ -66,7 +66,7 @@
         /* Header styling */
         .header {
             text-align: center;
-            margin-top: 8mm;
+            margin-top: 6mm;
             z-index: 10;
         }
         
@@ -131,7 +131,7 @@
         /* Code display block above the card */
         .code-banner {
             width: 140mm;
-            margin: 6mm auto 2mm auto;
+            margin: 5mm auto 2mm auto;
             background-color: #FFF5F7; /* light rose tint */
             border: 1px solid rgba(225, 86, 122, 0.2);
             border-radius: 5px;
@@ -158,22 +158,22 @@
             font-weight: 900;
         }
 
-        /* Card Mockup styling */
+        /* Card Mockup styling - Scaled down for more message space */
         .card-container {
             display: flex;
             justify-content: center;
-            margin: 4mm 0 8mm 0;
+            margin: 4mm 0 6mm 0;
             z-index: 10;
         }
 
         .gift-card {
-            width: 155mm;
-            height: 90mm;
+            width: 135mm;
+            height: 78mm;
             background: linear-gradient(135deg, #FAF9F6 0%, #FFFFFF 50%, #FFF5F7 100%);
-            border-radius: 8mm;
+            border-radius: 7mm;
             border: 1px solid #E5E7EB;
-            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.05), 0 20px 40px rgba(225, 86, 122, 0.03);
-            padding: 7mm 10mm;
+            box-shadow: 0 12px 30px rgba(0, 0, 0, 0.04), 0 16px 35px rgba(225, 86, 122, 0.02);
+            padding: 5mm 8mm;
             color: #1c1917;
             position: relative;
             display: flex;
@@ -182,27 +182,27 @@
             overflow: hidden;
         }
 
-        /* Card Inner Borders (Moved closer to the edge of the card) */
+        /* Card Inner Borders */
         .card-gold-border {
             position: absolute;
-            top: 2mm;
-            left: 2mm;
-            right: 2mm;
-            bottom: 2mm;
-            border: 2px solid #F2C94C; /* solid brand-gold */
-            border-radius: 7mm;
+            top: 1.5mm;
+            left: 1.5mm;
+            right: 1.5mm;
+            bottom: 1.5mm;
+            border: 2px solid #F2C94C;
+            border-radius: 6mm;
             pointer-events: none;
             z-index: 5;
         }
 
         .card-rose-border {
             position: absolute;
-            top: 3mm;
-            left: 3mm;
-            right: 3mm;
-            bottom: 3mm;
-            border: 3px solid #E1567A; /* thick brand-rose border */
-            border-radius: 6mm;
+            top: 2.2mm;
+            left: 2.2mm;
+            right: 2.2mm;
+            bottom: 2.2mm;
+            border: 3px solid #E1567A;
+            border-radius: 5.2mm;
             pointer-events: none;
             z-index: 5;
         }
@@ -217,19 +217,19 @@
         .card-brand-wrapper {
             display: flex;
             align-items: center;
-            gap: 8px;
+            gap: 7px;
         }
 
         .card-logo {
-            width: 10mm;
-            height: 10mm;
+            width: 8.5mm;
+            height: 8.5mm;
             border-radius: 50%;
             border: 1px solid #E5E7EB;
             object-fit: cover;
         }
 
         .card-brand-text {
-            font-size: 14px;
+            font-size: 12.5px;
             font-weight: 900;
             letter-spacing: -0.02em;
             color: #1c1917;
@@ -240,7 +240,7 @@
         }
 
         .card-label {
-            font-size: 8px;
+            font-size: 7.5px;
             font-weight: 900;
             letter-spacing: 0.15em;
             color: #a8a29e;
@@ -250,12 +250,13 @@
         .card-middle {
             text-align: center;
             z-index: 10;
-            margin: 2mm 0;
+            margin: 1mm 0;
+            padding: 0 4mm;
         }
 
         .card-value {
             font-family: 'Cormorant Garamond', serif;
-            font-size: 20px;
+            font-size: 17px;
             font-weight: 600;
             font-style: italic;
             color: #E1567A;
@@ -269,13 +270,13 @@
             align-items: flex-end;
             z-index: 10;
             border-top: 1px solid rgba(0, 0, 0, 0.05);
-            padding-top: 3mm;
+            padding-top: 2.5mm;
         }
 
         .card-footer-col {
             display: flex;
             flex-direction: column;
-            gap: 1.5mm;
+            gap: 1mm;
             text-align: left;
         }
 
@@ -295,17 +296,17 @@
         }
 
         .card-info-label {
-            font-size: 7px;
+            font-size: 6px;
             font-weight: 800;
             color: #a8a29e;
             letter-spacing: 0.1em;
             text-transform: uppercase;
-            margin-bottom: 0.5mm;
+            margin-bottom: 0.2mm;
             line-height: 1;
         }
 
         .card-info-value {
-            font-size: 11px;
+            font-size: 10px;
             font-weight: 900;
             color: #292524;
             line-height: 1.2;
@@ -315,23 +316,29 @@
             font-family: monospace;
             background-color: #fafaf9;
             border: 1px solid #e7e5e4;
-            padding: 1mm 2.5mm;
+            padding: 0.8mm 2mm;
             border-radius: 4px;
-            font-size: 12px;
+            font-size: 11px;
             letter-spacing: 1px;
         }
 
-        /* Message Box styling */
+        /* Message Box styling - Flexible and larger height range */
         .message-container {
             width: 140mm;
             margin: 0 auto;
             text-align: center;
             background-color: #ffffff;
             border: 1px dashed #e7e5e4;
-            padding: 6mm 10mm;
+            padding: 5mm 8mm;
             border-radius: 4mm;
             position: relative;
             z-index: 10;
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            min-height: 35mm;
+            max-height: 60mm;
         }
         
         .message-title {
@@ -356,12 +363,12 @@
         /* Instructions section */
         .instructions-container {
             width: 140mm;
-            margin: 5mm auto 8mm auto;
+            margin: 5mm auto 6mm auto;
             z-index: 10;
         }
 
         .instructions-title {
-            font-size: 14px;
+            font-size: 13px;
             font-weight: 800;
             text-align: center;
             text-transform: uppercase;
@@ -385,18 +392,18 @@
             display: inline-flex;
             justify-content: center;
             align-items: center;
-            width: 7.5mm;
-            height: 7.5mm;
+            width: 7mm;
+            height: 7mm;
             border-radius: 50%;
             background-color: #E1567A;
             color: #ffffff;
-            font-size: 11px;
+            font-size: 10px;
             font-weight: 800;
             margin-bottom: 1.5mm;
         }
 
         .step-text {
-            font-size: 9.5px;
+            font-size: 9px;
             color: #57534e;
             line-height: 1.4;
             margin: 0;
@@ -460,10 +467,10 @@
             CODE D'ACTIVATION : <span class="code-banner-val">{{code}}</span>
         </div>
 
-        <!-- Card Mockup (styled exactly like the home screen card) -->
+        <!-- Card Mockup (styled exactly like the home screen card, scaled down) -->
         <div class="card-container">
             <div class="gift-card">
-                <!-- Inner Double Concentric Borders (Shifted close to card edge) -->
+                <!-- Inner Double Concentric Borders -->
                 <div class="card-gold-border"></div>
                 <div class="card-rose-border"></div>
 
@@ -516,7 +523,7 @@
             </div>
         </div>
 
-        <!-- Message Box -->
+        <!-- Message Box (will flex-grow to absorb saved space for longer messages) -->
         <div class="message-container">
             <div class="message-title">Un message pour vous</div>
             <blockquote class="message-content">
