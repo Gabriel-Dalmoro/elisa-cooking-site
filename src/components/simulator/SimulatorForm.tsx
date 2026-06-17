@@ -230,7 +230,11 @@ export function SimulatorForm({ promoConfig }: SimulatorFormProps) {
                             ? `${promoConfig?.promoLabel} (+${bonusExtra} recette offerte)`
                             : `${promoConfig?.promoLabel} (-${activeDiscount}%)`)
                         : "Aucune"),
-                ingredient_consent: formData.ingredientConsent ? "Validé" : "Non validé"
+                ingredient_consent: formData.ingredientConsent ? "Validé" : "Non validé",
+                is_gift_card: appliedGiftCard !== null,
+                gift_card_code: appliedGiftCard ? appliedGiftCard.code : "",
+                gift_card_giver: appliedGiftCard ? appliedGiftCard.giver : "",
+                gift_card_recipient: appliedGiftCard ? appliedGiftCard.recipient : ""
             };
 
             const currentParams = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : new URLSearchParams();
