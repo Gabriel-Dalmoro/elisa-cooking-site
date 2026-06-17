@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Confirmation d'achat - Votre Bon Cadeau - Elisa Batch Cooking</title>
+    <style>
+        /* Base Styles */
+        body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; background-color: #fafaf9; margin: 0; padding: 0; color: #1c1917; line-height: 1.6; }
+        
+        /* 1. FLOATING BRAND HEADER */
+        .brand-header-external {
+            text-align: center;
+            padding: 40px 20px 20px 20px;
+        }
+        .logo-img { 
+            display: block; 
+            margin: 0 auto 15px auto; 
+            width: 100px; 
+            height: auto; 
+            border-radius: 50%;
+        }
+        .business-name { 
+            color: #E1567A; 
+            font-size: 13px; 
+            font-weight: 700; 
+            text-transform: uppercase; 
+            letter-spacing: 2px; 
+        }
+
+        /* 2. THE MAIN CARD CONTAINER */
+        .container { 
+            max-width: 600px; 
+            margin: 0 auto 40px auto; 
+            background: #ffffff; 
+            border-radius: 24px; 
+            overflow: hidden; 
+            box-shadow: 0 20px 40px rgba(0,0,0,0.05); 
+            border: 1px solid #e7e5e4; 
+        }
+
+        /* 3. THE GOLD TITLE BANNER */
+        .title-banner {
+            background-color: #D6A45D; /* brand-gold */
+            color: #1c1917; /* stone-900 */
+            text-align: center;
+            padding: 20px;
+            font-size: 20px;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        /* Content Layout */
+        .content { padding: 40px 50px; }
+        .greeting { font-size: 24px; font-weight: 800; letter-spacing: -0.5px; color: #1c1917; margin-bottom: 15px; text-align: center; }
+        .intro-text { color: #57534e; font-size: 16px; text-align: center; margin-bottom: 30px; }
+        
+        /* Summary Card */
+        .summary-card { background: #fafaf9; border-radius: 24px; padding: 30px; margin: 20px 0; border: 1px solid #f5f5f4; position: relative; }
+        .summary-card::before { content: ''; position: absolute; top: -1px; left: 50%; transform: translateX(-50%); width: 40px; height: 4px; background: #D6A45D; border-radius: 0 0 8px 8px; }
+        
+        .label { color: #a8a29e; font-size: 11px; text-transform: uppercase; font-weight: 900; letter-spacing: 1px; display: block; margin-bottom: 4px; }
+        .value { color: #1c1917; font-size: 17px; font-weight: 700; }
+        .data-item { margin-bottom: 20px; border-bottom: 1px dashed #e7e5e4; padding-bottom: 15px; }
+        .data-item:last-child { margin-bottom: 0; border-bottom: none; padding-bottom: 0; }
+        
+        /* CODE HERO SECTION */
+        .code-hero { text-align: center; margin: 40px 0; padding: 0; border-radius: 24px; background: #ffffff; border: 2px dashed #D6A45D; overflow: hidden; }
+        .code-top { background: #fdfbf7; padding: 20px; border-bottom: 1px dashed #D6A45D; }
+        .code-label { font-size: 12px; font-weight: 700; color: #78716c; text-transform: uppercase; letter-spacing: 1px; }
+        .code-value { font-size: 26px; font-weight: 900; color: #E1567A; font-family: monospace; letter-spacing: 2px; margin-top: 5px; }
+        
+        .code-bottom { padding: 25px; background: linear-gradient(145deg, #ffffff, #fff5f7); } /* light rose gradient */
+        .badge-voucher { display: inline-block; background: #ffe4e6; color: #9f1239; font-size: 11px; font-weight: 800; padding: 4px 12px; border-radius: 50px; margin-bottom: 10px; border: 1px solid #fecdd3; text-transform: uppercase; }
+        .summary-label { font-size: 14px; font-weight: 700; color: #9f1239; display: block; }
+        .summary-value { font-size: 20px; font-weight: 900; color: #9f1239; letter-spacing: -0.5px; line-height: 1; margin: 10px 0; }
+        .summary-note { font-size: 13px; color: #57534e; font-weight: 500; max-width: 90%; margin: 0 auto; line-height: 1.4; }
+
+        /* Call to Action */
+        .cta { display: block; background: #1c1917; color: #ffffff !important; text-decoration: none; padding: 22px; border-radius: 100px; text-align: center; font-weight: 800; font-size: 18px; margin: 30px 0 15px 0; box-shadow: 0 10px 20px rgba(0,0,0,0.15); transition: transform 0.2s; }
+        
+        /* Footer */
+        .footer { padding: 40px; text-align: center; font-size: 13px; color: #a8a29e; background: #fafaf9; border-top: 1px solid #e7e5e4; }
+    </style>
+</head>
+<body>
+    
+    <div class="brand-header-external">
+        <img src="https://www.elisabatchcooking.com/images/logo.jpg" alt="Chef Elisa" class="logo-img" width="100" height="100">
+        <div class="business-name">ELISA BATCH COOKING</div>
+    </div>
+
+    <div class="container">
+        
+        <div class="title-banner">
+            CONFIRMATION DE COMMANDE
+        </div>
+        
+        <div class="content">
+            <div class="greeting">Votre bon cadeau est prêt ! 🎁</div>
+            
+            <p class="intro-text">
+                Merci beaucoup ! Votre achat a été validé avec succès. Vous trouverez en pièce jointe de cet e-mail votre bon cadeau au format PDF officiel, prêt à être imprimé ou transféré.
+            </p>
+            
+            <div class="summary-card">
+                <div class="data-item">
+                    <span class="label">Bénéficiaire</span>
+                    <span class="value">{{ recipient_name }}</span>
+                </div>
+                <div class="data-item">
+                    <span class="label">Offert par</span>
+                    <span class="value">{{ giver_name }}</span>
+                </div>
+                <div class="data-item">
+                    <span class="label">Validité</span>
+                    <span class="value">Valable 6 mois (jusqu'au {{ expiry_date }})</span>
+                </div>
+            </div>
+
+            <!-- CODE HERO SECTION -->
+            <div class="code-hero">
+                <div class="code-top">
+                    <div class="code-label">Code d'activation du bon cadeau</div>
+                    <div class="code-value">{{ code }}</div>
+                </div>
+                
+                <div class="code-bottom">
+                    <div class="badge-voucher">✨ Formule Sélectionnée</div>
+                    <span class="summary-label">PRESTATION BATCH COOKING</span>
+                    <div class="summary-value">{{ recipes_count }} Recettes / {{ people_count }} Personnes</div>
+                    <p class="summary-note">
+                        Ce code d'activation unique est indispensable pour réserver et planifier la séance de cuisine à domicile avec Elisa.
+                    </p>
+                </div>
+            </div>
+
+            <div style="background: #fffbef; border: 1px solid #fef08a; border-radius: 16px; padding: 20px; margin-top: 40px; text-align: left;">
+                <p style="font-size: 12px; font-weight: 900; color: #a16207; text-transform: uppercase; margin: 0 0 10px 0;">Comment l'utiliser ? ⚡</p>
+                <p style="font-size: 14px; color: #854d0e; margin: 0; line-height: 1.8;">
+                    <strong>1. Remettez le bon cadeau :</strong> Imprimez le PDF ci-joint ou transmettez-le directement par e-mail au bénéficiaire.<br>
+                    <strong>2. Le bénéficiaire choisit son menu :</strong> Il consulte les menus de la semaine sur le site internet.<br>
+                    <strong>3. Réservation de la séance :</strong> Il contacte Elisa par e-mail ou WhatsApp en lui transmettant le code d'activation <strong>{{ code }}</strong> pour bloquer sa date.
+                </p>
+            </div>
+
+            <p style="text-align: center; font-size: 14px; color: #78716c; margin-bottom: 5px; margin-top: 30px;">
+                Une question concernant l'utilisation du bon ?
+            </p>
+
+            <a href="mailto:contactchefelisa@gmail.com" class="cta">
+                Contacter Elisa
+            </a>
+
+        </div>
+
+        <div class="footer">
+            <div style="text-align: center; margin-bottom: 25px;">
+                <a href="https://www.instagram.com/elisabatchcooking/" style="display: inline-block; margin: 0 10px; text-decoration: none;">
+                    <img src="https://img.icons8.com/ios/50/instagram-new--v1.png" alt="Instagram" width="24" style="display: block; width: 24px; height: auto;">
+                </a>
+                <a href="https://wa.me/33652077203" style="display: inline-block; margin: 0 10px; text-decoration: none;">
+                    <img src="https://img.icons8.com/ios/50/whatsapp--v1.png" alt="WhatsApp" width="24" style="display: block; width: 24px; height: auto;">
+                </a>
+            </div>
+
+            <p>Retrouvez nos Conditions Générales de Vente sur : <a href="https://www.elisabatchcooking.com/cgv" style="color: #a8a29e;">elisabatchcooking.com/cgv</a></p>
+            <p style="margin-top: 20px;">&copy; 2026 Elisa Batch Cooking</p>
+        </div>
+    </div>
+</body>
+</html>
