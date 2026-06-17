@@ -44,7 +44,10 @@ export async function POST(request: Request) {
                 
                 // Expiry: Exactly 6 months (182.5 days)
                 const expiry = new Date(Date.now() + 182.5 * 24 * 60 * 60 * 1000);
-                const expiryDateStr = expiry.toISOString().split('T')[0]; // YYYY-MM-DD
+                const day = String(expiry.getDate()).padStart(2, '0');
+                const month = String(expiry.getMonth() + 1).padStart(2, '0');
+                const year = expiry.getFullYear();
+                const expiryDateStr = `${day}/${month}/${year}`; // DD/MM/YYYY
 
                 console.log(`[Webhook] Creating gift card: ${voucherCode} for ${recipientName} from ${senderName}`);
 

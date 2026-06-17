@@ -359,7 +359,18 @@ export async function getGiftCard(code: string): Promise<GiftCard | null> {
         if (!row) return null;
 
         const expiryDateStr = row[4];
-        const expiryDate = new Date(expiryDateStr);
+        
+        // Robust date parsing (handles DD/MM/YYYY, YYYY-MM-DD, etc)
+        let expiryDate = new Date(expiryDateStr);
+        if (isNaN(expiryDate.getTime()) && expiryDateStr) {
+            const parts = expiryDateStr.split('/');
+            if (parts.length === 3) {
+                const day = parseInt(parts[0], 10);
+                const month = parseInt(parts[1], 10) - 1;
+                const year = parseInt(parts[2], 10);
+                expiryDate = new Date(year, month, day, 23, 59, 59);
+            }
+        }
         const now = new Date();
         const isExpired = isNaN(expiryDate.getTime()) ? false : expiryDate < now;
 
