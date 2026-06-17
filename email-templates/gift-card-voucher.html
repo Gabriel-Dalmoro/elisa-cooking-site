@@ -171,7 +171,7 @@
             height: 90mm;
             background: linear-gradient(135deg, #FAF9F6 0%, #FFFFFF 50%, #FFF5F7 100%);
             border-radius: 8mm;
-            border: 4px solid #E1567A; /* Thick brand-rose border */
+            border: 1px solid #E5E7EB; /* Back to clean subtle outer border */
             box-shadow: 0 15px 35px rgba(0, 0, 0, 0.05), 0 20px 40px rgba(225, 86, 122, 0.03);
             padding: 7mm 10mm;
             color: #1c1917;
@@ -182,16 +182,29 @@
             overflow: hidden;
         }
 
-        /* Card Gold Border */
+        /* Card Inner Borders */
         .card-gold-border {
             position: absolute;
             top: 4.5mm;
             left: 4.5mm;
             right: 4.5mm;
             bottom: 4.5mm;
-            border: 2px solid rgba(242, 201, 76, 0.45); /* brand-gold with opacity */
-            border-radius: 6mm;
+            border: 2px solid #F2C94C; /* solid brand-gold */
+            border-radius: 6.5mm;
             pointer-events: none;
+            z-index: 5;
+        }
+
+        .card-rose-border {
+            position: absolute;
+            top: 5.5mm;
+            left: 5.5mm;
+            right: 5.5mm;
+            bottom: 5.5mm;
+            border: 3px solid #E1567A; /* thick brand-rose border just inside the gold border */
+            border-radius: 5.5mm;
+            pointer-events: none;
+            z-index: 5;
         }
 
         .card-header {
@@ -450,8 +463,9 @@
         <!-- Card Mockup (styled exactly like the home screen card) -->
         <div class="card-container">
             <div class="gift-card">
-                <!-- Inner Gold Border -->
+                <!-- Inner Double Concentric Borders -->
                 <div class="card-gold-border"></div>
+                <div class="card-rose-border"></div>
 
                 <!-- Header -->
                 <div class="card-header">
