@@ -82,7 +82,7 @@ export async function POST(request: Request) {
                     amount_paid: session.amount_total ? session.amount_total / 100 : 0,
                 };
 
-                const productionUrl = process.env.NEXT_PUBLIC_N8N_GIFTCARD_WEBHOOK_URL || 'https://n8n-production-ced7.up.railway.app/webhook/lead-submit';
+                const productionUrl = process.env.NEXT_PUBLIC_N8N_GIFTCARD_WEBHOOK_URL || 'https://n8n-production-ced7.up.railway.app/webhook/1d46d22d-25e8-4684-9272-6a1e9a1760c6';
                 try {
                     await fetch(productionUrl, {
                         method: 'POST',
