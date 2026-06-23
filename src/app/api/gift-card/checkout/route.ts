@@ -36,21 +36,50 @@ const PACKAGES = {
 
 export async function POST(request: Request) {
     try {
-        const { packageId, senderName, recipientName, message, deliveryEmail } = await request.json();
+        const { packageId, senderName, recipientName, message, deliveryEmail, customRecipes, customPeople } = await request.json();
 
         // 1. Validation
-        if (!packageId || !PACKAGES[packageId as keyof typeof PACKAGES]) {
-            return NextResponse.json({ success: false, error: 'Formule invalide.' }, { status: 400 });
+        if (!packageId) {
+            return NextResponse.json({ success: false, error: 'Formule non spécifiée.' }, { status: 400 });
         }
 
         if (!senderName || !recipientName || !deliveryEmail) {
             return NextResponse.json({ success: false, error: 'Informations manquantes.' }, { status: 400 });
         }
 
-        const selectedPack = PACKAGES[packageId as keyof typeof PACKAGES];
-        const origin = request.headers.get('origin') || 'https://www.elisabatchcooking.com';
+        let selectedPackName = '';
+        let totalAmount = 0;
+        let recipesCount = 4;
+        let peopleCount = 4;
 
-        const totalAmount = selectedPack.price;
+        if (packageId === 'custom') {
+            const recipes = parseInt(customRecipes);
+            const people = parseInt(customPeople);
+
+            if (![3, 5, 6].includes(recipes)) {
+                return NextResponse.json({ success: false, error: 'Nombre de recettes invalide (doit être 3, 5 ou 6).' }, { status: 400 });
+            }
+            if (isNaN(people) || people < 2 || people > 6) {
+                return NextResponse.json({ success: false, error: 'Nombre de personnes invalide (doit être entre 2 et 6).' }, { status: 400 });
+            }
+
+            const basePrices: Record<number, number> = { 3: 120, 5: 200, 6: 240 };
+            totalAmount = basePrices[recipes] + (people - 1) * 10;
+            recipesCount = recipes;
+            peopleCount = people;
+            selectedPackName = `Formule Sur-Mesure (${recipes} recettes / ${people} personnes - ${recipes * people} portions)`;
+        } else {
+            if (!PACKAGES[packageId as keyof typeof PACKAGES]) {
+                return NextResponse.json({ success: false, error: 'Formule invalide.' }, { status: 400 });
+            }
+            const selectedPack = PACKAGES[packageId as keyof typeof PACKAGES];
+            totalAmount = selectedPack.price;
+            recipesCount = selectedPack.recipes;
+            peopleCount = selectedPack.people;
+            selectedPackName = selectedPack.name;
+        }
+
+        const origin = request.headers.get('origin') || 'https://www.elisabatchcooking.com';
 
         // 2. Create Stripe Checkout Session
         const session = await stripe.checkout.sessions.create({
@@ -60,7 +89,7 @@ export async function POST(request: Request) {
                     price_data: {
                         currency: 'eur',
                         product_data: {
-                            name: `Bon Cadeau Elisa Batch Cooking - ${selectedPack.name}`,
+                            name: `Bon Cadeau Elisa Batch Cooking - ${selectedPackName}`,
                             description: `Offert à ${recipientName} de la part de ${senderName}. Hors coût des ingrédients (seul le coût des courses reste à la charge du bénéficiaire lors de la séance). Valable 6 mois.`,
                         },
                         unit_amount: totalAmount * 100, // in cents
@@ -77,8 +106,8 @@ export async function POST(request: Request) {
                 recipientName,
                 message: message || '',
                 deliveryEmail,
-                recipes: selectedPack.recipes.toString(),
-                people: selectedPack.people.toString(),
+                recipes: recipesCount.toString(),
+                people: peopleCount.toString(),
             },
         });
 

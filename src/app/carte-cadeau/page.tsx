@@ -56,6 +56,9 @@ const PACKAGES = [
 export default function GiftCardPage() {
     const [step, setStep] = useState(0);
     const [selectedPackId, setSelectedPackId] = useState('family');
+    const [isCustomMode, setIsCustomMode] = useState(false);
+    const [customRecipes, setCustomRecipes] = useState<3 | 5 | 6>(5);
+    const [customPeople, setCustomPeople] = useState<number>(4);
     const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
     const [hasAcceptedTerms, setHasAcceptedTerms] = useState(false);
     
@@ -100,8 +103,23 @@ export default function GiftCardPage() {
     };
 
     const selectedPack = useMemo(() => {
-        return PACKAGES.find(p => p.id === selectedPackId) || PACKAGES[1];
-    }, [selectedPackId]);
+        if (isCustomMode) {
+            const basePrices: Record<number, number> = { 3: 120, 5: 200, 6: 240 };
+            const price = basePrices[customRecipes] + (customPeople - 1) * 10;
+            const timeSavedMap: Record<number, string> = { 3: '4h 45', 5: '7h 05', 6: '8h 15' };
+            return {
+                id: 'custom',
+                name: `Formule Sur-Mesure (${customRecipes} recettes / ${customPeople} personnes)`,
+                recipes: customRecipes,
+                people: customPeople,
+                price: price,
+                groceryEstimate: 0,
+                description: `Une formule sur-mesure personnalisée avec ${customRecipes} repas pour ${customPeople} personnes.`,
+                timeSaved: timeSavedMap[customRecipes] || '7h 05',
+            };
+        }
+        return PACKAGES.find(p => p.id === selectedPackId) || PACKAGES[2];
+    }, [isCustomMode, selectedPackId, customRecipes, customPeople]);
 
     const handleNext = () => {
         if (step === 1 && (!formData.senderName || !formData.recipientName || !formData.deliveryEmail)) {
@@ -125,7 +143,9 @@ export default function GiftCardPage() {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    packageId: selectedPackId,
+                    packageId: isCustomMode ? 'custom' : selectedPackId,
+                    customRecipes: isCustomMode ? customRecipes : undefined,
+                    customPeople: isCustomMode ? customPeople : undefined,
                     ...formData,
                 }),
             });
@@ -195,49 +215,141 @@ export default function GiftCardPage() {
                                         <p className="text-stone-400 text-xs font-medium">Sélectionnez la formule de batch cooking à offrir.</p>
                                     </div>
 
-                                    <div className="grid grid-cols-1 gap-4">
-                                        {PACKAGES.map((pack) => {
-                                            const isSelected = selectedPackId === pack.id;
-                                            return (
-                                                <button
-                                                    key={pack.id}
-                                                    type="button"
-                                                    onClick={() => setSelectedPackId(pack.id)}
-                                                    className={`w-full flex items-center justify-between p-4 md:p-5 rounded-2xl border-2 transition-all text-left relative overflow-hidden cursor-pointer ${
-                                                        isSelected
-                                                            ? 'border-brand-rose bg-rose-50/20 shadow-md shadow-brand-rose/5'
-                                                            : 'border-stone-100 bg-white hover:border-stone-200'
-                                                    }`}
-                                                >
-                                                    {pack.badge && (
-                                                        <span className={`absolute -top-1 right-8 text-[8px] font-black uppercase tracking-wider px-2 py-0.5 rounded-b-md ${
-                                                            pack.isRecommended ? 'bg-brand-gold text-stone-900' : 'bg-stone-100 text-stone-400'
-                                                        }`}>
-                                                            {pack.badge}
-                                                        </span>
-                                                    )}
-                                                    <div className="flex items-center gap-4">
-                                                        <div className={`h-10 w-10 rounded-xl flex items-center justify-center transition-colors ${
-                                                            isSelected ? 'bg-brand-rose text-white' : 'bg-stone-50 text-stone-400'
-                                                        }`}>
-                                                            <Gift className="h-5 w-5" />
-                                                        </div>
-                                                        <div>
-                                                            <h3 className="text-sm font-bold text-stone-900 leading-tight">{pack.name}</h3>
-                                                            <p className="text-[10px] text-brand-rose font-bold mt-1">
-                                                                {pack.recipes} repas pour {pack.people} personnes (Soit {pack.recipes * pack.people} portions/assiettes)
-                                                            </p>
-                                                            <p className="text-[10px] text-stone-400 font-medium mt-1 leading-snug">{pack.description}</p>
-                                                        </div>
-                                                    </div>
-                                                    <div className="text-right ml-4">
-                                                        <span className="text-lg font-black text-stone-950">{pack.price}€</span>
-                                                        <span className="text-[9px] text-stone-400 block uppercase font-bold">Service seul</span>
-                                                    </div>
-                                                </button>
-                                            );
-                                        })}
+                                    {/* Tabs for Recommended vs Custom */}
+                                    <div className="flex bg-stone-100/80 p-1.5 rounded-2xl gap-1">
+                                        <button
+                                            type="button"
+                                            onClick={() => setIsCustomMode(false)}
+                                            className={`flex-1 py-3 text-center text-xs font-bold rounded-xl transition-all cursor-pointer border-none ${
+                                                !isCustomMode
+                                                    ? 'bg-white text-stone-900 shadow-sm'
+                                                    : 'text-stone-400 hover:text-stone-600 bg-transparent'
+                                            }`}
+                                        >
+                                            Formules Recommandées
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => setIsCustomMode(true)}
+                                            className={`flex-1 py-3 text-center text-xs font-bold rounded-xl transition-all cursor-pointer border-none ${
+                                                isCustomMode
+                                                    ? 'bg-white text-stone-900 shadow-sm'
+                                                    : 'text-stone-400 hover:text-stone-600 bg-transparent'
+                                            }`}
+                                        >
+                                            Formule Sur-Mesure
+                                        </button>
                                     </div>
+
+                                    {!isCustomMode ? (
+                                        <div className="grid grid-cols-1 gap-4">
+                                            {PACKAGES.map((pack) => {
+                                                const isSelected = selectedPackId === pack.id;
+                                                return (
+                                                    <button
+                                                        key={pack.id}
+                                                        type="button"
+                                                        onClick={() => setSelectedPackId(pack.id)}
+                                                        className={`w-full flex items-center justify-between p-4 md:p-5 rounded-2xl border-2 transition-all text-left relative overflow-hidden cursor-pointer ${
+                                                            isSelected
+                                                                ? 'border-brand-rose bg-rose-50/20 shadow-md shadow-brand-rose/5'
+                                                                : 'border-stone-100 bg-white hover:border-stone-200'
+                                                        }`}
+                                                    >
+                                                        {pack.badge && (
+                                                            <span className={`absolute -top-1 right-8 text-[8px] font-black uppercase tracking-wider px-2 py-0.5 rounded-b-md ${
+                                                                pack.isRecommended ? 'bg-brand-gold text-stone-900' : 'bg-stone-100 text-stone-400'
+                                                            }`}>
+                                                                {pack.badge}
+                                                            </span>
+                                                        )}
+                                                        <div className="flex items-center gap-4">
+                                                            <div className={`h-10 w-10 rounded-xl flex items-center justify-center transition-colors ${
+                                                                isSelected ? 'bg-brand-rose text-white' : 'bg-stone-50 text-stone-400'
+                                                            }`}>
+                                                                <Gift className="h-5 w-5" />
+                                                            </div>
+                                                            <div>
+                                                                <h3 className="text-sm font-bold text-stone-900 leading-tight">{pack.name}</h3>
+                                                                <p className="text-[10px] text-brand-rose font-bold mt-1">
+                                                                    {pack.recipes} repas pour {pack.people} personnes (Soit {pack.recipes * pack.people} portions/assiettes)
+                                                                </p>
+                                                                <p className="text-[10px] text-stone-400 font-medium mt-1 leading-snug">{pack.description}</p>
+                                                            </div>
+                                                        </div>
+                                                        <div className="text-right ml-4">
+                                                            <span className="text-lg font-black text-stone-950">{pack.price}€</span>
+                                                            <span className="text-[9px] text-stone-400 block uppercase font-bold">Service seul</span>
+                                                        </div>
+                                                    </button>
+                                                );
+                                            })}
+                                        </div>
+                                    ) : (
+                                        <div className="space-y-6">
+                                            {/* Selector: People */}
+                                            <div className="space-y-2">
+                                                <div className="flex justify-between items-center">
+                                                    <span className="text-[10px] font-black uppercase tracking-widest text-stone-400">Nombre de personnes</span>
+                                                    <span className="text-xs font-bold text-brand-rose">{customPeople} personnes</span>
+                                                </div>
+                                                <div className="flex gap-2">
+                                                    {[2, 3, 4, 5, 6].map((p) => (
+                                                        <button
+                                                            key={p}
+                                                            type="button"
+                                                            onClick={() => setCustomPeople(p)}
+                                                            className={`flex-1 py-3 text-center text-xs font-bold rounded-xl border transition-all cursor-pointer ${
+                                                                customPeople === p
+                                                                    ? 'bg-brand-rose border-brand-rose text-white shadow-md shadow-brand-rose/10'
+                                                                    : 'bg-stone-50 border-stone-100 hover:border-stone-200 text-stone-600'
+                                                            }`}
+                                                        >
+                                                            {p}
+                                                        </button>
+                                                    ))}
+                                                </div>
+                                            </div>
+
+                                            {/* Selector: Recipes */}
+                                            <div className="space-y-2">
+                                                <div className="flex justify-between items-center">
+                                                    <span className="text-[10px] font-black uppercase tracking-widest text-stone-400">Nombre de repas / recettes</span>
+                                                    <span className="text-xs font-bold text-brand-rose">{customRecipes} recettes</span>
+                                                </div>
+                                                <div className="flex gap-2">
+                                                    {[3, 5, 6].map((r) => (
+                                                        <button
+                                                            key={r}
+                                                            type="button"
+                                                            onClick={() => setCustomRecipes(r as 3 | 5 | 6)}
+                                                            className={`flex-1 py-3 text-center text-xs font-bold rounded-xl border transition-all cursor-pointer ${
+                                                                customRecipes === r
+                                                                    ? 'bg-brand-rose border-brand-rose text-white shadow-md shadow-brand-rose/10'
+                                                                    : 'bg-stone-50 border-stone-100 hover:border-stone-200 text-stone-600'
+                                                            }`}
+                                                        >
+                                                            {r} recettes
+                                                        </button>
+                                                    ))}
+                                                </div>
+                                            </div>
+
+                                            {/* Portion info & Pricing details */}
+                                            <div className="bg-stone-50/50 border border-stone-100 rounded-2xl p-5 flex justify-between items-center relative overflow-hidden">
+                                                <div className="space-y-1">
+                                                    <p className="text-xs font-bold text-stone-900">Total : {customRecipes * customPeople} portions / assiettes</p>
+                                                    <p className="text-[10px] text-stone-400 font-medium leading-tight">
+                                                        Idéal pour couvrir {customRecipes} repas complets de la semaine.
+                                                    </p>
+                                                </div>
+                                                <div className="text-right">
+                                                    <span className="text-xl font-black text-stone-950">{selectedPack.price}€</span>
+                                                    <span className="text-[9px] text-stone-400 block uppercase font-bold">Service seul</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
 
                                     <div className="flex flex-col items-center gap-3 pt-4">
                                         <p className="text-[10px] text-stone-400 text-center font-medium">
