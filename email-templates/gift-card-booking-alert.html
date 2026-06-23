@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Alerte Réservation - Bon Cadeau Utilisé - Elisa Batch Cooking</title>
+    <style>
+        /* Base Styles */
+        body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; background-color: #fafaf9; margin: 0; padding: 0; color: #1c1917; line-height: 1.6; }
+        
+        /* 1. FLOATING BRAND HEADER */
+        .brand-header-external {
+            text-align: center;
+            padding: 30px 20px 15px 20px;
+        }
+        .logo-img { 
+            display: block; 
+            margin: 0 auto 10px auto; 
+            width: 80px; 
+            height: auto; 
+            border-radius: 50%;
+        }
+        .business-name { 
+            color: #E1567A; 
+            font-size: 12px; 
+            font-weight: 700; 
+            text-transform: uppercase; 
+            letter-spacing: 2px; 
+        }
+
+        /* 2. THE MAIN CARD CONTAINER */
+        .container { 
+            max-width: 600px; 
+            margin: 0 auto 40px auto; 
+            background: #ffffff; 
+            border-radius: 20px; 
+            overflow: hidden; 
+            box-shadow: 0 15px 35px rgba(0,0,0,0.04); 
+            border: 1px solid #e7e5e4; 
+        }
+
+        /* 3. THE GOLD WARNING BANNER */
+        .title-banner {
+            background-color: #D6A45D; /* brand-gold */
+            color: #1c1917; 
+            text-align: center;
+            padding: 18px;
+            font-size: 16px;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        /* Content Layout */
+        .content { padding: 35px 40px; }
+        .greeting { font-size: 22px; font-weight: 800; letter-spacing: -0.5px; color: #1c1917; margin-bottom: 15px; text-align: center; }
+        .intro-text { color: #57534e; font-size: 15px; text-align: center; margin-bottom: 25px; }
+        
+        /* Summary Card */
+        .summary-card { background: #fafaf9; border-radius: 16px; padding: 25px; margin: 20px 0; border: 1px solid #f5f5f4; position: relative; }
+        .summary-card::before { content: ''; position: absolute; top: -1px; left: 50%; transform: translateX(-50%); width: 40px; height: 4px; background: #D6A45D; border-radius: 0 0 8px 8px; }
+        
+        .label { color: #a8a29e; font-size: 10px; text-transform: uppercase; font-weight: 900; letter-spacing: 1px; display: block; margin-bottom: 2px; }
+        .value { color: #1c1917; font-size: 16px; font-weight: 700; }
+        .data-item { margin-bottom: 15px; border-bottom: 1px dashed #e7e5e4; padding-bottom: 12px; }
+        .data-item:last-child { margin-bottom: 0; border-bottom: none; padding-bottom: 0; }
+        
+        /* ALERT BANNER BOX */
+        .alert-box {
+            background-color: #fffbeb;
+            border: 1px solid #fef08a;
+            border-radius: 16px;
+            padding: 20px;
+            margin: 25px 0;
+            text-align: left;
+        }
+        .alert-title {
+            font-size: 12px;
+            font-weight: 900;
+            color: #a16207;
+            text-transform: uppercase;
+            margin: 0 0 8px 0;
+            letter-spacing: 1px;
+        }
+        .alert-text {
+            font-size: 14px;
+            color: #854d0e;
+            margin: 0;
+            line-height: 1.6;
+        }
+        
+        /* Footer */
+        .footer { padding: 30px; text-align: center; font-size: 12px; color: #a8a29e; background: #fafaf9; border-top: 1px solid #e7e5e4; }
+    </style>
+</head>
+<body>
+    
+    <div class="brand-header-external">
+        <img src="https://www.elisabatchcooking.com/images/logo.jpg" alt="Chef Elisa" class="logo-img" width="80" height="80">
+        <div class="business-name">ELISA BATCH COOKING</div>
+    </div>
+
+    <div class="container">
+        
+        <div class="title-banner">
+            ⚠️ ALERTE RÉSERVATION : BON CADEAU UTILISÉ
+        </div>
+        
+        <div class="content">
+            <div class="greeting">Une nouvelle session a été planifiée !</div>
+            
+            <p class="intro-text">
+                Un bénéficiaire vient d'utiliser son code d'activation sur le simulateur pour réserver sa session de Batch Cooking.
+            </p>
+
+            <!-- IMPORTANT REASSURANCE ALERT BOX -->
+            <div class="alert-box">
+                <p class="alert-title">💡 Facturation à 0€ — Session pré-payée</p>
+                <p class="alert-text">
+                    <strong>Prestation déjà réglée :</strong> Cette séance a été entièrement payée par le donateur lors de l'achat initial du bon cadeau sur Stripe. Tu n'as pas à envoyer de facture de service à ce client.
+                </p>
+            </div>
+            
+            <div class="summary-card">
+                <div class="data-item">
+                    <span class="label">Code Cadeau Utilisé</span>
+                    <span class="value" style="font-family: monospace; font-size: 18px; color: #D6A45D; letter-spacing: 1px;">{{ code }}</span>
+                </div>
+                <div class="data-item">
+                    <span class="label">Bénéficiaire (Client)</span>
+                    <span class="value">{{ client_name }}</span>
+                </div>
+                <div class="data-item">
+                    <span class="label">Email du Client</span>
+                    <span class="value">{{ client_email }}</span>
+                </div>
+                <div class="data-item">
+                    <span class="label">Téléphone du Client</span>
+                    <span class="value">{{ client_phone }}</span>
+                </div>
+                <div class="data-item">
+                    <span class="label">Formule Verrouillée</span>
+                    <span class="value">{{ recipes_count }} Recettes / {{ people_count }} Personnes</span>
+                </div>
+                <div class="data-item">
+                    <span class="label">Offert initialement par</span>
+                    <span class="value">{{ giver_name }}</span>
+                </div>
+                <div class="data-item" style="border-bottom: none; padding-bottom: 0;">
+                    <span class="label">Message du client lors de la réservation</span>
+                    <span class="value" style="font-style: italic; font-weight: normal; color: #57534e;">"{{ client_message }}"</span>
+                </div>
+            </div>
+
+            <div style="background: #f3f4f6; border: 1px solid #e5e7eb; border-radius: 16px; padding: 20px; margin-top: 30px; text-align: left;">
+                <p style="font-size: 11px; font-weight: 900; color: #374151; text-transform: uppercase; margin: 0 0 10px 0;">Ce qui a été fait automatiquement ⚡</p>
+                <p style="font-size: 13px; color: #4b5563; margin: 0; line-height: 1.7;">
+                    <strong>1.</strong> Le code cadeau <strong>{{ code }}</strong> a été marqué comme <strong>Redeemed</strong> (Utilisé) dans ton Google Sheets de suivi pour éviter toute double utilisation.<br>
+                    <strong>2.</strong> La demande de réservation a été envoyée vers ton tableau de bord (avec le tag de prix à 0€ et le code cadeau en note).
+                </p>
+            </div>
+
+        </div>
+
+        <div class="footer">
+            <p>&copy; 2026 Elisa Batch Cooking • Notification Automatique Réservations</p>
+        </div>
+    </div>
+</body>
+</html>

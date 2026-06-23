@@ -2,6 +2,7 @@ import { HeroSection } from "@/components/home/HeroSection";
 import { ProcessSteps } from "@/components/home/ProcessSteps";
 import { ValueProps } from "@/components/home/ValueProps";
 import { PhotoGallery } from "@/components/home/PhotoGallery";
+import { GiftCardSection } from "@/components/home/GiftCardSection";
 import { FinalCTA } from "@/components/home/FinalCTA";
 import { Suspense } from "react";
 import { getTestimonials } from "@/lib/googleSheets";
@@ -22,6 +23,7 @@ export default async function Home() {
       <TestimonialsSection testimonials={testimonials} />
       <ValueProps />
       <PhotoGallery />
+      <GiftCardSection />
       <FinalCTA />
       {/* Additional sections will be added here */}
     </main>

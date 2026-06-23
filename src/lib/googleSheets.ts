@@ -316,4 +316,177 @@ export async function saveTestimonial(data: { name: string; rating: number; mess
     }
 }
 
+// --- Gift Card System ---
+
+export interface GiftCard {
+    code: string;
+    packageType: string; // e.g. 'three', 'five', 'six', 'custom'
+    giver: string;
+    recipient: string;
+    expiryDate: string; // ISO string
+    status: 'Active' | 'Redeemed' | 'Expired';
+    recipes: number;
+    people: number;
+    includeGroceries?: boolean;
+    groceriesAmount?: number;
+}
+
+export async function getGiftCard(code: string): Promise<GiftCard | null> {
+    try {
+        const auth = new google.auth.GoogleAuth({
+            credentials: {
+                client_email: process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL,
+                private_key: (process.env.GOOGLE_PRIVATE_KEY || '')
+                    .replace(/^["']|["']$/g, "")
+                    .replace(/\\n/g, "\n"),
+            },
+            scopes: ['https://www.googleapis.com/auth/spreadsheets.readonly'],
+        });
+
+        const sheets = google.sheets({ version: 'v4', auth });
+        const spreadsheetId = process.env.GOOGLE_SHEETS_SPREADSHEET_ID;
+
+        // Fetch from 'GiftCards' sheet. Columns: A:Code, B:PackageType, C:Giver, D:Recipient, E:ExpiryDate, F:Status, G:Recipes, H:People
+        const response = await sheets.spreadsheets.values.get({
+            spreadsheetId,
+            range: 'GiftCards!A2:H500', // Skip header row
+        });
+
+        const rows = response.data.values;
+        if (!rows || rows.length === 0) return null;
+
+        const row = rows.find(r => r[0]?.toUpperCase() === code.toUpperCase().trim());
+        if (!row) return null;
+
+        const expiryDateStr = row[4];
+        
+        // Robust date parsing (handles DD/MM/YYYY, YYYY-MM-DD, etc)
+        let expiryDate = new Date(expiryDateStr);
+        if (isNaN(expiryDate.getTime()) && expiryDateStr) {
+            const parts = expiryDateStr.split('/');
+            if (parts.length === 3) {
+                const day = parseInt(parts[0], 10);
+                const month = parseInt(parts[1], 10) - 1;
+                const year = parseInt(parts[2], 10);
+                expiryDate = new Date(year, month, day, 23, 59, 59);
+            }
+        }
+        const now = new Date();
+        const isExpired = isNaN(expiryDate.getTime()) ? false : expiryDate < now;
+
+        return {
+            code: row[0],
+            packageType: row[1] || 'custom',
+            giver: row[2] || '',
+            recipient: row[3] || '',
+            expiryDate: expiryDateStr || '',
+            status: isExpired ? 'Expired' : (row[5] || 'Active') as GiftCard['status'],
+            recipes: parseInt(row[6]) || 4,
+            people: parseInt(row[7]) || 4,
+        };
+    } catch (error) {
+        console.error('Error fetching Gift Card:', error);
+        return null;
+    }
+}
+
+export async function redeemGiftCard(code: string): Promise<boolean> {
+    try {
+        const auth = new google.auth.GoogleAuth({
+            credentials: {
+                client_email: process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL,
+                private_key: (process.env.GOOGLE_PRIVATE_KEY || '')
+                    .replace(/^["']|["']$/g, "")
+                    .replace(/\\n/g, "\n"),
+            },
+            scopes: ['https://www.googleapis.com/auth/spreadsheets'],
+        });
+
+        const sheets = google.sheets({ version: 'v4', auth });
+        const spreadsheetId = process.env.GOOGLE_SHEETS_SPREADSHEET_ID;
+
+        // Fetch to locate the row index
+        const response = await sheets.spreadsheets.values.get({
+            spreadsheetId,
+            range: 'GiftCards!A1:A500',
+        });
+
+        const rows = response.data.values;
+        if (!rows || rows.length === 0) return false;
+
+        const rowIndex = rows.findIndex(r => r[0]?.toUpperCase() === code.toUpperCase().trim()) + 1;
+        if (rowIndex <= 0) return false;
+
+        // Update column F (index 5) of this row to 'Redeemed'
+        // Range: GiftCards!F{rowIndex}
+        await sheets.spreadsheets.values.update({
+            spreadsheetId,
+            range: `GiftCards!F${rowIndex}`,
+            valueInputOption: 'USER_ENTERED',
+            requestBody: {
+                values: [['Redeemed']],
+            },
+        });
+
+        return true;
+    } catch (error) {
+        console.error('Error redeeming Gift Card:', error);
+        return false;
+    }
+}
+
+export async function createGiftCard(data: {
+    code: string;
+    packageType: string;
+    giver: string;
+    recipient: string;
+    expiryDate: string;
+    recipes: number;
+    people: number;
+}): Promise<boolean> {
+    try {
+        const auth = new google.auth.GoogleAuth({
+            credentials: {
+                client_email: process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL,
+                private_key: (process.env.GOOGLE_PRIVATE_KEY || '')
+                    .replace(/^["']|["']$/g, "")
+                    .replace(/\\n/g, "\n"),
+            },
+            scopes: ['https://www.googleapis.com/auth/spreadsheets'],
+        });
+
+        const sheets = google.sheets({ version: 'v4', auth });
+        const spreadsheetId = process.env.GOOGLE_SHEETS_SPREADSHEET_ID;
+
+        // Append row: [Code, PackageType, Giver, Recipient, ExpiryDate, Status, Recipes, People]
+        const values = [
+            [
+                data.code.toUpperCase(),
+                data.packageType,
+                data.giver,
+                data.recipient,
+                data.expiryDate,
+                'Active',
+                data.recipes.toString(),
+                data.people.toString()
+            ]
+        ];
+
+        await sheets.spreadsheets.values.append({
+            spreadsheetId,
+            range: 'GiftCards!A:H',
+            valueInputOption: 'USER_ENTERED',
+            requestBody: {
+                values,
+            },
+        });
+
+        return true;
+    } catch (error) {
+        console.error('Error saving new Gift Card:', error);
+        return false;
+    }
+}
+
+
 
