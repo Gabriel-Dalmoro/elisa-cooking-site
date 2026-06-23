@@ -147,3 +147,71 @@
     }
   }
 }
+
+/* --- Print and Canvas overrides for standalone A4 flyer --- */
+@media print {
+  body.hide-layout {
+    background: white !important;
+    color: black !important;
+  }
+  
+  body.hide-layout * {
+    box-shadow: none !important;
+    text-shadow: none !important;
+    filter: none !important;
+  }
+  
+  body.hide-layout header,
+  body.hide-layout footer,
+  body.hide-layout [role="banner"],
+  body.hide-layout .fixed.top-0,
+  .no-print {
+    display: none !important;
+  }
+  
+  body.hide-layout .transition-all {
+    padding-top: 0 !important;
+  }
+  
+  body.hide-layout,
+  body.hide-layout main,
+  body.hide-layout .transition-all,
+  body.hide-layout .no-print-layout,
+  body.hide-layout .no-print-layout > div {
+    margin: 0 !important;
+    padding: 0 !important;
+    background: transparent !important;
+    min-height: 0 !important;
+  }
+  
+  #a4-page {
+    position: absolute !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 210mm !important;
+    height: 295mm !important; /* Slightly shorter than 297mm to prevent rounding errors from forcing a page split */
+    max-height: 295mm !important;
+    margin: 0 !important;
+  }
+  
+  @page {
+    size: A4 portrait;
+    margin: 0;
+  }
+}
+
+/* Screen presentation of A4 flyer */
+body.hide-layout {
+  background-color: oklch(0.216 0.006 56.043) !important; /* stone-800 background to frame the white A4 page */
+}
+
+body.hide-layout header,
+body.hide-layout footer,
+body.hide-layout [role="banner"],
+body.hide-layout .fixed.top-0 {
+  display: none !important;
+}
+
+body.hide-layout .transition-all {
+  padding-top: 0 !important;
+}
