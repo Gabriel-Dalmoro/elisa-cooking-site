@@ -443,6 +443,8 @@ export async function createGiftCard(data: {
     expiryDate: string;
     recipes: number;
     people: number;
+    customText?: string;
+    startDate?: string;
 }): Promise<boolean> {
     try {
         const auth = new google.auth.GoogleAuth({
@@ -458,7 +460,7 @@ export async function createGiftCard(data: {
         const sheets = google.sheets({ version: 'v4', auth });
         const spreadsheetId = process.env.GOOGLE_SHEETS_SPREADSHEET_ID;
 
-        // Append row: [Code, PackageType, Giver, Recipient, ExpiryDate, Status, Recipes, People]
+        // Append row: [Code, PackageType, Giver, Recipient, ExpiryDate, Status, Recipes, People, CustomText, StartDate]
         const values = [
             [
                 data.code.toUpperCase(),
@@ -468,13 +470,15 @@ export async function createGiftCard(data: {
                 data.expiryDate,
                 'Active',
                 data.recipes.toString(),
-                data.people.toString()
+                data.people.toString(),
+                data.customText || '',
+                data.startDate || ''
             ]
         ];
 
         await sheets.spreadsheets.values.append({
             spreadsheetId,
-            range: 'GiftCards!A:H',
+            range: 'GiftCards!A:A',
             valueInputOption: 'USER_ENTERED',
             requestBody: {
                 values,

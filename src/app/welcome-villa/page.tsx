@@ -1,6 +1,7 @@
 "use client";
 
 import { useSearchParams } from "next/navigation";
+import AdminGuard from "@/components/admin/AdminGuard";
 import { Suspense, useState, useEffect } from "react";
 import { Printer, ChevronRight, Check } from "lucide-react";
 
@@ -478,12 +479,14 @@ function WelcomeVillaContent() {
 
 export default function WelcomeVillaPage() {
     return (
-        <Suspense fallback={
-            <div className="min-h-screen bg-stone-900 flex items-center justify-center text-white font-serif italic text-xl">
-                Chargement du configurateur...
-            </div>
-        }>
-            <WelcomeVillaContent />
-        </Suspense>
+        <AdminGuard>
+            <Suspense fallback={
+                <div className="min-h-screen bg-stone-900 flex items-center justify-center text-white font-serif italic text-xl">
+                    Chargement du configurateur...
+                </div>
+            }>
+                <WelcomeVillaContent />
+            </Suspense>
+        </AdminGuard>
     );
 }

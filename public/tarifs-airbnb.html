@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Nos Tarifs Culinaires - Conciergerie Partenaire</title>
+    <title>Grille des Tarifs Partenaires - Conciergerie Culinaires</title>
     
     <!-- Premium Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -101,7 +101,7 @@
         .logo-container img {
             width: 100%;
             height: 100%;
-            object-cover: fit;
+            object-fit: cover;
         }
         .partner-tagline {
             font-size: 8.5px;
@@ -128,10 +128,9 @@
         .intro-pitch {
             font-size: 10.5px;
             color: var(--text-muted);
-            font-style: italic;
-            max-w: 480px;
+            max-width: 490px;
             margin: 0 auto;
-            line-height: 1.4;
+            line-height: 1.45;
             font-weight: 300;
         }
 
@@ -163,20 +162,21 @@
         .pricing-table th {
             background-color: #f5f5f4;
             color: var(--text-dark);
-            font-size: 10px;
+            font-size: 9px;
             font-weight: 700;
             text-transform: uppercase;
             letter-spacing: 0.05em;
-            padding: 8px 12px;
+            padding: 8px 10px;
             border-bottom: 1px solid var(--border-light);
             text-align: center;
         }
         .pricing-table th:first-child {
             text-align: left;
+            padding-left: 12px;
         }
         .pricing-table td {
-            font-size: 11px;
-            padding: 9px 12px;
+            font-size: 10.5px;
+            padding: 9px 10px;
             border-bottom: 1px solid var(--border-light);
             text-align: center;
             vertical-align: middle;
@@ -186,6 +186,7 @@
         }
         .pricing-table td:first-child {
             text-align: left;
+            padding-left: 12px;
             font-weight: 700;
             color: var(--text-dark);
         }
@@ -203,19 +204,12 @@
             font-weight: 300;
             margin-top: 1px;
         }
-
-        /* Price displays */
-        .price-standard {
-            font-size: 9px;
-            text-decoration: line-through;
-            color: var(--text-muted);
-            margin-right: 4px;
-        }
-        .price-discount {
-            font-size: 12px;
-            font-weight: 800;
+        .price-text {
+            font-size: 11.5px;
+            font-weight: 700;
             color: var(--text-dark);
         }
+
         .highlight-cost {
             font-size: 8.5px;
             color: var(--text-muted);
@@ -278,7 +272,7 @@
             margin-top: auto;
         }
 
-        /* Call To Action Box */
+        /* Call To Action Box (Partnership themed) */
         .cta-container {
             display: grid;
             grid-template-cols: 1fr 100px;
@@ -314,9 +308,9 @@
             line-height: 1.2;
         }
         .cta-desc {
-            font-size: 9px;
+            font-size: 9.5px;
             color: var(--text-muted);
-            line-height: 1.35;
+            line-height: 1.4;
             font-weight: 300;
         }
         .cta-notes {
@@ -325,6 +319,9 @@
             font-style: italic;
             margin-top: 2px;
             line-height: 1.25;
+            display: flex;
+            flex-direction: column;
+            gap: 1px;
         }
         
         /* QR Code Layout */
@@ -428,85 +425,66 @@
                 <div class="logo-container">
                     <img src="images/logo.jpg" alt="Logo Elisa Cooking">
                 </div>
-                <div class="partner-tagline">Prestations Privées & Partenariat Conciergerie</div>
-                <h1 class="title">Tarifs des Services Culinaires</h1>
+                <div class="partner-tagline">Grille Tarifaire Partenaires • Conciergerie Culinaires</div>
+                <h1 class="title">Tarifs des Prestations Voyageurs</h1>
                 <div class="divider"></div>
                 <p class="intro-pitch">
-                    Découvrez nos tarifs préférentiels exclusifs pour l'organisation de vos repas durant votre séjour. La Cheffe Elisa s'occupe de tout, directement dans votre cuisine.
+                    Ce document présente la structure tarifaire officielle des prestations de la Cheffe Elisa. Vous pouvez communiquer ces tarifs à vos voyageurs pour enrichir leur expérience de séjour autour du lac d'Annecy.
                 </p>
             </div>
 
             <!-- --- SECTION 1: BATCH COOKING TABLE --- -->
             <div class="pricing-table-container">
-                <h3 class="section-title">Le Batch Cooking de la Semaine</h3>
+                <h3 class="section-title">Tarifs Prestation Batch Cooking</h3>
                 <table class="pricing-table">
                     <thead>
                         <tr>
                             <th>Formules de Repas</th>
-                            <th>1 - 2 Personnes</th>
-                            <th>3 - 4 Personnes</th>
-                            <th>5 - 6 Personnes</th>
+                            <th>2 Voyageurs</th>
+                            <th>3 Voyageurs</th>
+                            <th>4 Voyageurs</th>
+                            <th>5 Voyageurs</th>
+                            <th>6 Voyageurs</th>
                         </tr>
                     </thead>
                     <tbody>
                         <tr>
                             <td>
                                 <span class="formula-tag">3 Recettes</span>
-                                <span class="formula-sub">Idéal pour les courts séjours</span>
+                                <span class="formula-sub">Courts séjours</span>
                             </td>
-                            <td>
-                                <span class="price-standard">130€</span>
-                                <span class="price-discount">123,50€</span>
-                            </td>
-                            <td>
-                                <span class="price-standard">150€</span>
-                                <span class="price-discount">142,50€</span>
-                            </td>
-                            <td>
-                                <span class="price-standard">170€</span>
-                                <span class="price-discount">161,50€</span>
-                            </td>
+                            <td><span class="price-text">130 €</span></td>
+                            <td><span class="price-text">140 €</span></td>
+                            <td><span class="price-text">150 €</span></td>
+                            <td><span class="price-text">160 €</span></td>
+                            <td><span class="price-text">170 €</span></td>
                         </tr>
                         <tr>
                             <td>
                                 <span class="formula-tag">5 Recettes</span>
-                                <span class="formula-sub">Idéal pour vos déjeuners et dîners</span>
+                                <span class="formula-sub">Déjeuners & dîners</span>
                             </td>
-                            <td>
-                                <span class="price-standard">210€</span>
-                                <span class="price-discount">199,50€</span>
-                            </td>
-                            <td>
-                                <span class="price-standard">230€</span>
-                                <span class="price-discount">218,50€</span>
-                            </td>
-                            <td>
-                                <span class="price-standard">250€</span>
-                                <span class="price-discount">237,50€</span>
-                            </td>
+                            <td><span class="price-text">210 €</span></td>
+                            <td><span class="price-text">220 €</span></td>
+                            <td><span class="price-text">230 €</span></td>
+                            <td><span class="price-text">240 €</span></td>
+                            <td><span class="price-text">250 €</span></td>
                         </tr>
                         <tr>
                             <td>
                                 <span class="formula-tag">6 Recettes</span>
-                                <span class="formula-sub">Formule recommandée la plus complète</span>
+                                <span class="formula-sub">Semaine complète</span>
                             </td>
-                            <td>
-                                <span class="price-standard">250€</span>
-                                <span class="price-discount">237,50€</span>
-                            </td>
-                            <td>
-                                <span class="price-standard">270€</span>
-                                <span class="price-discount">256,50€</span>
-                            </td>
-                            <td>
-                                <span class="price-standard">290€</span>
-                                <span class="price-discount">275,50€</span>
-                            </td>
+                            <td><span class="price-text">250 €</span></td>
+                            <td><span class="price-text">260 €</span></td>
+                            <td><span class="price-text">270 €</span></td>
+                            <td><span class="price-text">280 €</span></td>
+                            <td><span class="price-text">290 €</span></td>
                         </tr>
                     </tbody>
                 </table>
                 <p class="highlight-cost">
-                    * Ces tarifs comprennent la conception des menus, les courses, la préparation chez vous et le rangement de votre cuisine.
+                    * Le tarif de prestation inclut l'élaboration des menus, les courses, la préparation à domicile et le nettoyage de la cuisine.
                 </p>
             </div>
 
@@ -521,10 +499,10 @@
                             <h4 class="option-title">Petit-Déjeuner</h4>
                         </div>
                         <p class="option-desc">
-                            Panier réveil complet : viennoiseries chaudes de l'artisan local, pancakes dorés, fruits frais, yaourts & granola maison.
+                            Panier réveil complet : viennoiseries chaudes de l'artisan local, pancakes maison dorés, fruits frais, yaourts fermiers & granola maison.
                         </p>
                         <div class="option-price-tag">
-                            8€ <span style="font-size:8px; font-weight:normal; color:var(--text-muted);">/ jour / personne</span>
+                            8 € <span style="font-size:8px; font-weight:normal; color:var(--text-muted);">/ jour / personne</span>
                         </div>
                     </div>
 
@@ -535,10 +513,10 @@
                             <h4 class="option-title">Dessert Pâtissier</h4>
                         </div>
                         <p class="option-desc">
-                            La note sucrée pour clore vos dîners : entremets raffinés, tartes de saison aux fruits du Pays ou gâteaux moelleux.
+                            La note sucrée pour clore les dîners : entremets raffinés, tartes fines de saison aux fruits du Pays ou gâteaux gourmands.
                         </p>
                         <div class="option-price-tag">
-                            6€ <span style="font-size:8px; font-weight:normal; color:var(--text-muted);">/ jour / personne</span>
+                            6 € <span style="font-size:8px; font-weight:normal; color:var(--text-muted);">/ jour / personne</span>
                         </div>
                     </div>
 
@@ -549,10 +527,10 @@
                             <h4 class="option-title">Goûter / Tea Time</h4>
                         </div>
                         <p class="option-desc">
-                            Pour vos retours de balades au lac : cookies sortant du four, cakes maison de la Cheffe, boissons fraîches maison.
+                            Pour le retour d'excursion : cookies sortant du four, cakes moelleux maison de la Cheffe, boissons fraîches maison.
                         </p>
                         <div class="option-price-tag">
-                            5€ <span style="font-size:8px; font-weight:normal; color:var(--text-muted);">/ jour / personne</span>
+                            5 € <span style="font-size:8px; font-weight:normal; color:var(--text-muted);">/ jour / personne</span>
                         </div>
                     </div>
                 </div>
@@ -561,14 +539,14 @@
             <!-- --- BOTTOM: CALL TO ACTION --- -->
             <div class="cta-container">
                 <div class="cta-info">
-                    <span class="cta-tag">★ Privilège Partenaire</span>
-                    <h3 class="cta-title">Profitez d'un tarif privilège exclusif de -5%</h3>
+                    <span class="cta-tag">★ Partenariat Conciergerie</span>
+                    <h3 class="cta-title font-serif">Fonctionnement & Avantages Partenaires</h3>
                     <p class="cta-desc">
-                        La réduction de 5% est déjà déduite dans le tableau des tarifs ci-dessus. Ce service de conciergerie est réservé aux clients séjournant dans les hébergements de nos hôtes partenaires.
+                        En proposant ces prestations à vos voyageurs, vous leur garantissez un séjour clé en main et haut de gamme. Pour chaque réservation concrétisée, une commission de 10% sur le montant de la prestation vous est reversée.
                     </p>
                     <div class="cta-notes">
-                        <div>* Le coût des matières premières (ingrédients) n'est pas inclus (facturé au réel).</div>
-                        <div>* Réservation conseillée au moins 48 heures à l'avance.</div>
+                        <div>* Le coût des ingrédients (matières premières) est facturé séparément au réel sur justificatif.</div>
+                        <div>* Réservation recommandée au moins 48 heures à l'avance pour garantir la disponibilité.</div>
                     </div>
                 </div>
                 <div class="qr-column">
@@ -576,7 +554,7 @@
                         <img src="qr-code-wa.svg" alt="WhatsApp QR Code">
                     </a>
                     <span class="qr-label">
-                        Scannez pour réserver <span class="qr-icon">›</span>
+                        Contact Direct <span class="qr-icon">›</span>
                     </span>
                 </div>
             </div>
@@ -584,7 +562,7 @@
             <!-- --- FOOTER --- -->
             <div class="footer">
                 <span>Elisa Batch Cooking • Cheffe à Domicile Annecy & Alentours</span>
-                <span>Contact Direct : <strong>06 52 07 72 03</strong> • elisabatchcooking.com</span>
+                <span>Partenariat Hôtes • <strong>elisabatchcooking.com</strong></span>
             </div>
 
         </div>

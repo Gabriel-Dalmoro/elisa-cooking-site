@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useMemo, useEffect } from 'react';
+import AdminGuard from '@/components/admin/AdminGuard';
 import {
     Clock,
     Euro,
@@ -134,60 +135,9 @@ export default function InternalCalculator() {
             tier
         };
     }, [selectedRecipes, numPeople, travelTime, extraPersonPrice, extraPersonTime, tiers, isSubscription, promoDiscount]);
-
-    // --- State: Authentication ---
-    const [isAuthenticated, setIsAuthenticated] = useState(false);
-    const [passwordInput, setPasswordInput] = useState('');
-    const [authError, setAuthError] = useState(false);
-
-    const handleLogin = (e: React.FormEvent) => {
-        e.preventDefault();
-        // Simple client-side protection
-        if (passwordInput === 'elisa2024') {
-            setIsAuthenticated(true);
-            setAuthError(false);
-        } else {
-            setAuthError(true);
-        }
-    };
-
-    if (!isAuthenticated) {
-        return (
-            <div className="min-h-screen flex items-center justify-center bg-[#FAFAF9] p-4">
-                <Card className="w-full max-w-md shadow-xl border-stone-100">
-                    <CardHeader className="text-center space-y-1">
-                        <div className="mx-auto bg-stone-900 text-white p-3 rounded-xl w-fit shadow-lg shadow-stone-900/10 mb-2">
-                            <ShieldCheck className="w-6 h-6" />
-                        </div>
-                        <CardTitle className="text-2xl font-black text-stone-900">Accès Sécurisé</CardTitle>
-                        <p className="text-stone-500 text-sm">Veuillez entrer le mot de passe pour accéder au calculateur.</p>
-                    </CardHeader>
-                    <CardContent>
-                        <form onSubmit={handleLogin} className="space-y-4">
-                            <div className="space-y-2">
-                                <Label htmlFor="password">Mot de passe</Label>
-                                <Input
-                                    id="password"
-                                    type="password"
-                                    value={passwordInput}
-                                    onChange={(e) => setPasswordInput(e.target.value)}
-                                    placeholder="••••••••"
-                                    className="text-lg text-center tracking-widest"
-                                />
-                            </div>
-                            {authError && <p className="text-red-500 text-xs font-bold text-center">Mot de passe incorrect</p>}
-                            <Button type="submit" className="w-full bg-stone-900 hover:bg-stone-800 text-white font-bold h-12 rounded-xl">
-                                Entrer
-                            </Button>
-                        </form>
-                    </CardContent>
-                </Card>
-            </div>
-        );
-    }
-
     return (
-        <main className="min-h-screen bg-[#FAFAF9] py-8 text-stone-900 font-sans selection:bg-brand-rose/20 print:bg-white print:p-0 print:m-0 print:h-auto print:min-h-0 print:overflow-hidden">
+        <AdminGuard>
+            <main className="min-h-screen bg-[#FAFAF9] py-8 text-stone-900 font-sans selection:bg-brand-rose/20 print:bg-white print:p-0 print:m-0 print:h-auto print:min-h-0 print:overflow-hidden">
             <style jsx global>{`
                 @media print {
                     @page { margin: 1cm; size: auto; }
@@ -492,5 +442,6 @@ export default function InternalCalculator() {
                 </div>
             </div>
         </main>
+        </AdminGuard>
     );
 }
