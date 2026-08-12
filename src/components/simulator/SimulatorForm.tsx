@@ -84,6 +84,7 @@ export function SimulatorForm({ promoConfig }: SimulatorFormProps) {
         phone: "",
         message: "",
         ingredientConsent: false,
+        termsConsent: false,
     });
 
 
@@ -231,6 +232,7 @@ export function SimulatorForm({ promoConfig }: SimulatorFormProps) {
                             : `${promoConfig?.promoLabel} (-${activeDiscount}%)`)
                         : "Aucune"),
                 ingredient_consent: formData.ingredientConsent ? "Validé" : "Non validé",
+                terms_consent: formData.termsConsent ? "Validé" : "Non validé",
                 is_gift_card: appliedGiftCard !== null,
                 gift_card_code: appliedGiftCard ? appliedGiftCard.code : "",
                 gift_card_giver: appliedGiftCard ? appliedGiftCard.giver : "",
@@ -259,7 +261,7 @@ export function SimulatorForm({ promoConfig }: SimulatorFormProps) {
                     });
                 }
                 setIsSubmitSuccess(true);
-                setFormData({ name: "", email: "", phone: "", message: "", ingredientConsent: false });
+                setFormData({ name: "", email: "", phone: "", message: "", ingredientConsent: false, termsConsent: false });
                 setAddressDetails(null);
                 setIsEligible(true);
                 setHasSweetAddon(false);
@@ -1407,7 +1409,8 @@ export function SimulatorForm({ promoConfig }: SimulatorFormProps) {
                                         )}
                                     </AnimatePresence>
 
-                                    <div className="pt-4 space-y-4">
+                                    <div className="pt-4 space-y-3">
+                                        {/* 1st Checkbox: Ingredient Cost Disclaimer */}
                                         <div className="bg-stone-50 border border-stone-200 p-4 rounded-xl flex items-start gap-4 cursor-pointer group hover:border-brand-rose/30 transition-all" onClick={() => setFormData({ ...formData, ingredientConsent: !formData.ingredientConsent })}>
                                             <div className={cn(
                                                 "mt-0.5 flex-shrink-0 w-5 h-5 rounded border-2 flex items-center justify-center transition-all",
@@ -1417,17 +1420,41 @@ export function SimulatorForm({ promoConfig }: SimulatorFormProps) {
                                             </div>
                                             <div className="select-none">
                                                 <p className="text-sm text-stone-700 leading-snug">
-                                                    J'ai bien compris que <strong className="text-stone-900">le coût des ingrédients n'est pas inclus</strong> dans le tarif du service et qu'il sera à rembourser sur présentation du ticket de caisse.
+                                                    J&apos;ai bien compris que <strong className="text-stone-900">le coût des ingrédients n&apos;est pas inclus</strong> dans le tarif du service et qu&apos;il sera à rembourser sur présentation du ticket de caisse.
+                                                </p>
+                                            </div>
+                                        </div>
+
+                                        {/* 2nd Checkbox: Terms & Conditions (CGV) Acceptance */}
+                                        <div className="bg-stone-50 border border-stone-200 p-4 rounded-xl flex items-start gap-4 cursor-pointer group hover:border-brand-rose/30 transition-all" onClick={() => setFormData({ ...formData, termsConsent: !formData.termsConsent })}>
+                                            <div className={cn(
+                                                "mt-0.5 flex-shrink-0 w-5 h-5 rounded border-2 flex items-center justify-center transition-all",
+                                                formData.termsConsent ? "bg-brand-rose border-brand-rose text-white shadow-sm" : "bg-white border-stone-300 text-transparent group-hover:border-brand-rose/40"
+                                            )}>
+                                                <Check className="w-3.5 h-3.5" />
+                                            </div>
+                                            <div className="select-none">
+                                                <p className="text-sm text-stone-700 leading-snug">
+                                                    J&apos;accepte les{" "}
+                                                    <a
+                                                        href="/cgv"
+                                                        target="_blank"
+                                                        rel="noopener noreferrer"
+                                                        onClick={(e) => e.stopPropagation()}
+                                                        className="text-brand-rose underline font-bold hover:text-brand-rose/80"
+                                                    >
+                                                        Conditions Générales de Vente (CGV)
+                                                    </a>.
                                                 </p>
                                             </div>
                                         </div>
 
                                         <Button
                                             type="submit"
-                                            disabled={!addressDetails || !formData.ingredientConsent}
+                                            disabled={!addressDetails || !formData.ingredientConsent || !formData.termsConsent}
                                             className={cn(
                                                 "w-full rounded-full py-8 h-auto text-xl shadow-2xl transition-all group relative overflow-hidden",
-                                                (addressDetails && formData.ingredientConsent)
+                                                (addressDetails && formData.ingredientConsent && formData.termsConsent)
                                                     ? "bg-stone-900 hover:bg-stone-800 text-white shadow-stone-900/20"
                                                     : "bg-stone-100 text-stone-300 cursor-not-allowed border-none"
                                             )}
@@ -1439,8 +1466,8 @@ export function SimulatorForm({ promoConfig }: SimulatorFormProps) {
                                                 transition={{ type: "tween" }}
                                             />
                                             <span className="relative z-10 flex items-center justify-center">
-                                                {(addressDetails && formData.ingredientConsent) ? "Recevoir mon devis gratuit" : "Veuillez compléter tous les champs"}
-                                                {(addressDetails && formData.ingredientConsent) && <ArrowRight className="ml-2 h-6 w-6 transition-transform group-hover:translate-x-1" />}
+                                                {(addressDetails && formData.ingredientConsent && formData.termsConsent) ? "Recevoir mon devis gratuit" : "Veuillez compléter tous les champs"}
+                                                {(addressDetails && formData.ingredientConsent && formData.termsConsent) && <ArrowRight className="ml-2 h-6 w-6 transition-transform group-hover:translate-x-1" />}
                                             </span>
                                         </Button>
                                         <div className="flex items-center justify-center gap-2 mt-4">

@@ -733,7 +733,15 @@ export default function GiftCardPage() {
                                     className="mt-0.5 h-4 w-4 rounded border-stone-300 text-brand-rose focus:ring-brand-rose cursor-pointer accent-brand-rose"
                                 />
                                 <label htmlFor="termsCheck" className="text-[10px] sm:text-[11px] font-bold text-stone-700 cursor-pointer leading-snug">
-                                    Je confirme avoir pris connaissance et accepter ces conditions d&apos;achat et de validité.
+                                    J&apos;accepte les{" "}
+                                    <Link
+                                        href="/cgv"
+                                        target="_blank"
+                                        className="text-brand-rose underline font-bold hover:text-brand-rose/80"
+                                    >
+                                        Conditions Générales de Vente (CGV)
+                                    </Link>{" "}
+                                    et je confirme avoir pris connaissance de ces conditions d&apos;achat et de validité.
                                 </label>
                             </div>
 
