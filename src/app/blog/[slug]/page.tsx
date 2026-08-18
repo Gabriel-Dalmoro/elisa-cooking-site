@@ -1,12 +1,54 @@
 import React from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { ArrowLeft, Calendar, Clock, Share2 } from "lucide-react";
+import { ArrowLeft, Calendar, Clock } from "lucide-react";
 import { getPostBySlug } from "@/lib/notion";
 import * as motion from "framer-motion/client";
 import { BlockRenderer } from "@/components/blog/BlockRenderer";
+import { ShareButton } from "@/components/blog/ShareButton";
+import type { Metadata } from "next";
 
+export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
+    const { slug } = await params;
+    const post = await getPostBySlug(slug);
 
+    if (!post) {
+        return {
+            title: "Article introuvable | Blog Chef Elisa",
+        };
+    }
+
+    const title = `${post.title} | Blog Chef Elisa`;
+    const description = post.excerpt || `Découvrez l'article "${post.title}" sur le blog de Chef Elisa Batch Cooking.`;
+    const authorName = post.author?.name || "Chef Elisa";
+
+    return {
+        title,
+        description,
+        authors: [{ name: authorName }],
+        openGraph: {
+            title,
+            description,
+            type: "article",
+            publishedTime: post.date,
+            authors: [authorName],
+            images: [
+                {
+                    url: post.coverImage,
+                    width: 1200,
+                    height: 630,
+                    alt: post.title,
+                },
+            ],
+        },
+        twitter: {
+            card: "summary_large_image",
+            title,
+            description,
+            images: [post.coverImage],
+        },
+    };
+}
 
 export default async function BlogPostPage({ params }: { params: Promise<{ slug: string }> }) {
     const { slug } = await params;
@@ -21,8 +63,39 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
         );
     }
 
+    const authorName = post.author?.name || "Chef Elisa";
+    const authorAvatar = post.author?.avatar || "/images/logo.jpg";
+    const readingTime = post.readingTime || 5;
+
+    const jsonLd = {
+        "@context": "https://schema.org",
+        "@type": "BlogPosting",
+        "headline": post.title,
+        "image": [post.coverImage],
+        "datePublished": post.date,
+        "author": {
+            "@type": "Person",
+            "name": authorName
+        },
+        "publisher": {
+            "@type": "Organization",
+            "name": "Chef Elisa Batch Cooking",
+            "logo": {
+                "@type": "ImageObject",
+                "url": "https://www.elisabatchcooking.com/images/logo.jpg"
+            }
+        },
+        "description": post.excerpt || post.title
+    };
+
     return (
         <main className="min-h-screen bg-stone-50 pb-20">
+            {/* Structured Data for SEO */}
+            <script
+                type="application/ld+json"
+                dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+            />
+
             {/* Post Hero */}
             <header className="relative h-[60vh] min-h-[500px] flex items-end overflow-hidden">
                 <Image
@@ -80,27 +153,24 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
                                 <div className="flex items-center gap-4">
                                     <div className="h-14 w-14 rounded-full bg-brand-rose flex items-center justify-center text-white shadow-xl shadow-brand-rose/20 relative overflow-hidden">
                                         <Image
-                                            src="/images/logo.jpg"
-                                            alt="Chef Elisa"
+                                            src={authorAvatar}
+                                            alt={authorName}
                                             fill
                                             className="object-cover"
                                         />
                                     </div>
                                     <div>
                                         <p className="text-xs font-black uppercase tracking-widest text-stone-400 leading-none mb-1">Écrit par</p>
-                                        <p className="text-base font-bold text-stone-900">Chef Elisa</p>
+                                        <p className="text-base font-bold text-stone-900">{authorName}</p>
                                     </div>
                                 </div>
 
                                 <div className="flex items-center gap-8 text-stone-400 text-xs font-bold uppercase tracking-widest">
                                     <div className="flex items-center gap-2">
                                         <Clock className="h-4 w-4" />
-                                        <span>5 min de lecture</span>
+                                        <span>{readingTime} min de lecture</span>
                                     </div>
-                                    <button className="flex items-center gap-2 hover:text-brand-rose transition-colors">
-                                        <Share2 className="h-4 w-4" />
-                                        <span>Partager</span>
-                                    </button>
+                                    <ShareButton title={post.title} />
                                 </div>
                             </div>
 
@@ -169,3 +239,4 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
         </main>
     );
 }
+

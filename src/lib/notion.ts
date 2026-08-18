@@ -7,6 +7,11 @@ const notion = new Client({
 
 const DATABASE_ID = process.env.NOTION_DATABASE_ID;
 
+export interface Author {
+    name: string;
+    avatar?: string;
+}
+
 export interface Post {
     id: string;
     title: string;
@@ -14,6 +19,8 @@ export interface Post {
     date: string;
     coverImage: string;
     excerpt: string;
+    author: Author;
+    readingTime: number;
     blocks?: any[];
 }
 
@@ -25,7 +32,12 @@ const MOCK_POSTS: Post[] = [
         slug: "secret-batch-cooking",
         date: "2024-05-20",
         coverImage: "https://images.unsplash.com/photo-1547592166-23ac45744acd?q=80&w=2071&auto=format&fit=crop",
-        excerpt: "Découvrez comment organiser votre cuisine pour préparer tous vos repas de la semaine en un temps record."
+        excerpt: "Découvrez comment organiser votre cuisine pour préparer tous vos repas de la semaine en un temps record.",
+        author: {
+            name: "Chef Elisa",
+            avatar: "/images/logo.jpg"
+        },
+        readingTime: 5
     }
 ];
 
@@ -53,6 +65,99 @@ async function notionFetch(endpoint: string, options: any = {}) {
     }
 
     return response.json();
+}
+
+/**
+ * Extract author details from page properties or created_by
+ */
+function extractAuthor(page: any): Author {
+    const props = page.properties || {};
+
+    const authorPropKeys = ["Author", "Auteur", "Writer", "Rédacteur", "Created by", "Ecrit par", "Author Name", "auteur", "author", "writer"];
+    let foundProp: any = null;
+
+    for (const key of authorPropKeys) {
+        if (props[key]) {
+            foundProp = props[key];
+            break;
+        }
+    }
+
+    if (!foundProp) {
+        foundProp = Object.values(props).find((p: any) => p.type === 'people' || p.type === 'created_by');
+    }
+
+    if (foundProp) {
+        if (foundProp.type === 'people' && foundProp.people?.[0]) {
+            const person = foundProp.people[0];
+            return {
+                name: person.name || "Chef Elisa",
+                avatar: person.avatar_url || "/images/logo.jpg"
+            };
+        }
+        if (foundProp.type === 'created_by' && foundProp.created_by) {
+            const creator = foundProp.created_by;
+            return {
+                name: creator.name || "Chef Elisa",
+                avatar: creator.avatar_url || "/images/logo.jpg"
+            };
+        }
+        if (foundProp.type === 'rich_text' && foundProp.rich_text?.[0]?.plain_text) {
+            return {
+                name: foundProp.rich_text[0].plain_text,
+                avatar: "/images/logo.jpg"
+            };
+        }
+        if (foundProp.type === 'select' && foundProp.select?.name) {
+            return {
+                name: foundProp.select.name,
+                avatar: "/images/logo.jpg"
+            };
+        }
+    }
+
+    if (page.created_by?.name) {
+        return {
+            name: page.created_by.name,
+            avatar: page.created_by.avatar_url || "/images/logo.jpg"
+        };
+    }
+
+    return {
+        name: "Chef Elisa",
+        avatar: "/images/logo.jpg"
+    };
+}
+
+/**
+ * Calculate reading time in minutes from Notion blocks
+ */
+export function calculateReadingTime(blocks: any[]): number {
+    if (!blocks || blocks.length === 0) return 5;
+
+    let text = "";
+
+    const extractText = (items: any[]) => {
+        for (const block of items) {
+            const type = block.type;
+            if (type && block[type] && block[type].rich_text) {
+                const richText = block[type].rich_text;
+                for (const t of richText) {
+                    if (t.plain_text) text += " " + t.plain_text;
+                }
+            }
+            if (block.children && block.children.length > 0) {
+                extractText(block.children);
+            }
+        }
+    };
+
+    extractText(blocks);
+
+    const words = text.trim().split(/\s+/).filter(Boolean).length;
+    if (words === 0) return 5;
+    const minutes = Math.ceil(words / 200);
+    return Math.max(1, minutes);
 }
 
 /**
@@ -106,7 +211,10 @@ export async function getPosts(): Promise<Post[]> {
             const excerptProp = props["Short text"] || props["short text"] || props.Excerpt || props.excerpt || props.Summary || props.summary;
             const excerpt = excerptProp?.rich_text?.[0]?.plain_text || "";
 
-            // 5. Intelligent Cover Image detection
+            // 5. Author finding
+            const author = extractAuthor(page);
+
+            // 6. Intelligent Cover Image detection
             let coverImage = page.cover?.external?.url || page.cover?.file?.url;
 
             if (!coverImage) {
@@ -114,15 +222,30 @@ export async function getPosts(): Promise<Post[]> {
                 coverImage = imgProp?.files?.[0]?.external?.url || imgProp?.files?.[0]?.file?.url;
             }
 
+            let blocks: any[] = [];
+            try {
+                blocks = await getBlocks(page.id);
+            } catch (e) { }
+
             if (!coverImage) {
-                try {
-                    const blocks = await notionFetch(`blocks/${page.id}/children?page_size=20`);
-                    const firstImage = blocks.results.find((b: any) => b.type === 'image');
-                    if (firstImage) {
-                        coverImage = firstImage.image.external?.url || firstImage.image.file?.url;
+                const findFirstImage = (items: any[]): any => {
+                    for (const block of items) {
+                        if (block.type === 'image') return block;
+                        if (block.children && block.children.length > 0) {
+                            const found = findFirstImage(block.children);
+                            if (found) return found;
+                        }
                     }
-                } catch (e) { }
+                    return null;
+                };
+
+                const firstImage = findFirstImage(blocks);
+                if (firstImage) {
+                    coverImage = firstImage.image.external?.url || firstImage.image.file?.url;
+                }
             }
+
+            const readingTime = calculateReadingTime(blocks);
 
             return {
                 id: page.id,
@@ -131,6 +254,8 @@ export async function getPosts(): Promise<Post[]> {
                 date,
                 coverImage: coverImage || "/images/hero-bg.jpg",
                 excerpt,
+                author,
+                readingTime,
             };
         }));
 
@@ -142,9 +267,6 @@ export async function getPosts(): Promise<Post[]> {
 }
 
 /**
- * Fetch a single post by its slug or ID
- */
-/**
  * Recursively fetch all blocks and their children
  */
 async function getBlocks(blockId: string): Promise<any[]> {
@@ -155,7 +277,6 @@ async function getBlocks(blockId: string): Promise<any[]> {
         // Fetch children recursively for blocks that have them
         const childBlocks = await Promise.all(blocks.map(async (block: any) => {
             if (block.has_children) {
-                // Recursion
                 const children = await getBlocks(block.id);
                 return { ...block, children };
             }
@@ -172,13 +293,12 @@ async function getBlocks(blockId: string): Promise<any[]> {
 /**
  * Fetch a single post by its slug or ID
  */
-export async function getPostBySlug(slug: string) {
+export async function getPostBySlug(slug: string): Promise<Post | null> {
     if (!process.env.NOTION_API_KEY || !DATABASE_ID) {
         const mock = MOCK_POSTS.find(p => p.slug === slug);
         if (!mock) return null;
         return {
             ...mock,
-            content: `Contenu de démo.`,
             blocks: []
         };
     }
@@ -224,9 +344,11 @@ export async function getPostBySlug(slug: string) {
         const props = page.properties;
         const titleProp = props.Title || props.Name || props.title || props.name || Object.values(props).find((p: any) => p.type === 'title');
         const dateProp = props.Date || props["Publication Date"] || props.date || Object.values(props).find((p: any) => p.type === 'date');
+        const excerptProp = props["Short text"] || props["short text"] || props.Excerpt || props.excerpt || props.Summary || props.summary;
 
         // Fetch blocks recursively
         const blocks = await getBlocks(page.id);
+        const author = extractAuthor(page);
 
         // Intelligent Cover Image detection
         let coverImage = page.cover?.external?.url || page.cover?.file?.url;
@@ -237,9 +359,8 @@ export async function getPostBySlug(slug: string) {
         }
 
         if (!coverImage) {
-            // Helper to find first image recursively
-            const findFirstImage = (blocks: any[]): any => {
-                for (const block of blocks) {
+            const findFirstImage = (items: any[]): any => {
+                for (const block of items) {
                     if (block.type === 'image') return block;
                     if (block.children && block.children.length > 0) {
                         const found = findFirstImage(block.children);
@@ -255,11 +376,17 @@ export async function getPostBySlug(slug: string) {
             }
         }
 
+        const readingTime = calculateReadingTime(blocks);
+
         return {
             id: page.id,
             title: titleProp?.title?.[0]?.plain_text || "Untitled",
+            slug: slug,
             date: dateProp?.date?.start || page.created_time,
             coverImage: coverImage || "/images/hero-bg.jpg",
+            excerpt: excerptProp?.rich_text?.[0]?.plain_text || "",
+            author,
+            readingTime,
             blocks: blocks,
         };
     } catch (error: any) {
@@ -267,3 +394,4 @@ export async function getPostBySlug(slug: string) {
         return null;
     }
 }
+

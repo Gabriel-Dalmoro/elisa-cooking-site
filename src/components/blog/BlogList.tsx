@@ -65,8 +65,16 @@ export function BlogList({ posts }: BlogListProps) {
                         <div className="flex items-center gap-2 mb-4">
                             <div className="h-1 w-8 bg-brand-rose rounded-full" />
                             <span className="text-[10px] font-black uppercase tracking-widest text-stone-400">
-                                Chef Elisa
+                                {post.author?.name || "Chef Elisa"}
                             </span>
+                            {post.readingTime && (
+                                <>
+                                    <span className="text-stone-300">•</span>
+                                    <span className="text-[10px] font-black uppercase tracking-widest text-stone-400">
+                                        {post.readingTime} min
+                                    </span>
+                                </>
+                            )}
                         </div>
                         <h2 className="text-xl font-bold text-stone-900 mb-3 group-hover:text-brand-rose transition-colors leading-tight">
                             <Link href={`/blog/${post.slug}`}>{post.title}</Link>
