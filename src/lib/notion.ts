@@ -68,59 +68,67 @@ async function notionFetch(endpoint: string, options: any = {}) {
 }
 
 /**
- * Extract author details from page properties or created_by
+ * Extract author details from page properties, text/select author fields, or Notion users API
  */
-function extractAuthor(page: any): Author {
+async function extractAuthor(page: any): Promise<Author> {
     const props = page.properties || {};
 
-    const authorPropKeys = ["Author", "Auteur", "Writer", "Rédacteur", "Created by", "Ecrit par", "Author Name", "auteur", "author", "writer"];
-    let foundProp: any = null;
-
-    for (const key of authorPropKeys) {
-        if (props[key]) {
-            foundProp = props[key];
-            break;
+    // 1. Check explicit text, select, or title properties (e.g., "Auteur", "Author", "Writer", "Created By")
+    const textAuthorKeys = ["Auteur", "Author", "Writer", "Rédacteur", "Ecrit par", "Author Name", "auteur", "author", "writer", "Created By"];
+    for (const key of textAuthorKeys) {
+        const prop = props[key];
+        if (prop) {
+            if (prop.type === 'rich_text' && prop.rich_text?.[0]?.plain_text) {
+                return { name: prop.rich_text[0].plain_text.trim(), avatar: "/images/logo.jpg" };
+            }
+            if (prop.type === 'select' && prop.select?.name) {
+                return { name: prop.select.name.trim(), avatar: "/images/logo.jpg" };
+            }
+            if (prop.type === 'title' && prop.title?.[0]?.plain_text && key !== "Blog post title" && key !== "Title" && key !== "Name") {
+                return { name: prop.title[0].plain_text.trim(), avatar: "/images/logo.jpg" };
+            }
         }
     }
 
-    if (!foundProp) {
-        foundProp = Object.values(props).find((p: any) => p.type === 'people' || p.type === 'created_by');
-    }
+    // 2. Check people / created_by properties
+    let userId: string | null = null;
+    const userProp = props["Created by"] || props["Created By"] || Object.values(props).find((p: any) => p.type === 'created_by' || p.type === 'people');
 
-    if (foundProp) {
-        if (foundProp.type === 'people' && foundProp.people?.[0]) {
-            const person = foundProp.people[0];
-            return {
-                name: person.name || "Chef Elisa",
-                avatar: person.avatar_url || "/images/logo.jpg"
-            };
-        }
-        if (foundProp.type === 'created_by' && foundProp.created_by) {
-            const creator = foundProp.created_by;
-            return {
-                name: creator.name || "Chef Elisa",
-                avatar: creator.avatar_url || "/images/logo.jpg"
-            };
-        }
-        if (foundProp.type === 'rich_text' && foundProp.rich_text?.[0]?.plain_text) {
-            return {
-                name: foundProp.rich_text[0].plain_text,
-                avatar: "/images/logo.jpg"
-            };
-        }
-        if (foundProp.type === 'select' && foundProp.select?.name) {
-            return {
-                name: foundProp.select.name,
-                avatar: "/images/logo.jpg"
-            };
+    if (userProp) {
+        if (userProp.type === 'created_by' && userProp.created_by) {
+            if (userProp.created_by.name) {
+                return { name: userProp.created_by.name, avatar: userProp.created_by.avatar_url || "/images/logo.jpg" };
+            }
+            userId = userProp.created_by.id;
+        } else if (userProp.type === 'people' && userProp.people?.[0]) {
+            const person = userProp.people[0];
+            if (person.name) {
+                return { name: person.name, avatar: person.avatar_url || "/images/logo.jpg" };
+            }
+            userId = person.id;
         }
     }
 
-    if (page.created_by?.name) {
-        return {
-            name: page.created_by.name,
-            avatar: page.created_by.avatar_url || "/images/logo.jpg"
-        };
+    if (!userId && page.created_by) {
+        if (page.created_by.name) {
+            return { name: page.created_by.name, avatar: page.created_by.avatar_url || "/images/logo.jpg" };
+        }
+        userId = page.created_by.id;
+    }
+
+    // 3. If we have a Notion user ID, try fetching user details from Notion API
+    if (userId && process.env.NOTION_API_KEY) {
+        try {
+            const userData = await notionFetch(`users/${userId}`);
+            if (userData && userData.name) {
+                return {
+                    name: userData.name,
+                    avatar: userData.avatar_url || "/images/logo.jpg"
+                };
+            }
+        } catch (e) {
+            // User API endpoint might be restricted (403), fallback gracefully
+        }
     }
 
     return {
@@ -212,7 +220,7 @@ export async function getPosts(): Promise<Post[]> {
             const excerpt = excerptProp?.rich_text?.[0]?.plain_text || "";
 
             // 5. Author finding
-            const author = extractAuthor(page);
+            const author = await extractAuthor(page);
 
             // 6. Intelligent Cover Image detection
             let coverImage = page.cover?.external?.url || page.cover?.file?.url;
@@ -348,7 +356,7 @@ export async function getPostBySlug(slug: string): Promise<Post | null> {
 
         // Fetch blocks recursively
         const blocks = await getBlocks(page.id);
-        const author = extractAuthor(page);
+        const author = await extractAuthor(page);
 
         // Intelligent Cover Image detection
         let coverImage = page.cover?.external?.url || page.cover?.file?.url;
