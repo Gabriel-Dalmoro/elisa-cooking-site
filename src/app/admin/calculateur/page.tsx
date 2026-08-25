@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useMemo, useEffect } from 'react';
+import Link from 'next/link';
 import AdminGuard from '@/components/admin/AdminGuard';
 import {
     Clock,
@@ -14,7 +15,8 @@ import {
     Users,
     Printer,
     MapPin,
-    CalendarDays
+    CalendarDays,
+    ArrowLeft
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -170,10 +172,20 @@ export default function InternalCalculator() {
                     </div>
 
                     <div className="flex items-center gap-3 z-10 w-full lg:w-auto justify-end">
+                        <Link href="/admin">
+                            <Button
+                                variant="outline"
+                                className="bg-white border-stone-200 text-stone-700 hover:bg-stone-50 shadow-xs rounded-full gap-2 font-bold text-xs h-9 px-4"
+                            >
+                                <ArrowLeft className="w-3.5 h-3.5" />
+                                Retour à l&apos;admin
+                            </Button>
+                        </Link>
+
                         <Button
                             onClick={handlePrint}
                             variant="outline"
-                            className="bg-white border-stone-200 text-stone-600 hover:bg-stone-50 shadow-sm rounded-xl gap-2 font-bold"
+                            className="bg-white border-stone-200 text-stone-600 hover:bg-stone-50 shadow-xs rounded-full gap-2 font-bold text-xs h-9 px-4"
                         >
                             <Printer className="w-4 h-4" />
                             Imprimer
@@ -181,8 +193,8 @@ export default function InternalCalculator() {
                         <AnimatePresence>
                             {hasChanges && (
                                 <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-                                    <Button onClick={handleReset} size="sm" variant="ghost" className="text-stone-400">
-                                        <RotateCcw className="w-4 h-4 mr-2" /> Reset
+                                    <Button onClick={handleReset} size="sm" variant="ghost" className="text-stone-400 text-xs">
+                                        <RotateCcw className="w-3.5 h-3.5 mr-1.5" /> Reset
                                     </Button>
                                 </motion.div>
                             )}
