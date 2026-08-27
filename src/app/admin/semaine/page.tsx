@@ -28,7 +28,8 @@ import {
     Navigation,
     ChevronLeft,
     ChevronRight,
-    MapPin
+    MapPin,
+    X
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -58,14 +59,22 @@ export default function WeeklyOpsAdminDashboard() {
     const [copiedToken, setCopiedToken] = useState<string | null>(null);
     const [viewMode, setViewMode] = useState<'calendar' | 'list'>('calendar');
     const [weekOffset, setWeekOffset] = useState<number>(0);
-    
-    // Calendar Sync State & Toast Info
     const [isSyncingCalendar, setIsSyncingCalendar] = useState(false);
-    const [syncSummary, setSyncSummary] = useState<{
-        validCount: number;
-        createdCount: number;
-        ignoredBlocks: number;
+    
+    // Floating Toast Notification State
+    const [toast, setToast] = useState<{
+        id: string;
+        message: string;
+        icon?: 'check' | 'link' | 'calendar';
     } | null>(null);
+
+    const showToast = (message: string, icon: 'check' | 'link' | 'calendar' = 'check') => {
+        const id = String(Date.now());
+        setToast({ id, message, icon });
+        setTimeout(() => {
+            setToast(curr => (curr?.id === id ? null : curr));
+        }, 3500);
+    };
 
     // New Client Dialog State
     const [isAddClientOpen, setIsAddClientOpen] = useState(false);
@@ -109,12 +118,11 @@ export default function WeeklyOpsAdminDashboard() {
             const data = await res.json();
             setSlotStatuses(data.slotStatuses || []);
             setWeekMenu(data.weekMenu);
-            setSyncSummary({
-                validCount: data.validBookingsCount || 0,
-                createdCount: data.createdCount || 0,
-                ignoredBlocks: data.ignoredBlocksCount || 0
-            });
-            setTimeout(() => setSyncSummary(null), 5000);
+            
+            const validCount = data.validBookingsCount || 0;
+            const ignoredCount = data.ignoredBlocksCount || 0;
+            const syncMsg = `Google Calendar synchronisé : ${validCount} séance(s) active(s)${ignoredCount > 0 ? ` • ${ignoredCount} créneau(x) "Bloc" ignoré(s)` : ''}`;
+            showToast(syncMsg, 'calendar');
         } catch (e) {
             console.error('Calendar sync error:', e);
             // Fallback load without blocking
@@ -130,10 +138,16 @@ export default function WeeklyOpsAdminDashboard() {
         handleCalendarSync(weekOffset);
     }, [weekOffset]);
 
-    const copyClientLink = (token: string) => {
+    const copyClientLink = (token: string, clientName?: string) => {
         const url = `${window.location.origin}/choisir/${token}`;
         navigator.clipboard.writeText(url);
         setCopiedToken(token);
+        showToast(
+            clientName 
+                ? `Lien de choix des recettes de ${clientName} copié !` 
+                : `Lien de choix des recettes copié !`, 
+            'link'
+        );
         setTimeout(() => setCopiedToken(null), 2500);
     };
 
@@ -283,20 +297,6 @@ export default function WeeklyOpsAdminDashboard() {
 
             {/* Main Content Area */}
             <main className="max-w-6xl mx-auto px-4 space-y-6">
-
-                {/* Calendar Sync Success Toast Notification */}
-                {syncSummary !== null && (
-                    <div className="bg-emerald-50 border border-emerald-200 text-emerald-900 rounded-2xl p-4 flex items-center justify-between gap-3 text-xs font-semibold shadow-xs">
-                        <div className="flex items-center gap-2.5">
-                            <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
-                            <span>
-                                <strong>Google Calendar synchronisé ({weekInfo.dateRangeOnly}) :</strong> {syncSummary.validCount} séance(s) active(s)
-                                {syncSummary.createdCount > 0 && ` • ${syncSummary.createdCount} nouvelle(s) fiche(s)`}
-                                {syncSummary.ignoredBlocks > 0 && ` • ${syncSummary.ignoredBlocks} créneau(x) "Bloc" ignoré(s)`}
-                            </span>
-                        </div>
-                    </div>
-                )}
 
                 {/* Clean Hero Date, Stepper, Sync & Stats Card */}
                 <div className="bg-white rounded-3xl p-5 sm:p-6 border border-stone-200 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -509,8 +509,8 @@ export default function WeeklyOpsAdminDashboard() {
                                                             <Button 
                                                                 size="sm" 
                                                                 variant="outline"
-                                                                onClick={() => copyClientLink(client.token)}
-                                                                className="w-full text-stone-700 border-stone-200 text-[11px] h-7 px-1 rounded-xl font-semibold gap-1"
+                                                                onClick={() => copyClientLink(client.token, client.name)}
+                                                                className="w-full text-stone-700 border-stone-200 text-[11px] h-7 px-1 rounded-xl font-semibold gap-1 cursor-pointer hover:bg-stone-100"
                                                             >
                                                                 <Copy className="w-3 h-3 text-stone-500" />
                                                                 Lien
@@ -673,8 +673,8 @@ export default function WeeklyOpsAdminDashboard() {
                                                 <Button
                                                     size="sm"
                                                     variant="outline"
-                                                    onClick={() => copyClientLink(client.token)}
-                                                    className="border-stone-300 text-stone-700 hover:bg-stone-100 text-xs h-9 gap-1.5 rounded-full font-semibold"
+                                                    onClick={() => copyClientLink(client.token, client.name)}
+                                                    className="border-stone-300 text-stone-700 hover:bg-stone-100 text-xs h-9 gap-1.5 rounded-full font-semibold cursor-pointer"
                                                 >
                                                     {copiedToken === client.token ? (
                                                         <>
@@ -708,6 +708,34 @@ export default function WeeklyOpsAdminDashboard() {
                     </div>
                 )}
             </main>
+
+            {/* Floating Toast Notification Modal */}
+            {toast && (
+                <div className="fixed bottom-6 right-6 z-50 animate-in fade-in slide-in-from-bottom-4 duration-200">
+                    <div className="bg-stone-900/95 backdrop-blur-md text-white px-4 py-3 rounded-2xl shadow-xl border border-stone-800 flex items-center gap-3 text-xs sm:text-sm font-semibold max-w-md">
+                        {toast.icon === 'calendar' ? (
+                            <div className="w-7 h-7 rounded-xl bg-amber-500/20 text-amber-400 flex items-center justify-center shrink-0">
+                                <RefreshCw className="w-4 h-4 text-amber-400" />
+                            </div>
+                        ) : toast.icon === 'link' ? (
+                            <div className="w-7 h-7 rounded-xl bg-[#E1567A]/20 text-[#E1567A] flex items-center justify-center shrink-0">
+                                <Copy className="w-4 h-4 text-[#E1567A]" />
+                            </div>
+                        ) : (
+                            <div className="w-7 h-7 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0">
+                                <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                            </div>
+                        )}
+                        <span className="leading-snug">{toast.message}</span>
+                        <button 
+                            onClick={() => setToast(null)}
+                            className="ml-auto text-stone-400 hover:text-white p-1 rounded-lg hover:bg-stone-800 transition-colors"
+                        >
+                            <X className="w-3.5 h-3.5" />
+                        </button>
+                    </div>
+                </div>
+            )}
 
             {/* Client Add & Edit Modal */}
             <Dialog open={isAddClientOpen} onOpenChange={setIsAddClientOpen}>

@@ -24,7 +24,8 @@ import {
     FileSpreadsheet,
     AlertTriangle,
     LayoutGrid,
-    List
+    List,
+    X
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -64,6 +65,15 @@ export default function ClientDirectoryPage() {
     const [allergyFilter, setAllergyFilter] = useState<string>('all');
     const [viewMode, setViewMode] = useState<'cards' | 'table'>('cards');
     const [copiedToken, setCopiedToken] = useState<string | null>(null);
+    const [toast, setToast] = useState<{ id: string; message: string } | null>(null);
+
+    const showToast = (message: string) => {
+        const id = String(Date.now());
+        setToast({ id, message });
+        setTimeout(() => {
+            setToast(curr => (curr?.id === id ? null : curr));
+        }, 3000);
+    };
 
     // Modal state for single client create/edit
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -91,7 +101,7 @@ export default function ClientDirectoryPage() {
         try {
             setLoading(true);
             const res = await fetch('/api/cooking-ops/admin');
-            if (!res.ok) throw new Error('Erreur');
+            if (!res.ok) throw new Error('Erreur de chargement');
             const data = await res.json();
             setClients(data.clients || []);
         } catch (e) {
@@ -105,10 +115,15 @@ export default function ClientDirectoryPage() {
         loadClients();
     }, []);
 
-    const copyClientLink = (token: string) => {
+    const copyClientLink = (token: string, clientName?: string) => {
         const url = `${window.location.origin}/choisir/${token}`;
         navigator.clipboard.writeText(url);
         setCopiedToken(token);
+        showToast(
+            clientName 
+                ? `Lien de choix des recettes de ${clientName} copié !` 
+                : `Lien de choix des recettes copié !`
+        );
         setTimeout(() => setCopiedToken(null), 2500);
     };
 
@@ -1088,6 +1103,24 @@ export default function ClientDirectoryPage() {
                     </form>
                 </DialogContent>
             </Dialog>
+
+            {/* Floating Toast Notification Modal */}
+            {toast && (
+                <div className="fixed bottom-6 right-6 z-50 animate-in fade-in slide-in-from-bottom-4 duration-200">
+                    <div className="bg-stone-900/95 backdrop-blur-md text-white px-4 py-3 rounded-2xl shadow-xl border border-stone-800 flex items-center gap-3 text-xs sm:text-sm font-semibold max-w-md">
+                        <div className="w-7 h-7 rounded-xl bg-[#E1567A]/20 text-[#E1567A] flex items-center justify-center shrink-0">
+                            <Copy className="w-4 h-4 text-[#E1567A]" />
+                        </div>
+                        <span className="leading-snug">{toast.message}</span>
+                        <button 
+                            onClick={() => setToast(null)}
+                            className="ml-auto text-stone-400 hover:text-white p-1 rounded-lg hover:bg-stone-800 transition-colors"
+                        >
+                            <X className="w-3.5 h-3.5" />
+                        </button>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
