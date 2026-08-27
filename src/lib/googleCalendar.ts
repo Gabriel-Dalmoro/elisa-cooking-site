@@ -345,10 +345,10 @@ export async function createGoogleCalendarEvent(session: {
 
         const calendarId = process.env.GOOGLE_CALENDAR_ID || 'primary';
         
-        // Slot Hours: Morning (09:00 - 12:00) | Afternoon (14:00 - 18:00)
+        // Slot Hours: Morning (09:00 - 12:00) | Afternoon (14:00 - 17:00)
         const isMorning = session.timeSlot === 'Matin';
         const startHour = isMorning ? '09:00:00' : '14:00:00';
-        const endHour = isMorning ? '12:00:00' : '18:00:00';
+        const endHour = isMorning ? '12:00:00' : '17:00:00';
 
         const startDateTime = `${session.dateIso}T${startHour}+02:00`;
         const endDateTime = `${session.dateIso}T${endHour}+02:00`;
@@ -362,6 +362,7 @@ export async function createGoogleCalendarEvent(session: {
             requestBody: {
                 summary,
                 description,
+                colorId: '5', // Yellow (Banana in Google Calendar)
                 start: {
                     dateTime: startDateTime,
                     timeZone: 'Europe/Paris',

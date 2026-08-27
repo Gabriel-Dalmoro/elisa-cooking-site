@@ -125,7 +125,7 @@ export default function TodayOperationsPage() {
     // Render a single Session Card
     const renderSessionCard = (slotStatus: SlotSessionStatus | undefined, slotType: 'Matin' | 'Après-midi') => {
         const isMorning = slotType === 'Matin';
-        const timeRange = isMorning ? '09:00 - 12:00' : '14:00 - 18:00';
+        const timeRange = isMorning ? '09:00 - 12:00' : '14:00 - 17:00';
 
         if (!slotStatus) {
             return (
@@ -364,15 +364,26 @@ export default function TodayOperationsPage() {
                 backHref="/admin"
                 backLabel="Retour au menu"
                 actionElement={
-                    <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={loadData}
-                        className="border-stone-300 text-stone-700 hover:bg-stone-100 gap-1.5 text-xs h-9 px-3 rounded-full font-semibold cursor-pointer"
-                    >
-                        <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
-                        Actualiser
-                    </Button>
+                    <div className="flex items-center gap-2">
+                        <Link href="/admin/semaine">
+                            <Button
+                                size="sm"
+                                className="bg-stone-900 hover:bg-stone-800 text-white gap-1.5 text-xs h-9 px-3.5 rounded-full font-bold shadow-xs cursor-pointer"
+                            >
+                                <Calendar className="w-3.5 h-3.5 text-[#E1567A]" />
+                                Planning Hebdo
+                            </Button>
+                        </Link>
+                        <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={loadData}
+                            className="border-stone-300 text-stone-700 hover:bg-stone-100 gap-1.5 text-xs h-9 px-3 rounded-full font-semibold cursor-pointer"
+                        >
+                            <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
+                            Actualiser
+                        </Button>
+                    </div>
                 }
             />
 
@@ -439,7 +450,7 @@ export default function TodayOperationsPage() {
                         <div className="space-y-2">
                             <h4 className="text-xs font-bold uppercase tracking-wider text-stone-500 px-2 flex items-center gap-1.5">
                                 <Moon className="w-3.5 h-3.5 text-indigo-500" />
-                                2. Après-midi (14:00 - 18:00)
+                                2. Après-midi (14:00 - 17:00)
                             </h4>
                             {renderSessionCard(afternoonSession, 'Après-midi')}
                         </div>

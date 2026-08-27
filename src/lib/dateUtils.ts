@@ -96,6 +96,7 @@ export function getWeekBounds(offsetWeeks = 0): {
     start: Date; 
     end: Date; 
     weekLabel: string; 
+    dateRangeOnly: string;
     startIso: string;
     endIso: string;
     mondayDate: Date;
@@ -128,9 +129,10 @@ export function getWeekBounds(offsetWeeks = 0): {
     const startIso = formatLocalDateToIso(monday);
     const endIso = formatLocalDateToIso(sunday);
 
-    const startFormatted = `${monday.getDate()} ${monday.toLocaleDateString('fr-FR', { month: 'short' })}`;
-    const endFormatted = `${sunday.getDate()} ${sunday.toLocaleDateString('fr-FR', { month: 'short' })}`;
-    const weekLabel = `Semaine du ${startFormatted} au ${endFormatted}`;
+    const startFormatted = `${monday.getDate()} ${monday.toLocaleDateString('fr-FR', { month: 'long' })}`;
+    const endFormatted = `${sunday.getDate()} ${sunday.toLocaleDateString('fr-FR', { month: 'long' })}`;
+    const dateRangeOnly = `${startFormatted} au ${endFormatted}`;
+    const weekLabel = `Semaine du ${dateRangeOnly}`;
 
     const daysWithDates = WEEK_DAY_NAMES.map((dayName, idx) => {
         const date = new Date(monday);
@@ -154,6 +156,7 @@ export function getWeekBounds(offsetWeeks = 0): {
         start: monday, 
         end: sunday, 
         weekLabel, 
+        dateRangeOnly,
         startIso,
         endIso,
         mondayDate: monday,

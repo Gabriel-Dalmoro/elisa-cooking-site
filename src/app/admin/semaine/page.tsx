@@ -239,53 +239,28 @@ export default function WeeklyOpsAdminDashboard() {
                 backHref="/admin"
                 backLabel="Retour à l'admin"
                 actionElement={
-                    <div className="flex flex-col sm:items-end gap-2.5">
-                        {/* Top Row: Week Stepper & Today Page & Sync */}
+                    <div className="flex flex-col sm:items-end gap-2">
+                        {/* Top Row: Week Stepper & View Switchers & New Client */}
                         <div className="flex flex-wrap items-center gap-2">
-                            {/* Link to Mobile Today Page */}
-                            <Link href="/admin/aujourd-hui">
-                                <Button
-                                    size="sm"
-                                    className="bg-stone-900 hover:bg-stone-800 text-white text-xs h-9 px-3.5 rounded-full font-bold gap-1.5 shadow-xs cursor-pointer"
-                                >
-                                    <Navigation className="w-3.5 h-3.5 text-[#E1567A]" />
-                                    📍 Aujourd&apos;hui
-                                </Button>
-                            </Link>
-
-                            {/* Interactive Week Stepper */}
+                            {/* Intuitive Minimal Week Stepper */}
                             <div className="flex items-center bg-stone-100 p-1 rounded-full border border-stone-200 text-xs">
                                 <button
                                     onClick={() => setWeekOffset(w => w - 1)}
-                                    className="p-1.5 rounded-full hover:bg-white text-stone-700 hover:text-stone-900 transition-all font-bold flex items-center gap-1 cursor-pointer px-2"
+                                    className="w-7 h-7 rounded-full hover:bg-white text-stone-700 hover:text-stone-900 transition-all font-bold flex items-center justify-center cursor-pointer"
                                     title="Semaine précédente"
                                 >
                                     <ChevronLeft className="w-4 h-4" />
-                                    <span className="hidden sm:inline">Précédente</span>
                                 </button>
 
-                                <div className="px-2 font-bold text-stone-900 flex items-center gap-1 text-[11px]">
-                                    {weekOffset === 0 ? (
-                                        <Badge className="bg-[#E1567A] text-white text-[10px] font-bold rounded-full px-2 py-0.2">
-                                            Cette semaine
-                                        </Badge>
-                                    ) : weekOffset === 1 ? (
-                                        <Badge className="bg-amber-100 text-amber-900 border-amber-300 text-[10px] font-bold rounded-full px-2 py-0.2">
-                                            Semaine +1
-                                        </Badge>
-                                    ) : (
-                                        <Badge variant="outline" className="text-[10px] font-semibold rounded-full px-2 py-0.2 bg-white">
-                                            {weekOffset > 0 ? `+${weekOffset} sem.` : `${weekOffset} sem.`}
-                                        </Badge>
-                                    )}
-                                </div>
+                                <span className="px-2.5 font-bold text-stone-900 text-xs whitespace-nowrap">
+                                    {weekInfo.dateRangeOnly}
+                                </span>
 
                                 <button
                                     onClick={() => setWeekOffset(w => w + 1)}
-                                    className="p-1.5 rounded-full hover:bg-white text-stone-700 hover:text-stone-900 transition-all font-bold flex items-center gap-1 cursor-pointer px-2"
+                                    className="w-7 h-7 rounded-full hover:bg-white text-stone-700 hover:text-stone-900 transition-all font-bold flex items-center justify-center cursor-pointer"
                                     title="Semaine suivante"
                                 >
-                                    <span className="hidden sm:inline">Suivante</span>
                                     <ChevronRight className="w-4 h-4" />
                                 </button>
                             </div>
@@ -296,24 +271,14 @@ export default function WeeklyOpsAdminDashboard() {
                                 variant="outline"
                                 onClick={() => handleCalendarSync(weekOffset)}
                                 disabled={isSyncingCalendar}
-                                className="text-xs h-9 px-3.5 gap-1.5 border-stone-300 rounded-full font-semibold bg-white shadow-xs cursor-pointer"
+                                className="text-xs h-9 px-3 gap-1.5 border-stone-300 rounded-full font-semibold bg-white shadow-xs cursor-pointer"
+                                title="Resynchroniser Google Calendar"
                             >
                                 <RefreshCw className={`w-3.5 h-3.5 text-amber-600 ${isSyncingCalendar ? 'animate-spin' : ''}`} />
-                                {isSyncingCalendar ? 'Syncing...' : 'Sync GCal'}
+                                <span className="hidden sm:inline">{isSyncingCalendar ? 'Syncing...' : 'Sync GCal'}</span>
                             </Button>
-                        </div>
 
-                        {/* Bottom Row: Reset Week / View Mode / Add Client */}
-                        <div className="flex flex-wrap items-center gap-2">
-                            {weekOffset !== 0 && (
-                                <button
-                                    onClick={() => setWeekOffset(0)}
-                                    className="text-xs text-[#E1567A] font-bold hover:underline cursor-pointer bg-rose-50 px-2.5 py-1 rounded-full border border-rose-200 mr-1"
-                                >
-                                    ↩ Revenir à cette semaine
-                                </button>
-                            )}
-
+                            {/* View Switchers: Calendrier | Liste | Aujourd'hui */}
                             <div className="flex items-center bg-stone-100 p-1 rounded-full border border-stone-200 text-xs">
                                 <button
                                     onClick={() => setViewMode('calendar')}
@@ -322,7 +287,7 @@ export default function WeeklyOpsAdminDashboard() {
                                     }`}
                                 >
                                     <LayoutGrid className="w-3.5 h-3.5 text-[#E1567A]" />
-                                    Vue Calendrier
+                                    Calendrier
                                 </button>
                                 <button
                                     onClick={() => setViewMode('list')}
@@ -331,18 +296,35 @@ export default function WeeklyOpsAdminDashboard() {
                                     }`}
                                 >
                                     <ListFilter className="w-3.5 h-3.5 text-stone-600" />
-                                    Vue Liste
+                                    Liste
                                 </button>
+                                <Link href="/admin/aujourd-hui">
+                                    <button
+                                        className="px-3 py-1 rounded-full font-bold text-stone-600 hover:text-stone-900 transition-all flex items-center gap-1 cursor-pointer"
+                                    >
+                                        <Navigation className="w-3.5 h-3.5 text-[#E1567A]" />
+                                        Aujourd&apos;hui
+                                    </button>
+                                </Link>
                             </div>
 
                             <Button 
                                 size="sm" 
                                 onClick={() => openCreateClientForSlot('Lundi', 'Matin', weekInfo.daysWithDates[0].isoDate)}
-                                className="bg-[#E1567A] hover:bg-[#c94567] text-white gap-1 shadow-xs text-xs h-9 px-4 rounded-full font-semibold cursor-pointer"
+                                className="bg-[#E1567A] hover:bg-[#c94567] text-white gap-1 shadow-xs text-xs h-9 px-3.5 rounded-full font-semibold cursor-pointer"
                             >
                                 <Plus className="w-3.5 h-3.5" /> Nouveau Client
                             </Button>
                         </div>
+
+                        {weekOffset !== 0 && (
+                            <button
+                                onClick={() => setWeekOffset(0)}
+                                className="text-xs text-[#E1567A] font-bold hover:underline cursor-pointer bg-rose-50 px-2.5 py-0.5 rounded-full border border-rose-200 self-start sm:self-auto"
+                            >
+                                ↩ Revenir à cette semaine
+                            </button>
+                        )}
                     </div>
                 }
             />
@@ -356,7 +338,7 @@ export default function WeeklyOpsAdminDashboard() {
                         <div className="flex items-center gap-2.5">
                             <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
                             <span>
-                                <strong>Google Calendar synchronisé ({weekInfo.weekLabel}) :</strong> {syncSummary.validCount} séance(s) active(s)
+                                <strong>Google Calendar synchronisé ({weekInfo.dateRangeOnly}) :</strong> {syncSummary.validCount} séance(s) active(s)
                                 {syncSummary.createdCount > 0 && ` • ${syncSummary.createdCount} nouvelle(s) fiche(s)`}
                                 {syncSummary.ignoredBlocks > 0 && ` • ${syncSummary.ignoredBlocks} créneau(x) "Bloc" ignoré(s)`}
                             </span>
@@ -364,42 +346,38 @@ export default function WeeklyOpsAdminDashboard() {
                     </div>
                 )}
 
-                {/* Hero Stats Card with Exact Date Range */}
-                <div className="bg-white rounded-3xl p-6 sm:p-7 border border-stone-200 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
-                    <div>
-                        <div className="flex items-center gap-2 mb-1">
-                            <span className="text-xs uppercase font-bold tracking-wider text-[#E1567A]">
-                                {weekInfo.weekLabel}
-                            </span>
-                            <Badge variant="outline" className="bg-rose-50 text-[#E1567A] border-[#E1567A]/30 text-xs rounded-full font-bold">
-                                {weekOffset === 0 ? 'Semaine Active' : weekOffset > 0 ? `Semaine +${weekOffset}` : `Semaine ${weekOffset}`}
-                            </Badge>
-                        </div>
-                        <h2 className="text-2xl font-serif font-bold text-stone-900">
-                            Planning : {weekInfo.weekLabel}
+                {/* Clean Hero Date & Stats Card */}
+                <div className="bg-white rounded-3xl p-5 sm:p-6 border border-stone-200 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <div className="flex items-center gap-3">
+                        <h2 className="text-2xl font-serif font-bold text-stone-900 capitalize">
+                            {weekInfo.dateRangeOnly}
                         </h2>
-                        <p className="text-xs sm:text-sm text-stone-600 mt-1">
-                            {bookedCount > 0 
-                                ? `${bookedCount} séance(s) planifiée(s) du lundi au vendredi • ${submittedCount} client(s) ont validé leurs plats.`
-                                : 'Aucune réservation pour cette semaine.'}
-                        </p>
+                        {weekOffset === 0 ? (
+                            <Badge className="bg-rose-50 text-[#E1567A] border-[#E1567A]/30 text-xs rounded-full font-bold px-3 py-0.5">
+                                Semaine Active
+                            </Badge>
+                        ) : (
+                            <Badge variant="outline" className="text-xs rounded-full font-semibold px-2.5 py-0.5 bg-stone-50">
+                                {weekOffset > 0 ? `+${weekOffset} sem.` : `${weekOffset} sem.`}
+                            </Badge>
+                        )}
                     </div>
 
-                    <div className="flex items-center gap-4 bg-stone-50 p-4 rounded-2xl border border-stone-200">
+                    <div className="flex items-center gap-4 bg-stone-50 p-3 sm:p-3.5 rounded-2xl border border-stone-200 self-start sm:self-auto">
                         <div className="text-center px-2">
-                            <div className="text-2xl font-bold font-serif text-[#E1567A]">
+                            <div className="text-xl sm:text-2xl font-bold font-serif text-[#E1567A]">
                                 {submittedCount} / {bookedCount}
                             </div>
-                            <div className="text-[11px] text-stone-500 font-semibold uppercase tracking-wider">
+                            <div className="text-[10px] text-stone-500 font-semibold uppercase tracking-wider">
                                 Choix Reçus
                             </div>
                         </div>
-                        <div className="w-px h-10 bg-stone-200" />
+                        <div className="w-px h-8 bg-stone-200" />
                         <div className="text-center px-2">
-                            <div className="text-2xl font-bold font-serif text-stone-800">
+                            <div className="text-xl sm:text-2xl font-bold font-serif text-stone-800">
                                 {bookedCount}
                             </div>
-                            <div className="text-[11px] text-stone-500 font-semibold uppercase tracking-wider">
+                            <div className="text-[10px] text-stone-500 font-semibold uppercase tracking-wider">
                                 Séances Prévues
                             </div>
                         </div>
@@ -412,7 +390,7 @@ export default function WeeklyOpsAdminDashboard() {
                     </div>
                 ) : viewMode === 'calendar' ? (
                     /* ========================================================================= */
-                    /* CALENDAR GRID VIEW: Monday to Friday (With Light Highlight for Today)     */
+                    /* CALENDAR GRID VIEW: Monday to Friday (With Light Pink Border on Today)    */
                     /* ========================================================================= */
                     <div className="grid grid-cols-1 md:grid-cols-5 gap-4 items-start">
                         {weekInfo.daysWithDates.map(({ dayName, dateNumber, monthName, isoDate, isToday }) => (
@@ -424,7 +402,7 @@ export default function WeeklyOpsAdminDashboard() {
                                         : ''
                                 }`}
                             >
-                                {/* Day Column Header with Day Number, Month & Today indicator */}
+                                {/* Day Column Header with Day Number & Month */}
                                 <div className={`rounded-2xl py-3 px-2 text-center shadow-xs ${
                                     isToday 
                                         ? 'bg-gradient-to-br from-[#E1567A] to-[#c94567] text-white shadow-md ring-2 ring-[#E1567A]/20' 
@@ -436,11 +414,6 @@ export default function WeeklyOpsAdminDashboard() {
                                     <span className={`text-[11px] font-medium block mt-0.5 ${isToday ? 'text-rose-100' : 'text-stone-300'}`}>
                                         {dateNumber} {monthName}
                                     </span>
-                                    {isToday && (
-                                        <span className="bg-white text-[#E1567A] text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full mt-1.5 inline-block shadow-2xs">
-                                            Aujourd&apos;hui
-                                        </span>
-                                    )}
                                 </div>
 
                                 {/* Slots for this day */}
