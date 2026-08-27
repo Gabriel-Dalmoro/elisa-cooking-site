@@ -154,8 +154,8 @@ export function extractClientNameFromTitle(title: string): string | null {
 /**
  * Robust matching between a calendar event summary and existing client profiles.
  */
-export function matchEventToClient(summary: string, clients: ClientProfile[]): ClientProfile | null {
-    if (!summary || isInternalBlock(summary)) return null;
+export function matchEventToClient(summary: string, clients: ClientProfile[] = []): ClientProfile | null {
+    if (!summary || isInternalBlock(summary) || !Array.isArray(clients)) return null;
     const cleanSummary = normalizeString(summary);
 
     // 1. Exact Full Name Match
@@ -227,7 +227,7 @@ function getGoogleCalendarClient() {
  * 1. PULL: Fetches Google Calendar events for the target week with Paris timezone safety.
  */
 export async function getUpcomingCalendarBookings(
-    clients: ClientProfile[], 
+    clients: ClientProfile[] = [], 
     offsetWeeks = 0
 ): Promise<{
     matches: CalendarBookingMatch[];

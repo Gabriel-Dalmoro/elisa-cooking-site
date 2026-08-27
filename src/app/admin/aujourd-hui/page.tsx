@@ -26,7 +26,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import AdminPageHeader from '@/components/admin/AdminPageHeader';
 import { SlotSessionStatus, ClientProfile, BookingSession } from '@/lib/types/cooking-ops';
-import { formatLocalDateToIso, FRENCH_DAYS, getWeekOffsetForDate } from '@/lib/dateUtils';
+import { formatLocalDateToIso, FRENCH_DAYS, getWeekOffsetForDate, getParisDateTimeInfo } from '@/lib/dateUtils';
 
 export default function TodayOperationsPage() {
     // Current selected date (defaults to Today local)
@@ -36,20 +36,19 @@ export default function TodayOperationsPage() {
     const [clients, setClients] = useState<ClientProfile[]>([]);
     const [copiedText, setCopiedText] = useState<string | null>(null);
 
-    const isoSelectedDate = useMemo(() => formatLocalDateToIso(selectedDate), [selectedDate]);
+    const isoSelectedDate = useMemo(() => {
+        return getParisDateTimeInfo(selectedDate).isoDate;
+    }, [selectedDate]);
 
     // Human-readable French date e.g. "Mardi 25 Août 2026"
     const formattedDateLabel = useMemo(() => {
-        const dayName = FRENCH_DAYS[selectedDate.getDay()];
-        const dayNum = selectedDate.getDate();
-        const monthName = selectedDate.toLocaleDateString('fr-FR', { month: 'long' });
-        const year = selectedDate.getFullYear();
-        return `${dayName} ${dayNum} ${monthName} ${year}`;
+        const info = getParisDateTimeInfo(selectedDate);
+        return `${info.dayName} ${info.dayNumber} ${info.monthName} ${info.year}`;
     }, [selectedDate]);
 
     const isToday = useMemo(() => {
-        const todayIso = formatLocalDateToIso(new Date());
-        return isoSelectedDate === todayIso;
+        const todayParis = getParisDateTimeInfo(new Date());
+        return isoSelectedDate === todayParis.isoDate;
     }, [isoSelectedDate]);
 
     const currentWeekOffset = useMemo(() => {
@@ -60,14 +59,23 @@ export default function TodayOperationsPage() {
         try {
             setLoading(true);
             // 1. Auto-sync with Google Calendar for the selected date's week
-            await fetch(`/api/cooking-ops/calendar-sync?offset=${currentWeekOffset}`);
+            const syncRes = await fetch(`/api/cooking-ops/calendar-sync?offset=${currentWeekOffset}`);
+            if (syncRes.ok) {
+                const syncData = await syncRes.json();
+                if (syncData.slotStatuses) {
+                    setAllSessions(syncData.slotStatuses);
+                }
+            }
 
             // 2. Fetch updated sessions and clients for this week
             const res = await fetch(`/api/cooking-ops/admin?offset=${currentWeekOffset}`);
-            if (!res.ok) throw new Error('Erreur de chargement');
-            const data = await res.json();
-            setAllSessions(data.slotStatuses || []);
-            setClients(data.clients || []);
+            if (res.ok) {
+                const data = await res.json();
+                if (data.slotStatuses) {
+                    setAllSessions(data.slotStatuses);
+                }
+                setClients(data.clients || []);
+            }
         } catch (e) {
             console.error('Error loading today operations:', e);
         } finally {
@@ -77,7 +85,7 @@ export default function TodayOperationsPage() {
 
     useEffect(() => {
         loadData();
-    }, [loadData]);
+    }, [isoSelectedDate, loadData]);
 
     // Filter sessions matching the selected date
     const todaySessions = useMemo(() => {
