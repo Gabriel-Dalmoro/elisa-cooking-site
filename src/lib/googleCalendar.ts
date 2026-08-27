@@ -1,18 +1,18 @@
 import { google } from 'googleapis';
 import { ClientProfile } from './types/cooking-ops';
-import { getWeekBounds, FRENCH_DAYS, formatLocalDateToIso } from './dateUtils';
+import { getWeekBounds, getParisDateTimeInfo } from './dateUtils';
 
 export interface CalendarBookingMatch {
     gcalEventId: string;
     eventTitle: string;
     startDateTime: string;
-    dateIso: string; // "YYYY-MM-DD" in local time
+    dateIso: string; // "YYYY-MM-DD" in local Paris time
     dayLabel: string; // e.g. "Lundi", "Mardi"
     dayNumber: number; // e.g. 17, 18
     monthName: string; // e.g. "août"
     timeSlot: 'Matin' | 'Après-midi';
     formattedSlot: string; // e.g. "Lundi Matin", "Mardi Après-midi"
-    weekOffset: number; // 0 for current week, 1 for next week
+    weekOffset: number; // offset in weeks
     extractedName: string | null;
     extractedQuota: number | null;
     extractedPeopleCount: number | null;
@@ -21,12 +21,6 @@ export interface CalendarBookingMatch {
     isAnonymousSession: boolean;
     isBlockIgnored: boolean;
 }
-
-const BLOCK_KEYWORDS = [
-    'bloc', 'bloque', 'bloqué', 'indispo', 'indisponible', 
-    'perso', 'personnel', 'vacances', 'off', 'pause', 'ferme', 'fermé', 'conges', 'congés',
-    'rencontre chef'
-];
 
 /**
  * Normalizes text for robust matching (lowercase, removes accents, punctuation, extra spaces).
@@ -42,63 +36,91 @@ function normalizeString(str: string): string {
 }
 
 /**
- * Checks if an event is an internal calendar block or background template (e.g. "Bloc", "Rencontre Chef").
+ * Checks if an event is strictly an internal calendar block (e.g. "Bloc", "Indispo", "Vacances", "Rencontre Chef").
+ * Non-aggressive: Never blocks valid bookings that contain a client name.
  */
 export function isInternalBlock(title: string): boolean {
     if (!title) return false;
     const clean = normalizeString(title);
-    return BLOCK_KEYWORDS.some(keyword => {
-        const regex = new RegExp(`\\b${keyword}\\b`, 'i');
-        return regex.test(clean);
-    });
+
+    const strictBlockKeywords = [
+        'bloc', 'bloque', 'bloque', 'indispo', 'indisponible', 
+        'vacances', 'conges', 'conges', 'rencontre chef', 'non dispo', 'fermeture', 'off'
+    ];
+
+    // 1. Exact match
+    if (strictBlockKeywords.includes(clean)) return true;
+
+    // 2. Starts with block keyword (e.g. "Bloc - Perso", "Indispo toute la journée")
+    const startsWithBlock = strictBlockKeywords.some(kw => 
+        clean.startsWith(`${kw} `) || clean.startsWith(`${kw}:`) || clean.startsWith(`${kw}-`)
+    );
+    if (startsWithBlock) return true;
+
+    return false;
 }
 
 /**
- * Extracts dish count / quota from text like "5 recettes, 2 personnes" or "4 plats".
+ * Extracts dish count / quota from text like "5 recettes, 2 personnes", "4 plats", "5p", "4r".
  */
 export function extractQuotaFromText(text: string): number | null {
     if (!text) return null;
-    const match = text.match(/(\d+)\s*(recettes?|plats?|repas)/i);
+
+    // 1. Explicit keyword match e.g. "5 recettes", "4 plats", "5 repas", "5 portions"
+    const match = text.match(/(\d+)\s*(recettes?|plats?|repas|portions?)/i);
     if (match && match[1]) {
         const count = parseInt(match[1], 10);
         if (count >= 1 && count <= 8) return count;
     }
+
+    // 2. Short suffix match e.g. "5r" (5 recettes)
+    const matchShortR = text.match(/\b(\d+)\s*r\b/i);
+    if (matchShortR && matchShortR[1]) {
+        const count = parseInt(matchShortR[1], 10);
+        if (count >= 1 && count <= 8) return count;
+    }
+
     return null;
 }
 
 /**
- * Extracts household person count from text like "2 personnes", "4 pers", "1 personne".
+ * Extracts household person count from text like "2 personnes", "4 pers", "1 personne", "4pax", "2p".
  */
 export function extractPeopleCountFromText(text: string): number | null {
     if (!text) return null;
+
+    // 1. Explicit keyword match e.g. "2 personnes", "4 pers", "4 pax"
     const match = text.match(/(\d+)\s*(personnes?|pers|pax)/i);
     if (match && match[1]) {
         const count = parseInt(match[1], 10);
         if (count >= 1 && count <= 12) return count;
     }
+
+    // 2. Short suffix match e.g. "4p"
+    const matchShortP = text.match(/\b(\d+)\s*p\b/i);
+    if (matchShortP && matchShortP[1]) {
+        const count = parseInt(matchShortP[1], 10);
+        if (count >= 1 && count <= 12) return count;
+    }
+
     return null;
 }
 
 /**
- * Extracts client name from event title like "Thibault 5 recettes, 2 personnes" or "Romain & Amélie 14h".
+ * Extracts client name from event title like "Thibault 5 recettes, 2 personnes", "Romain & Amélie 14h", "Audrey".
  */
 export function extractClientNameFromTitle(title: string): string | null {
     if (!title || isInternalBlock(title)) return null;
 
     let cleaned = title
-        .replace(/\d+\s*recettes?/gi, '')
-        .replace(/\d+\s*plats?/gi, '')
-        .replace(/\d+\s*repas/gi, '')
-        .replace(/\d+\s*personnes?/gi, '')
-        .replace(/\d+\s*pers/gi, '')
-        .replace(/\d+\s*pax/gi, '')
+        .replace(/\d+\s*(recettes?|plats?|repas|portions?|pers|personnes?|pax|p\b|r\b)/gi, '')
         .replace(/\d+h\d*/gi, '') // Removes "14h" or "14h30"
         .replace(/batch\s*cooking/gi, '')
         .replace(/séance/gi, '')
         .replace(/seance/gi, '')
         .replace(/cuisine\s*chez/gi, '')
         .replace(/chez/gi, '')
-        .replace(/[\(\)\,\-\:\;\/]/g, ' ')
+        .replace(/[\(\)\,\-\:\;\/\&]/g, ' ')
         .replace(/\s+/g, ' ')
         .trim();
 
@@ -108,6 +130,7 @@ export function extractClientNameFromTitle(title: string): string | null {
 
     return cleaned
         .split(' ')
+        .filter(w => w.length > 0)
         .map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
         .join(' ');
 }
@@ -127,7 +150,7 @@ export function matchEventToClient(summary: string, clients: ClientProfile[]): C
         }
     }
 
-    // 2. Token Matching
+    // 2. Token Matching (all parts of client name found)
     for (const client of clients) {
         const nameParts = normalizeString(client.name).split(' ').filter(p => p.length >= 3);
         const allPartsMatch = nameParts.length > 0 && nameParts.every(part => cleanSummary.includes(part));
@@ -136,7 +159,7 @@ export function matchEventToClient(summary: string, clients: ClientProfile[]): C
         }
     }
 
-    // 3. First Name + Initial Match
+    // 3. First Name + Initial Match (e.g. "Claire M")
     for (const client of clients) {
         const parts = client.name.trim().split(' ');
         if (parts.length >= 2) {
@@ -149,7 +172,7 @@ export function matchEventToClient(summary: string, clients: ClientProfile[]): C
         }
     }
 
-    // 4. First Name Match
+    // 4. First Name Match (if length >= 3)
     for (const client of clients) {
         const firstName = normalizeString(client.name.split(' ')[0]);
         if (firstName.length >= 3) {
@@ -185,7 +208,7 @@ function getGoogleCalendarClient() {
 }
 
 /**
- * 1. PULL: Fetches Google Calendar events for the target week.
+ * 1. PULL: Fetches Google Calendar events for the target week with Paris timezone safety.
  */
 export async function getUpcomingCalendarBookings(
     clients: ClientProfile[], 
@@ -203,15 +226,20 @@ export async function getUpcomingCalendarBookings(
             return { matches: [], weekLabel: '', validBookingsCount: 0, ignoredBlocksCount: 0 };
         }
 
-        const { start, end, weekLabel } = getWeekBounds(offsetWeeks);
+        const { startIso, endIso, weekLabel } = getWeekBounds(offsetWeeks);
         const calendarId = process.env.GOOGLE_CALENDAR_ID || 'primary';
+
+        // Query with timezone 'Europe/Paris' bounds
+        const timeMin = `${startIso}T00:00:00+02:00`;
+        const timeMax = `${endIso}T23:59:59+02:00`;
 
         const response = await calendar.events.list({
             calendarId,
-            timeMin: start.toISOString(),
-            timeMax: end.toISOString(),
+            timeMin,
+            timeMax,
             singleEvents: true,
             orderBy: 'startTime',
+            timeZone: 'Europe/Paris'
         });
 
         const events = response.data.items || [];
@@ -236,15 +264,9 @@ export async function getUpcomingCalendarBookings(
 
             validBookingsCount++;
 
-            const startDate = new Date(startRaw);
-            const dateIso = formatLocalDateToIso(startDate); // Local YYYY-MM-DD
-            const dayName = FRENCH_DAYS[startDate.getDay()];
-            const dayNumber = startDate.getDate();
-            const monthName = startDate.toLocaleDateString('fr-FR', { month: 'short' });
-            const hour = startDate.getHours();
-            
-            // Format time slot: Morning (< 12:30) vs Afternoon (>= 12:30)
-            const timeSlot: 'Matin' | 'Après-midi' = hour < 12.5 ? 'Matin' : 'Après-midi';
+            // Extract Paris date info (never shifts days or slots)
+            const dateInfo = getParisDateTimeInfo(startRaw);
+            const { isoDate, dayName, dayNumber, monthName, timeSlot } = dateInfo;
             const formattedSlot = `${dayName} ${timeSlot}`;
 
             const matchedClient = matchEventToClient(combinedText, clients);
@@ -258,12 +280,12 @@ export async function getUpcomingCalendarBookings(
             results.push({
                 gcalEventId: event.id || '',
                 eventTitle: title,
-                startDateTime: startDate.toISOString(),
-                dateIso,
-                dayLabel: dayName,
-                dayNumber,
-                monthName,
-                timeSlot,
+                startDateTime: typeof startRaw === 'string' ? startRaw : new Date(startRaw).toISOString(),
+                dateIso: dateInfo.isoDate,
+                dayLabel: dateInfo.dayName,
+                dayNumber: dateInfo.dayNumber,
+                monthName: dateInfo.monthName,
+                timeSlot: dateInfo.timeSlot,
                 formattedSlot,
                 weekOffset: offsetWeeks,
                 extractedName: extractedName || (isAnonymousSession ? `Client (${formattedSlot})` : 'Séance'),
@@ -322,35 +344,20 @@ export async function createGoogleCalendarEvent(session: {
             requestBody: {
                 summary,
                 description,
-                start: { dateTime: startDateTime, timeZone: 'Europe/Paris' },
-                end: { dateTime: endDateTime, timeZone: 'Europe/Paris' },
-            }
+                start: {
+                    dateTime: startDateTime,
+                    timeZone: 'Europe/Paris',
+                },
+                end: {
+                    dateTime: endDateTime,
+                    timeZone: 'Europe/Paris',
+                },
+            },
         });
 
         return response.data.id || null;
-    } catch (err) {
-        console.error('[GoogleCalendar] Error creating event on Google Calendar:', err);
+    } catch (error) {
+        console.error('[GoogleCalendar] Error creating event:', error);
         return null;
-    }
-}
-
-/**
- * 3. DELETE: Deletes an event from Google Calendar if removed in the admin.
- */
-export async function deleteGoogleCalendarEvent(gcalEventId: string): Promise<boolean> {
-    try {
-        const calendar = getGoogleCalendarClient();
-        if (!calendar || !gcalEventId) return false;
-
-        const calendarId = process.env.GOOGLE_CALENDAR_ID || 'primary';
-        await calendar.events.delete({
-            calendarId,
-            eventId: gcalEventId,
-        });
-
-        return true;
-    } catch (err) {
-        console.warn('[GoogleCalendar] Error deleting event:', err);
-        return false;
     }
 }

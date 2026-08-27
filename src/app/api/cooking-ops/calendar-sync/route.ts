@@ -13,8 +13,16 @@ import { getWeekBounds } from '@/lib/dateUtils';
 export async function GET(request: NextRequest) {
     try {
         const { searchParams } = new URL(request.url);
-        const weekParam = searchParams.get('week'); // 'current' or 'next'
-        const offsetWeeks = weekParam === 'next' ? 1 : 0;
+        const offsetParam = searchParams.get('offset') ?? searchParams.get('week');
+        let offsetWeeks = 0;
+        if (offsetParam === 'next') {
+            offsetWeeks = 1;
+        } else if (offsetParam === 'current') {
+            offsetWeeks = 0;
+        } else if (offsetParam !== null && offsetParam !== undefined) {
+            const parsed = parseInt(offsetParam, 10);
+            offsetWeeks = isNaN(parsed) ? 0 : parsed;
+        }
 
         const { daysWithDates, weekLabel } = getWeekBounds(offsetWeeks);
         const startIso = daysWithDates[0].isoDate;

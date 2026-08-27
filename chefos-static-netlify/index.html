@@ -46,6 +46,7 @@
                         'glow-terracotta': '0 0 35px -5px rgba(217, 104, 83, 0.3)',
                         'glow-emerald': '0 0 30px -5px rgba(16, 185, 129, 0.2)',
                         'glow-amber': '0 0 30px -5px rgba(245, 158, 11, 0.2)',
+                        'glow-blue': '0 0 30px -5px rgba(59, 130, 246, 0.2)',
                     },
                     animation: {
                         'shake': 'shake 0.4s cubic-bezier(.36,.07,.19,.97) both',
@@ -102,6 +103,9 @@
             .shadow-xl, .shadow-2xl, .shadow-lg, .shadow-glow-terracotta {
                 box-shadow: none !important;
             }
+            .tab-pane {
+                display: block !important;
+            }
         }
 
         /* Custom scrollbar */
@@ -147,7 +151,7 @@
                             Chef<span class="text-terracotta-600 italic">OS</span> Strategic Blueprint
                         </h1>
                         <p class="text-xs text-stone-500 max-w-xs mx-auto">
-                            Please enter the confidential access key to view this business plan.
+                            Please enter the confidential access key to view this master plan.
                         </p>
                     </div>
                 </div>
@@ -182,14 +186,14 @@
                         type="submit" 
                         class="w-full py-3.5 px-6 rounded-2xl bg-gradient-to-r from-stone-900 via-stone-800 to-terracotta-900 hover:from-terracotta-700 hover:to-stone-900 text-white font-bold text-xs shadow-lg shadow-stone-900/10 transition-all cursor-pointer flex items-center justify-center gap-2 group"
                     >
-                        <span>Unlock Document</span>
+                        <span>Unlock Blueprint</span>
                         <i data-lucide="arrow-right" class="w-4 h-4 group-hover:translate-x-1 transition-transform"></i>
                     </button>
                 </form>
 
                 <!-- Footer Note -->
                 <div class="text-center pt-2 border-t border-stone-100 text-[11px] text-stone-400 font-mono">
-                    Annecy, France • Confidential
+                    Annecy • Geneva • European Rollout
                 </div>
             </div>
         </div>
@@ -202,7 +206,7 @@
     <div id="main-content" class="hidden">
         
         <!-- Top Sticky Action Bar (Screen Only) -->
-        <header class="no-print sticky top-0 z-50 bg-[#FAF8F5]/85 backdrop-blur-md border-b border-stone-200/80 px-6 py-3.5 transition-all">
+        <header class="no-print sticky top-0 z-50 bg-[#FAF8F5]/90 backdrop-blur-md border-b border-stone-200/80 px-6 py-3.5 transition-all">
             <div class="max-w-6xl mx-auto flex items-center justify-between">
                 <div class="flex items-center gap-3">
                     <div class="w-8 h-8 rounded-xl bg-gradient-to-br from-terracotta-500 to-terracotta-700 flex items-center justify-center text-white shadow-md shadow-terracotta-600/30">
@@ -210,13 +214,16 @@
                     </div>
                     <div class="flex items-center gap-2">
                         <span class="font-serif font-black text-xl tracking-tight text-stone-900">Chef<span class="text-terracotta-600 italic">OS</span></span>
-                        <span class="text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-gradient-to-r from-terracotta-100 to-orange-100 text-terracotta-800 border border-terracotta-200/80">Master Blueprint 2026</span>
+                        <span class="text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-gradient-to-r from-terracotta-100 to-orange-100 text-terracotta-800 border border-terracotta-200/80">Master Blueprint v2.0</span>
                     </div>
                 </div>
                 
                 <div class="flex items-center gap-3">
                     <a href="#toc" class="text-xs font-medium text-stone-600 hover:text-terracotta-700 px-3 py-1.5 rounded-lg hover:bg-terracotta-50 transition-colors">
                         Index
+                    </a>
+                    <a href="#section-5" class="text-xs font-bold text-amber-700 bg-amber-50 px-3 py-1.5 rounded-lg border border-amber-200 hover:bg-amber-100 transition-colors flex items-center gap-1.5">
+                        <i data-lucide="receipt" class="w-3.5 h-3.5"></i> Billing & Tax Engine
                     </a>
                     <button onclick="window.print()" class="flex items-center gap-1.5 text-xs font-semibold bg-gradient-to-r from-stone-900 to-stone-800 hover:from-terracotta-800 hover:to-stone-900 text-white px-4 py-2 rounded-xl shadow-sm transition-all cursor-pointer">
                         <i data-lucide="printer" class="w-3.5 h-3.5 text-terracotta-300"></i>
@@ -235,7 +242,7 @@
             <!-- COVER / HERO SECTION -->
             <!-- ======================================================== -->
             <section class="relative bg-gradient-to-br from-white via-[#FAF8F5] to-terracotta-50/50 rounded-[3rem] p-8 md:p-16 border border-stone-200/90 shadow-2xl shadow-stone-900/5 overflow-hidden">
-                <!-- Decorative vibrant ambient glows -->
+                <!-- Decorative ambient glows -->
                 <div class="absolute -right-20 -top-20 w-96 h-96 bg-gradient-to-br from-terracotta-300/40 to-rose-300/30 rounded-full blur-3xl pointer-events-none"></div>
                 <div class="absolute -left-20 -bottom-20 w-96 h-96 bg-gradient-to-tr from-amber-300/30 via-orange-200/20 to-emerald-200/20 rounded-full blur-3xl pointer-events-none"></div>
                 
@@ -243,8 +250,8 @@
                     <!-- Meta Pill -->
                     <div class="inline-flex items-center gap-2.5 px-4 py-1.5 rounded-full bg-white/95 border border-terracotta-200/80 text-stone-700 text-xs font-semibold shadow-xs">
                         <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 shadow-sm shadow-emerald-500/50 animate-pulse"></span>
-                        <span class="tracking-wide">CONFIDENTIAL STRATEGIC BLUEPRINT • 2026</span>
-                        <span class="text-terracotta-600 font-bold">• ANNECY, FRANCE</span>
+                        <span class="tracking-wide">CONFIDENTIAL MASTER BLUEPRINT • 2026</span>
+                        <span class="text-terracotta-600 font-bold">• ANNECY & EUROPEAN ALPS</span>
                     </div>
 
                     <!-- Main Titles -->
@@ -253,7 +260,7 @@
                             Chef<span class="text-transparent bg-clip-text bg-gradient-to-r from-terracotta-600 via-rose-600 to-amber-600 italic">OS</span>
                         </h1>
                         <p class="text-xl sm:text-2xl md:text-3xl font-serif text-stone-700 leading-snug font-normal">
-                            The Vertical Operating System for Private Chefs, In-Home Batch Cookers & Culinary Brigades.
+                            The Vertical Operating System for In-Home Batch Cookers & Private Chefs: Frictionless Selections, Automated Grocery Logistics & Universal Billing.
                         </p>
                     </div>
 
@@ -264,28 +271,28 @@
                         <div class="p-5 rounded-2xl bg-gradient-to-b from-white to-rose-50/40 border border-rose-200/80 shadow-xs space-y-1.5 relative overflow-hidden group">
                             <div class="w-1.5 h-full bg-rose-500 absolute left-0 top-0"></div>
                             <div class="text-[11px] uppercase font-mono tracking-wider text-rose-700 font-bold flex items-center gap-1.5">
-                                <i data-lucide="sparkles" class="w-3 h-3 text-rose-500"></i> Origin & Proof
+                                <i data-lucide="sparkles" class="w-3 h-3 text-rose-500"></i> Origin & Co-Design
                             </div>
                             <div class="text-lg font-bold text-stone-900">Elisa Batch Cooking</div>
-                            <div class="text-xs text-stone-600 leading-relaxed">From 0 to 100% fully booked in 7 months in Annecy & Haute-Savoie.</div>
+                            <div class="text-xs text-stone-600 leading-relaxed">Co-designed on real kitchen counters in Annecy, scaled to 100% capacity in 7 months.</div>
                         </div>
 
                         <div class="p-5 rounded-2xl bg-gradient-to-b from-white to-amber-50/40 border border-amber-200/80 shadow-xs space-y-1.5 relative overflow-hidden group">
                             <div class="w-1.5 h-full bg-amber-500 absolute left-0 top-0"></div>
                             <div class="text-[11px] uppercase font-mono tracking-wider text-amber-700 font-bold flex items-center gap-1.5">
-                                <i data-lucide="credit-card" class="w-3 h-3 text-amber-500"></i> Business Model
+                                <i data-lucide="receipt" class="w-3 h-3 text-amber-500"></i> Core Revenue Wedge
                             </div>
-                            <div class="text-lg font-bold text-stone-900">B2B Vertical SaaS</div>
-                            <div class="text-xs text-stone-600 leading-relaxed">€29 to €149 / mo recurring subscription tiers with 14-day free trial.</div>
+                            <div class="text-lg font-bold text-stone-900">Labor/Food Split & Tax Credit</div>
+                            <div class="text-xs text-stone-600 leading-relaxed">Auto-splits Débours food pass-through; connects instant 50% home service tax deduction.</div>
                         </div>
 
                         <div class="p-5 rounded-2xl bg-gradient-to-b from-white to-emerald-50/40 border border-emerald-200/80 shadow-xs space-y-1.5 relative overflow-hidden group">
                             <div class="w-1.5 h-full bg-emerald-500 absolute left-0 top-0"></div>
                             <div class="text-[11px] uppercase font-mono tracking-wider text-emerald-700 font-bold flex items-center gap-1.5">
-                                <i data-lucide="zap" class="w-3 h-3 text-emerald-500"></i> Operational Moat
+                                <i data-lucide="zap" class="w-3 h-3 text-emerald-500"></i> Micro-SaaS Model
                             </div>
-                            <div class="text-lg font-bold text-stone-900">Zero Sunday Admin</div>
-                            <div class="text-xs text-stone-600 leading-relaxed">WhatsApp magic links, market grocery sum & wake-locked cook mode.</div>
+                            <div class="text-lg font-bold text-stone-900">High-Margin Lifestyle Asset</div>
+                            <div class="text-xs text-stone-600 leading-relaxed">200–400 European chefs at €29–€69/mo generating €12k–€25k/mo recurring solo revenue.</div>
                         </div>
                     </div>
 
@@ -295,12 +302,12 @@
                             <span class="text-stone-900 font-bold">Author & Founder:</span> Gabriel Dalmoro
                         </div>
                         <div class="flex items-center gap-2">
-                            <span class="text-stone-900 font-bold">Chief Culinary Advisor:</span> Chef Elisa
+                            <span class="text-stone-900 font-bold">Design Partner & Culinary Advisor:</span> Chef Elisa
                         </div>
                         <div class="flex items-center gap-2">
-                            <span class="text-stone-900 font-bold">Location:</span> 
+                            <span class="text-stone-900 font-bold">Base Location:</span> 
                             <span class="inline-flex items-center gap-1 text-terracotta-700 font-semibold">
-                                <i data-lucide="map-pin" class="w-3 h-3 text-terracotta-600"></i> Annecy, France
+                                <i data-lucide="map-pin" class="w-3 h-3 text-terracotta-600"></i> Annecy, France & Geneva Alps
                             </span>
                         </div>
                     </div>
@@ -313,39 +320,39 @@
             <!-- ======================================================== -->
             <nav id="toc" class="p-8 bg-white rounded-3xl border border-stone-200/90 shadow-xs">
                 <h2 class="text-xs font-mono uppercase tracking-widest text-terracotta-700 font-bold mb-6 flex items-center gap-2">
-                    <i data-lucide="list" class="w-4 h-4"></i> Table of Contents
+                    <i data-lucide="list" class="w-4 h-4"></i> Master Table of Contents
                 </h2>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-3 text-sm font-medium">
                     <a href="#section-1" class="flex items-center justify-between py-1.5 px-3 rounded-xl hover:bg-terracotta-50/60 text-stone-700 hover:text-terracotta-800 transition-colors">
-                        <span>1. The Origin Story & Brand Narrative</span>
+                        <span>1. The Reality Check: 3 Existential Risks Solved</span>
                         <span class="text-xs font-mono text-terracotta-600 font-bold">01</span>
                     </a>
                     <a href="#section-2" class="flex items-center justify-between py-1.5 px-3 rounded-xl hover:bg-terracotta-50/60 text-stone-700 hover:text-terracotta-800 transition-colors">
-                        <span>2. Market Problem & Competitive Moat</span>
+                        <span>2. Market Problem, True Moats & Positioning</span>
                         <span class="text-xs font-mono text-terracotta-600 font-bold">02</span>
                     </a>
                     <a href="#section-3" class="flex items-center justify-between py-1.5 px-3 rounded-xl hover:bg-terracotta-50/60 text-stone-700 hover:text-terracotta-800 transition-colors">
-                        <span>3. Current Production Implementation</span>
+                        <span>3. Production Audit & The AI Onboarding Engine</span>
                         <span class="text-xs font-mono text-terracotta-600 font-bold">03</span>
                     </a>
                     <a href="#section-4" class="flex items-center justify-between py-1.5 px-3 rounded-xl hover:bg-terracotta-50/60 text-stone-700 hover:text-terracotta-800 transition-colors">
-                        <span>4. Core Product Architecture & Pillars</span>
+                        <span>4. Core Product Architecture & Legal Guardrails</span>
                         <span class="text-xs font-mono text-terracotta-600 font-bold">04</span>
                     </a>
-                    <a href="#section-5" class="flex items-center justify-between py-1.5 px-3 rounded-xl hover:bg-terracotta-50/60 text-stone-700 hover:text-terracotta-800 transition-colors">
-                        <span>5. Pricing & Monetization Model</span>
-                        <span class="text-xs font-mono text-terracotta-600 font-bold">05</span>
+                    <a href="#section-5" class="flex items-center justify-between py-1.5 px-3 rounded-xl hover:bg-amber-50 text-amber-900 font-bold transition-colors border border-amber-200/60">
+                        <span class="flex items-center gap-1.5"><i data-lucide="receipt" class="w-3.5 h-3.5 text-amber-600"></i> 5. Universal Billing, Invoicing & Tax Credit Architecture</span>
+                        <span class="text-xs font-mono text-amber-700 font-bold">05</span>
                     </a>
                     <a href="#section-6" class="flex items-center justify-between py-1.5 px-3 rounded-xl hover:bg-terracotta-50/60 text-stone-700 hover:text-terracotta-800 transition-colors">
-                        <span class="font-bold text-terracotta-800">6. Extensive Social Media & Organic Growth Playbook</span>
+                        <span>6. Recalibrated Pricing & Micro-SaaS Unit Economics</span>
                         <span class="text-xs font-mono text-terracotta-600 font-bold">06</span>
                     </a>
                     <a href="#section-7" class="flex items-center justify-between py-1.5 px-3 rounded-xl hover:bg-terracotta-50/60 text-stone-700 hover:text-terracotta-800 transition-colors">
-                        <span>7. The 4-Phase Master Execution Roadmap</span>
+                        <span>7. Social Storytelling, Outreach & Geneva Test</span>
                         <span class="text-xs font-mono text-terracotta-600 font-bold">07</span>
                     </a>
                     <a href="#section-8" class="flex items-center justify-between py-1.5 px-3 rounded-xl hover:bg-terracotta-50/60 text-stone-700 hover:text-terracotta-800 transition-colors">
-                        <span>8. Strategic Summary: Why We Win</span>
+                        <span>8. Revised 4-Phase Roadmap & Discovery Plan</span>
                         <span class="text-xs font-mono text-terracotta-600 font-bold">08</span>
                     </a>
                 </div>
@@ -353,121 +360,137 @@
 
 
             <!-- ======================================================== -->
-            <!-- SECTION 1: ORIGIN STORY -->
+            <!-- SECTION 1: THE REALITY CHECK -->
             <!-- ======================================================== -->
             <section id="section-1" class="space-y-6 pt-6">
                 <div class="flex items-center gap-3">
                     <span class="h-7 w-7 rounded-xl bg-gradient-to-br from-terracotta-500 to-terracotta-700 text-white font-mono text-xs font-bold flex items-center justify-center shadow-xs">01</span>
-                    <h2 class="text-2xl md:text-3xl font-serif font-bold text-stone-900">The Origin Story & Brand Narrative</h2>
+                    <h2 class="text-2xl md:text-3xl font-serif font-bold text-stone-900">The Reality Check: 3 Existential Risks Solved</h2>
                 </div>
 
-                <div class="relative bg-gradient-to-br from-stone-950 via-stone-900 to-terracotta-950 text-white rounded-3xl p-8 md:p-10 shadow-xl overflow-hidden border border-terracotta-900/40">
-                    <div class="absolute right-0 top-0 w-80 h-80 bg-terracotta-500/15 rounded-full blur-3xl"></div>
-                    <div class="absolute left-1/3 bottom-0 w-60 h-60 bg-amber-500/10 rounded-full blur-2xl"></div>
-                    <div class="relative z-10 space-y-4">
-                        <div class="inline-flex items-center gap-2 text-xs font-mono uppercase tracking-widest text-terracotta-400 font-bold">
-                            <i data-lucide="sparkles" class="w-3.5 h-3.5"></i> The Kitchen-Counter Narrative
-                        </div>
-                        <blockquote class="text-lg md:text-xl font-serif font-light italic leading-relaxed text-stone-200">
-                            "7 months ago in Annecy, my partner Elisa launched her in-home batch cooking practice. At the same time, I was running an automation consultancy. Every Sunday night, I watched her drown in unformatted WhatsApp messages, manual recipe typing, and 2 hours of stressful mental grocery math across 8 client households.<br><br>
-                            I built an operating system directly into her website to automate her entire weekly workflow. In 7 months, she reached 100% booking capacity and is now actively hiring her first assistant chef. Now, we are packaging this exact operating system into <strong>ChefOS</strong> so every private chef can scale without burning out."
-                        </blockquote>
-                    </div>
-                </div>
+                <p class="text-sm text-stone-600 max-w-3xl leading-relaxed">
+                    Great products die from false validation, flawed value propositions, and broken distribution math. ChefOS is built around three critical strategic pivots:
+                </p>
 
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-5 pt-2">
-                    <div class="bg-gradient-to-b from-white to-rose-50/30 p-6 rounded-2xl border border-rose-200/80 space-y-2">
-                        <div class="w-9 h-9 rounded-xl bg-rose-100 text-rose-600 flex items-center justify-center shadow-xs">
-                            <i data-lucide="heart" class="w-4 h-4"></i>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
+                    <!-- Risk 1 -->
+                    <div class="bg-white p-6 rounded-3xl border border-rose-200/80 shadow-xs space-y-3 relative overflow-hidden">
+                        <div class="w-1.5 h-full bg-rose-500 absolute left-0 top-0"></div>
+                        <div class="font-mono text-xs font-bold text-rose-700 uppercase tracking-wider flex items-center gap-1.5">
+                            <i data-lucide="alert-triangle" class="w-3.5 h-3.5"></i> Risk 1: The N=1 Trap
                         </div>
-                        <h3 class="font-bold text-stone-900 text-sm">Authentic Human Empathy</h3>
-                        <p class="text-xs text-stone-600 leading-relaxed">Built directly next to the end-user on a kitchen counter in Annecy, not in a sterile tech office.</p>
+                        <h3 class="font-serif font-bold text-base text-stone-900">Elisa is a Co-Designer, Not Validation</h3>
+                        <p class="text-xs text-stone-600 leading-relaxed">
+                            Elisa's model (4 dishes, 8 clients, Annecy market, WhatsApp) is specific to her. <strong>Pivot:</strong> Conduct 15 discovery calls with non-Elisa batch cookers before building team delegation. Formalize Elisa's advisor equity now.
+                        </p>
                     </div>
-                    <div class="bg-gradient-to-b from-white to-emerald-50/30 p-6 rounded-2xl border border-emerald-200/80 space-y-2">
-                        <div class="w-9 h-9 rounded-xl bg-emerald-100 text-emerald-600 flex items-center justify-center shadow-xs">
-                            <i data-lucide="trending-up" class="w-4 h-4"></i>
+
+                    <!-- Risk 2 -->
+                    <div class="bg-white p-6 rounded-3xl border border-amber-200/80 shadow-xs space-y-3 relative overflow-hidden">
+                        <div class="w-1.5 h-full bg-amber-500 absolute left-0 top-0"></div>
+                        <div class="font-mono text-xs font-bold text-amber-800 uppercase tracking-wider flex items-center gap-1.5">
+                            <i data-lucide="dollar-sign" class="w-3.5 h-3.5"></i> Risk 2: Value Proposition
                         </div>
-                        <h3 class="font-bold text-stone-900 text-sm">Concrete Proof of Scale</h3>
-                        <p class="text-xs text-stone-600 leading-relaxed">0 to fully-booked capacity in 7 months with 10+ hours saved on unpaid weekly logistics.</p>
+                        <h3 class="font-serif font-bold text-base text-stone-900">Chefs Buy Revenue & Getting Paid</h3>
+                        <p class="text-xs text-stone-600 leading-relaxed">
+                            Artisans undervalue unpaid time; "saves 10 hours" doesn't sell. <strong>Pivot:</strong> Value proposition centers on guaranteed recurring payments, no-show protection, and unlocking 50% client tax credit deductions.
+                        </p>
                     </div>
-                    <div class="bg-gradient-to-b from-white to-amber-50/30 p-6 rounded-2xl border border-amber-200/80 space-y-2">
-                        <div class="w-9 h-9 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center shadow-xs">
-                            <i data-lucide="shield-check" class="w-4 h-4"></i>
+
+                    <!-- Risk 3 -->
+                    <div class="bg-white p-6 rounded-3xl border border-emerald-200/80 shadow-xs space-y-3 relative overflow-hidden">
+                        <div class="w-1.5 h-full bg-emerald-500 absolute left-0 top-0"></div>
+                        <div class="font-mono text-xs font-bold text-emerald-800 uppercase tracking-wider flex items-center gap-1.5">
+                            <i data-lucide="target" class="w-3.5 h-3.5"></i> Risk 3: Distribution Math
                         </div>
-                        <h3 class="font-bold text-stone-900 text-sm">Live Kitchen Stress-Testing</h3>
-                        <p class="text-xs text-stone-600 leading-relaxed">Every feature is battle-tested in real client homes across live cooking sessions before release.</p>
+                        <h3 class="font-serif font-bold text-base text-stone-900">High-Margin Micro-SaaS Economics</h3>
+                        <p class="text-xs text-stone-600 leading-relaxed">
+                            10 DMs/week fails mathematically. <strong>Pivot:</strong> Scale to 30–50 DMs/day during launch push, tap culinary alumni networks, Facebook batch-cooking groups, accountant referrals, and free watermarked story flyers.
+                        </p>
                     </div>
                 </div>
             </section>
 
 
             <!-- ======================================================== -->
-            <!-- SECTION 2: MARKET PROBLEM & MOAT -->
+            <!-- SECTION 2: MARKET PROBLEM, TRUE MOATS & POSITIONING -->
             <!-- ======================================================== -->
             <section id="section-2" class="space-y-6 pt-6 page-break">
                 <div class="flex items-center gap-3">
                     <span class="h-7 w-7 rounded-xl bg-gradient-to-br from-terracotta-500 to-terracotta-700 text-white font-mono text-xs font-bold flex items-center justify-center shadow-xs">02</span>
-                    <h2 class="text-2xl md:text-3xl font-serif font-bold text-stone-900">Market Problem & Competitive Moat</h2>
+                    <h2 class="text-2xl md:text-3xl font-serif font-bold text-stone-900">Market Problem, True Moats & Positioning</h2>
                 </div>
 
-                <p class="text-sm text-stone-600 max-w-3xl leading-relaxed">
-                    The culinary software market is heavily polarized: legacy systems cater to massive commercial dining rooms, while meal-prep software focuses on factory box shipping. <strong>In-home batch cooking and recurring private chefs are completely underserved.</strong>
-                </p>
+                <!-- True Moat Breakdown -->
+                <div class="p-7 rounded-3xl bg-gradient-to-br from-stone-900 via-stone-800 to-terracotta-950 text-white space-y-4 border border-terracotta-900/40">
+                    <div class="flex items-center gap-2 text-xs font-mono text-terracotta-400 font-bold uppercase tracking-wider">
+                        <i data-lucide="database" class="w-4 h-4"></i> The Compounding Moat
+                    </div>
+                    <h3 class="text-xl font-serif font-bold text-white">
+                        Ingredient Normalization & Tax Code Alignment
+                    </h3>
+                    <p class="text-xs md:text-sm text-stone-300 leading-relaxed">
+                        "Kitchen DNA" is a temporary head start. The real compounding asset in ChefOS is two-fold:
+                    </p>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2 text-xs">
+                        <div class="p-4 bg-white/10 rounded-2xl border border-white/10 space-y-1.5">
+                            <strong class="text-terracotta-300 font-bold block">1. The Normalized Ingredient Engine:</strong>
+                            <p class="text-stone-300">A compounding dictionary mapping recipe texts to standardized items, unit conversions, and store aisle categories. Hard to copy, improves with every user.</p>
+                        </div>
+                        <div class="p-4 bg-white/10 rounded-2xl border border-white/10 space-y-1.5">
+                            <strong class="text-amber-300 font-bold block">2. In-Home Regulatory Boundary:</strong>
+                            <p class="text-stone-300">In-home meal prep qualifies for 50% home service tax credits (France SAP, Germany §35a, Sweden RUT) whereas commercial delivery meal-prep companies are excluded by law.</p>
+                        </div>
+                    </div>
+                </div>
 
-                <!-- Comparison Table -->
+                <!-- Competitor Table -->
                 <div class="overflow-x-auto rounded-2xl border border-stone-200 bg-white shadow-xs">
                     <table class="w-full text-left text-xs">
                         <thead>
                             <tr class="bg-stone-50 border-b border-stone-200 text-stone-500 font-mono uppercase tracking-wider">
                                 <th class="p-4 font-semibold">Dimension</th>
-                                <th class="p-4 font-semibold">Commercial ERPs (meez)</th>
-                                <th class="p-4 font-semibold">Meal Prep SaaS (Sprwt)</th>
-                                <th class="p-4 font-semibold">Marketplaces (TakeAChef)</th>
+                                <th class="p-4 font-semibold">Generic Invoicing (Abby/Pennylane)</th>
+                                <th class="p-4 font-semibold">Commercial ERP (meez)</th>
+                                <th class="p-4 font-semibold">Delivery Meal Prep (Sprwt)</th>
                                 <th class="p-4 font-bold text-terracotta-900 bg-gradient-to-r from-terracotta-100 to-orange-100">ChefOS (Our Wedge)</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-stone-200 text-stone-700">
                             <tr>
-                                <td class="p-4 font-bold text-stone-900">Target Segment</td>
+                                <td class="p-4 font-bold text-stone-900">Target User</td>
+                                <td class="p-4">General freelancers</td>
                                 <td class="p-4">Restaurant kitchens</td>
-                                <td class="p-4">Factory prep facilities</td>
-                                <td class="p-4">One-off event dinner parties</td>
+                                <td class="p-4">Box delivery factories</td>
                                 <td class="p-4 font-semibold text-terracotta-900 bg-terracotta-50/40">In-Home Batch Cookers & Solo Chefs</td>
                             </tr>
                             <tr>
-                                <td class="p-4 font-bold text-stone-900">Client Choice Flow</td>
-                                <td class="p-4 text-stone-400">None (Static menu)</td>
-                                <td class="p-4">Complex eCommerce store</td>
-                                <td class="p-4">Marketplace messaging</td>
+                                <td class="p-4 font-bold text-stone-900">Grocery $\leftrightarrow$ Invoice</td>
+                                <td class="p-4 text-stone-400">Manual line entry</td>
+                                <td class="p-4">Inventory deduction</td>
+                                <td class="p-4">E-commerce cart</td>
+                                <td class="p-4 font-semibold text-terracotta-900 bg-terracotta-50/40">Auto-splits Débours (Food) vs Labour</td>
+                            </tr>
+                            <tr>
+                                <td class="p-4 font-bold text-stone-900">Client Selection</td>
+                                <td class="p-4 text-stone-400">None</td>
+                                <td class="p-4 text-stone-400">None</td>
+                                <td class="p-4">Account login / password</td>
                                 <td class="p-4 font-semibold text-terracotta-900 bg-terracotta-50/40">1-Click WhatsApp Magic Link</td>
                             </tr>
                             <tr>
-                                <td class="p-4 font-bold text-stone-900">Allergy Shield</td>
-                                <td class="p-4">Recipe allergen flags</td>
-                                <td class="p-4">Basic order tags</td>
-                                <td class="p-4">Freeform notes</td>
-                                <td class="p-4 font-semibold text-terracotta-900 bg-terracotta-50/40">Household Dietary Lock & Alert Banner</td>
+                                <td class="p-4 font-bold text-stone-900">Onboarding Friction</td>
+                                <td class="p-4">High (Manual setup)</td>
+                                <td class="p-4">High (Manual costing)</td>
+                                <td class="p-4">Very High (Store builder)</td>
+                                <td class="p-4 font-semibold text-terracotta-900 bg-terracotta-50/40">AI Recipe Importer (Photo/Text $\rightarrow$ 30s)</td>
                             </tr>
                             <tr>
-                                <td class="p-4 font-bold text-stone-900">Cooking Experience</td>
-                                <td class="p-4">Paper sheets / binder</td>
-                                <td class="p-4">Packing slips</td>
-                                <td class="p-4">None</td>
-                                <td class="p-4 font-semibold text-terracotta-900 bg-terracotta-50/40">Tablet Cook Mode + Screen Wake Lock</td>
-                            </tr>
-                            <tr>
-                                <td class="p-4 font-bold text-stone-900">Team Scaling</td>
-                                <td class="p-4">Complex POS logins</td>
-                                <td class="p-4">Delivery driver app</td>
-                                <td class="p-4 text-stone-400">N/A</td>
-                                <td class="p-4 font-semibold text-terracotta-900 bg-terracotta-50/40">Scoped Assistant View (Mobile Sheet Only)</td>
-                            </tr>
-                            <tr>
-                                <td class="p-4 font-bold text-stone-900">Grocery Aggregation</td>
-                                <td class="p-4">Raw yield calculations</td>
-                                <td class="p-4">Wholesale pallet orders</td>
+                                <td class="p-4 font-bold text-stone-900">Tax Credit Enabler</td>
+                                <td class="p-4">Generic API only</td>
                                 <td class="p-4 text-stone-400">None</td>
-                                <td class="p-4 font-semibold text-terracotta-900 bg-terracotta-50/40">Market Aisle Checklist (Butcher/Fish/Veg)</td>
+                                <td class="p-4 text-stone-400">Ineligible by law</td>
+                                <td class="p-4 font-semibold text-terracotta-900 bg-terracotta-50/40">URSSAF Avance Immédiate + Attestation Fiscale</td>
                             </tr>
                         </tbody>
                     </table>
@@ -476,83 +499,92 @@
 
 
             <!-- ======================================================== -->
-            <!-- SECTION 3: CURRENT PRODUCTION IMPLEMENTATION -->
+            <!-- SECTION 3: PRODUCTION AUDIT & AI ONBOARDING -->
             <!-- ======================================================== -->
             <section id="section-3" class="space-y-6 pt-6">
                 <div class="flex items-center gap-3">
                     <span class="h-7 w-7 rounded-xl bg-gradient-to-br from-terracotta-500 to-terracotta-700 text-white font-mono text-xs font-bold flex items-center justify-center shadow-xs">03</span>
-                    <h2 class="text-2xl md:text-3xl font-serif font-bold text-stone-900">Current Production Implementation</h2>
+                    <h2 class="text-2xl md:text-3xl font-serif font-bold text-stone-900">Production Audit & The AI Onboarding Engine</h2>
                 </div>
 
-                <p class="text-sm text-stone-600 max-w-3xl leading-relaxed">
-                    The core mechanics are already built, tested, and actively powering daily operations in Elisa's live production environment:
-                </p>
+                <!-- The Onboarding Breakthrough -->
+                <div class="p-6 rounded-3xl bg-gradient-to-r from-purple-50 via-white to-terracotta-50 border border-purple-200/80 shadow-xs space-y-3">
+                    <div class="flex items-center justify-between">
+                        <span class="text-xs font-mono font-bold text-purple-800 bg-purple-100 px-3 py-1 rounded-full flex items-center gap-1.5">
+                            <i data-lucide="sparkles" class="w-3.5 h-3.5"></i> #1 Lever to Kill Trial Churn
+                        </span>
+                        <span class="text-xs font-semibold text-stone-500">Trip Priority Build</span>
+                    </div>
+                    <h3 class="font-serif font-bold text-lg text-stone-900">The Multimodal AI Recipe Importer</h3>
+                    <p class="text-xs text-stone-700 leading-relaxed">
+                        Onboarding is where cold trial users churn. Asking a chef to manually type 20 recipes is a brick wall. The AI Importer allows chefs to <strong>snap a photo of a handwritten card, paste a WhatsApp note, or forward a PDF recipe</strong>. An LLM parses it in 2 seconds into structured ingredients, quantities, unit types, and prep steps.
+                    </p>
+                </div>
 
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div class="p-5 rounded-2xl bg-white border border-stone-200/90 shadow-xs space-y-2 hover:border-terracotta-300 transition-colors">
+                    <div class="p-5 rounded-2xl bg-white border border-stone-200/90 shadow-xs space-y-2">
                         <div class="flex items-center justify-between">
                             <span class="font-mono text-xs font-bold text-stone-900">/admin/semaine</span>
                             <span class="px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-800 text-[10px] font-bold border border-emerald-200">LIVE PRODUCTION</span>
                         </div>
                         <div class="font-bold text-sm text-stone-900">Weekly Operations Hub & Calendar Sync</div>
-                        <p class="text-xs text-stone-600">Google Calendar integration with slot detection (Matin/Après-midi), client matching, selection status badges, and 1-click customized WhatsApp magic link generator.</p>
+                        <p class="text-xs text-stone-600">Google/Apple Calendar slot parsing (Matin/Après-midi), client matching, selection status badges, and 1-click customized WhatsApp magic link generator.</p>
                     </div>
 
-                    <div class="p-5 rounded-2xl bg-white border border-stone-200/90 shadow-xs space-y-2 hover:border-terracotta-300 transition-colors">
+                    <div class="p-5 rounded-2xl bg-white border border-stone-200/90 shadow-xs space-y-2">
                         <div class="flex items-center justify-between">
                             <span class="font-mono text-xs font-bold text-stone-900">/admin/recettes</span>
                             <span class="px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-800 text-[10px] font-bold border border-emerald-200">LIVE PRODUCTION</span>
                         </div>
-                        <div class="font-bold text-sm text-stone-900">Recipe Vault & Menu Builder</div>
-                        <p class="text-xs text-stone-600">Persistent recipe library categorized by tags (Meat, Fish, Veg, Vegan) with historical usage tracking (<code>times_used</code>, <code>last_used_week</code>) and 1-click menu compilation.</p>
+                        <div class="font-bold text-sm text-stone-900">Recipe Vault & Normalized Ingredients</div>
+                        <p class="text-xs text-stone-600">Persistent recipe library categorized by tags (Meat, Fish, Veg, Vegan) with historical usage tracking (<code>times_used</code>, <code>last_used_week</code>).</p>
                     </div>
 
-                    <div class="p-5 rounded-2xl bg-white border border-stone-200/90 shadow-xs space-y-2 hover:border-terracotta-300 transition-colors">
-                        <div class="flex items-center justify-between">
-                            <span class="font-mono text-xs font-bold text-stone-900">/admin/clients</span>
-                            <span class="px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-800 text-[10px] font-bold border border-emerald-200">LIVE PRODUCTION</span>
-                        </div>
-                        <div class="font-bold text-sm text-stone-900">Client CRM & Household Dietary Shield</div>
-                        <p class="text-xs text-stone-600">Persistent client memory: portion sizing (2 vs 4 people), household allergies, kitchen equipment (induction/gas), door codes, and unique token generation.</p>
-                    </div>
-
-                    <div class="p-5 rounded-2xl bg-white border border-stone-200/90 shadow-xs space-y-2 hover:border-terracotta-300 transition-colors">
-                        <div class="flex items-center justify-between">
-                            <span class="font-mono text-xs font-bold text-stone-900">/admin/cuisine/[clientId]</span>
-                            <span class="px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-800 text-[10px] font-bold border border-emerald-200">LIVE PRODUCTION</span>
-                        </div>
-                        <div class="font-bold text-sm text-stone-900">Interactive Kitchen Mode with Wake Lock</div>
-                        <p class="text-xs text-stone-600">Optimized for greasy fingers on tablets. Native Web Screen Wake Lock prevents tablet dimming, with integrated cooking timers and high-visibility allergy alerts.</p>
-                    </div>
-
-                    <div class="p-5 rounded-2xl bg-white border border-stone-200/90 shadow-xs space-y-2 hover:border-terracotta-300 transition-colors">
+                    <div class="p-5 rounded-2xl bg-white border border-stone-200/90 shadow-xs space-y-2">
                         <div class="flex items-center justify-between">
                             <span class="font-mono text-xs font-bold text-stone-900">/choisir?token=...</span>
                             <span class="px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-800 text-[10px] font-bold border border-emerald-200">LIVE PRODUCTION</span>
                         </div>
                         <div class="font-bold text-sm text-stone-900">Client Selection Magic Portal</div>
-                        <p class="text-xs text-stone-600">Zero-password client interface. Clients tap to pick their 4 dishes, add special requests, and submit in 30 seconds with immediate sync to the chef's dashboard.</p>
+                        <p class="text-xs text-stone-600">Zero-password client interface. Clients tap to pick their weekly dish quota, add per-dish notes, and submit in 30 seconds with instant sync.</p>
                     </div>
 
-                    <div class="p-5 rounded-2xl bg-white border border-stone-200/90 shadow-xs space-y-2 hover:border-terracotta-300 transition-colors">
+                    <div class="p-5 rounded-2xl bg-white border border-stone-200/90 shadow-xs space-y-2">
                         <div class="flex items-center justify-between">
                             <span class="font-mono text-xs font-bold text-stone-900">/admin/menu-visuel</span>
                             <span class="px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-800 text-[10px] font-bold border border-emerald-200">LIVE PRODUCTION</span>
                         </div>
-                        <div class="font-bold text-sm text-stone-900">1-Click Instagram Story Studio</div>
-                        <p class="text-xs text-stone-600">Instantly renders the current weekly menu into an on-brand 9:16 Instagram Story flyer, eliminating hours spent manually designing on Canva.</p>
+                        <div class="font-bold text-sm text-stone-900">1-Click Instagram Story Studio (Free Growth Loop)</div>
+                        <p class="text-xs text-stone-600">Renders weekly menu into a 9:16 Instagram Story flyer. Offered free forever with a subtle "Made with ChefOS" watermark as a viral acquisition loop.</p>
                     </div>
                 </div>
             </section>
 
 
             <!-- ======================================================== -->
-            <!-- SECTION 4: CORE PRODUCT ARCHITECTURE -->
+            <!-- SECTION 4: PRODUCT PILLARS & LEGAL GUARDRAILS -->
             <!-- ======================================================== -->
             <section id="section-4" class="space-y-6 pt-6 page-break">
                 <div class="flex items-center gap-3">
                     <span class="h-7 w-7 rounded-xl bg-gradient-to-br from-terracotta-500 to-terracotta-700 text-white font-mono text-xs font-bold flex items-center justify-center shadow-xs">04</span>
-                    <h2 class="text-2xl md:text-3xl font-serif font-bold text-stone-900">Core Product Architecture & Pillars</h2>
+                    <h2 class="text-2xl md:text-3xl font-serif font-bold text-stone-900">Core Product Architecture & Legal Guardrails</h2>
+                </div>
+
+                <!-- Legal Guardrails Banner -->
+                <div class="p-6 rounded-3xl bg-amber-50/70 border border-amber-200 text-stone-800 space-y-2">
+                    <div class="flex items-center gap-2 font-mono text-xs font-bold text-amber-900 uppercase">
+                        <i data-lucide="shield" class="w-4 h-4 text-amber-700"></i> Legal & Liability Architecture (Critical Update)
+                    </div>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+                        <div>
+                            <strong class="text-stone-900 font-bold block mb-1">1. Rename "Allergy Shield" $\rightarrow$ "Dietary & Allergen Alerts":</strong>
+                            <p class="text-stone-600">Never promise a "Shield". Terms of Service explicitly state ChefOS is an organizational assistant; final food safety remains 100% the chef's legal duty.</p>
+                        </div>
+                        <div>
+                            <strong class="text-stone-900 font-bold block mb-1">2. GDPR Health & Access Security:</strong>
+                            <p class="text-stone-600">Door codes, building access notes, and household dietary health data are encrypted at rest with strict scoped assistant permissions.</p>
+                        </div>
+                    </div>
                 </div>
 
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -568,39 +600,39 @@
                             </p>
                         </div>
                         <div class="pt-3 border-t border-orange-200/60 text-[11px] font-mono text-orange-700 font-bold flex items-center gap-1">
-                            <i data-lucide="clock" class="w-3 h-3"></i> Saves 2 hrs every Monday morning
+                            <i data-lucide="clock" class="w-3 h-3"></i> Auto-feeds the Billing Engine
                         </div>
                     </div>
 
                     <!-- Pillar 2 -->
+                    <div class="bg-gradient-to-b from-white to-blue-50/30 rounded-3xl p-6 border border-blue-200/80 shadow-xs space-y-3 flex flex-col justify-between">
+                        <div class="space-y-3">
+                            <div class="w-10 h-10 rounded-2xl bg-blue-100 text-blue-600 flex items-center justify-center shadow-xs">
+                                <i data-lucide="tablet" class="w-5 h-5"></i>
+                            </div>
+                            <h3 class="font-serif font-bold text-lg text-stone-900">2. Tablet Kitchen Mode</h3>
+                            <p class="text-xs text-stone-600 leading-relaxed">
+                                Optimized for greasy fingers. Native Web Screen Wake Lock prevents tablet dimming, with integrated multi-dish timers and step-by-step checklist.
+                            </p>
+                        </div>
+                        <div class="pt-3 border-t border-blue-200/60 text-[11px] font-mono text-blue-700 font-bold flex items-center gap-1">
+                            <i data-lucide="smartphone" class="w-3 h-3"></i> Screen Wake Lock API
+                        </div>
+                    </div>
+
+                    <!-- Pillar 3 -->
                     <div class="bg-gradient-to-b from-white to-purple-50/30 rounded-3xl p-6 border border-purple-200/80 shadow-xs space-y-3 flex flex-col justify-between">
                         <div class="space-y-3">
                             <div class="w-10 h-10 rounded-2xl bg-purple-100 text-purple-600 flex items-center justify-center shadow-xs">
                                 <i data-lucide="users" class="w-5 h-5"></i>
                             </div>
-                            <h3 class="font-serif font-bold text-lg text-stone-900">2. Multi-Chef Brigade Mode</h3>
+                            <h3 class="font-serif font-bold text-lg text-stone-900">3. Multi-Chef Brigade (Scoped)</h3>
                             <p class="text-xs text-stone-600 leading-relaxed">
-                                Assign sessions to assistant chefs. Assistants receive a scoped mobile login viewing only their assigned cooking sheet, entry codes, and allergies—with zero access to billing or financials.
+                                Assign sessions to assistant chefs. Assistants receive a scoped mobile login viewing only today's cooking sheet, entry codes, and alerts—zero financial or client list visibility.
                             </p>
                         </div>
                         <div class="pt-3 border-t border-purple-200/60 text-[11px] font-mono text-purple-700 font-bold flex items-center gap-1">
-                            <i data-lucide="users" class="w-3 h-3"></i> Enables scaling past 30 hrs/wk
-                        </div>
-                    </div>
-
-                    <!-- Pillar 3 -->
-                    <div class="bg-gradient-to-b from-white to-rose-50/30 rounded-3xl p-6 border border-rose-200/80 shadow-xs space-y-3 flex flex-col justify-between">
-                        <div class="space-y-3">
-                            <div class="w-10 h-10 rounded-2xl bg-rose-100 text-rose-600 flex items-center justify-center shadow-xs">
-                                <i data-lucide="shield-alert" class="w-5 h-5"></i>
-                            </div>
-                            <h3 class="font-serif font-bold text-lg text-stone-900">3. Dietary Allergy Shield</h3>
-                            <p class="text-xs text-stone-600 leading-relaxed">
-                                Automated conflict detection. High-visibility warnings prevent clients from choosing allergen-conflicting dishes, eliminating chef liability in high-end households.
-                            </p>
-                        </div>
-                        <div class="pt-3 border-t border-rose-200/60 text-[11px] font-mono text-rose-700 font-bold flex items-center gap-1">
-                            <i data-lucide="shield-check" class="w-3 h-3"></i> Zero liability & peace of mind
+                            <i data-lucide="lock" class="w-3 h-3"></i> Scoped Assistant Roles
                         </div>
                     </div>
                 </div>
@@ -608,51 +640,193 @@
 
 
             <!-- ======================================================== -->
-            <!-- SECTION 5: PRICING & BUSINESS MODEL -->
+            <!-- SECTION 5: UNIVERSAL BILLING & TAX CREDIT ENGINE -->
             <!-- ======================================================== -->
-            <section id="section-5" class="space-y-6 pt-6">
+            <section id="section-5" class="space-y-8 pt-6 page-break">
                 <div class="flex items-center gap-3">
-                    <span class="h-7 w-7 rounded-xl bg-gradient-to-br from-terracotta-500 to-terracotta-700 text-white font-mono text-xs font-bold flex items-center justify-center shadow-xs">05</span>
-                    <h2 class="text-2xl md:text-3xl font-serif font-bold text-stone-900">Pricing & Monetization Model</h2>
+                    <span class="h-7 w-7 rounded-xl bg-gradient-to-br from-amber-500 to-terracotta-600 text-white font-mono text-xs font-bold flex items-center justify-center shadow-xs">05</span>
+                    <h2 class="text-2xl md:text-3xl font-serif font-bold text-stone-900">Universal Billing, Invoicing & Tax Credit Architecture</h2>
+                </div>
+
+                <!-- Executive Insight Box -->
+                <div class="p-8 rounded-3xl bg-gradient-to-br from-amber-500/10 via-white to-terracotta-50 border-2 border-amber-300/80 shadow-sm space-y-4">
+                    <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-100 text-amber-900 font-mono text-xs font-bold">
+                        <i data-lucide="zap" class="w-3.5 h-3.5 text-amber-700"></i> The Real Revenue Weapon
+                    </div>
+                    <h3 class="text-xl md:text-2xl font-serif font-bold text-stone-950">
+                        "Neutral Core Architecture, Country-Specific Tax Adapters"
+                    </h3>
+                    <p class="text-xs md:text-sm text-stone-700 leading-relaxed">
+                        In-home batch cooking across Europe shares one universal truth: <strong>the service happens in the client's home, only labour is eligible for home-service tax reductions, and materials/groceries must be excluded.</strong>
+                        ChefOS builds this universal primitive into its core data model, and layers thin regional adapters on top.
+                    </p>
+                </div>
+
+                <!-- The Débours & VAT Ceiling Moat -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="p-6 rounded-3xl bg-white border border-stone-200 shadow-xs space-y-3">
+                        <div class="w-9 h-9 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center">
+                            <i data-lucide="receipt" class="w-5 h-5"></i>
+                        </div>
+                        <h4 class="font-serif font-bold text-base text-stone-900">Auto-Split Labour vs Débours (Food)</h4>
+                        <p class="text-xs text-stone-600 leading-relaxed">
+                            A chef charging "€200 session, groceries included" burns their micro-enterprise VAT threshold (€37,500 ceiling) on groceries. 
+                            <strong>Because ChefOS knows the grocery list, it automatically splits the invoice</strong>: Labour (€140 creditable) + Food Débours (€60 reimbursed at cost with receipts). This extends how long a chef stays in the simple tax regime.
+                        </p>
+                    </div>
+
+                    <div class="p-6 rounded-3xl bg-white border border-stone-200 shadow-xs space-y-3">
+                        <div class="w-9 h-9 rounded-xl bg-blue-100 text-blue-700 flex items-center justify-center">
+                            <i data-lucide="clock" class="w-5 h-5"></i>
+                        </div>
+                        <h4 class="font-serif font-bold text-base text-stone-900">E-Invoicing Mandate (Factur-X 2026/2027)</h4>
+                        <p class="text-xs text-stone-600 leading-relaxed">
+                            From September 2026 in France, every micro-enterprise must receive electronic invoices via approved platforms; issuing becomes mandatory in 2027. 
+                            Thousands of French chefs must change their invoicing. ChefOS partners with an approved platform to offer native Factur-X compliance without building heavy tax rails.
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Interactive Country Adapter Matrix -->
+                <div class="space-y-4">
+                    <h3 class="text-base font-serif font-bold text-stone-900 flex items-center gap-2">
+                        <i data-lucide="globe" class="w-4 h-4 text-terracotta-600"></i> The Regional Tax Adapters (Switchable per Country)
+                    </h3>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 text-xs">
+                        <!-- France -->
+                        <div class="p-5 rounded-2xl bg-white border-2 border-terracotta-300 shadow-xs space-y-2">
+                            <div class="flex items-center justify-between">
+                                <span class="font-bold text-stone-900 text-sm">🇫🇷 France</span>
+                                <span class="px-2 py-0.5 rounded bg-terracotta-100 text-terracotta-800 text-[10px] font-bold">SAP & URSSAF</span>
+                            </div>
+                            <ul class="space-y-1.5 text-stone-600 text-[11px]">
+                                <li>• URSSAF <em>Avance Immédiate</em> API (Client pays 50% on spot)</li>
+                                <li>• 1-Click Annual <em>Attestation Fiscale</em></li>
+                                <li>• Pre-filled Quarterly NOVA Report</li>
+                                <li>• Factur-X e-invoicing ready</li>
+                            </ul>
+                        </div>
+
+                        <!-- Germany -->
+                        <div class="p-5 rounded-2xl bg-white border border-stone-200 shadow-xs space-y-2">
+                            <div class="flex items-center justify-between">
+                                <span class="font-bold text-stone-900 text-sm">🇩🇪 Germany</span>
+                                <span class="px-2 py-0.5 rounded bg-stone-100 text-stone-700 text-[10px] font-bold">§35a EStG</span>
+                            </div>
+                            <ul class="space-y-1.5 text-stone-600 text-[11px]">
+                                <li>• §35a household service invoice</li>
+                                <li>• Labour/Material strict split</li>
+                                <li>• Bank transfer traceability trace</li>
+                                <li>• Annual tax certificate statement</li>
+                            </ul>
+                        </div>
+
+                        <!-- Sweden -->
+                        <div class="p-5 rounded-2xl bg-white border border-stone-200 shadow-xs space-y-2">
+                            <div class="flex items-center justify-between">
+                                <span class="font-bold text-stone-900 text-sm">🇸🇪 Sweden</span>
+                                <span class="px-2 py-0.5 rounded bg-stone-100 text-stone-700 text-[10px] font-bold">RUT-avdrag</span>
+                            </div>
+                            <ul class="space-y-1.5 text-stone-600 text-[11px]">
+                                <li>• RUT deduction direct claim</li>
+                                <li>• Provider-side Skatteverket sync</li>
+                                <li>• 50% labour deduction at source</li>
+                                <li>• Traceable non-cash payments</li>
+                            </ul>
+                        </div>
+
+                        <!-- Switzerland -->
+                        <div class="p-5 rounded-2xl bg-white border border-stone-200 shadow-xs space-y-2">
+                            <div class="flex items-center justify-between">
+                                <span class="font-bold text-stone-900 text-sm">🇨🇭 Switzerland</span>
+                                <span class="px-2 py-0.5 rounded bg-blue-50 text-blue-700 text-[10px] font-bold">Pure Workflow</span>
+                            </div>
+                            <ul class="space-y-1.5 text-stone-600 text-[11px]">
+                                <li>• Tax module simply toggled OFF</li>
+                                <li>• Multi-currency (CHF / EUR)</li>
+                                <li>• QR-Bill invoice generation</li>
+                                <li>• Used to validate pure workflow</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Phased Financial Build Order -->
+                <div class="p-6 rounded-3xl bg-stone-900 text-stone-200 space-y-4">
+                    <div class="flex items-center justify-between">
+                        <span class="font-mono text-xs font-bold text-amber-400 uppercase tracking-wider flex items-center gap-1.5">
+                            <i data-lucide="layers" class="w-4 h-4"></i> Phased Billing Build Order (Downstream from Cooking)
+                        </span>
+                        <span class="text-xs text-stone-400 font-mono">Zero Distraction Rule</span>
+                    </div>
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+                        <div class="p-3.5 bg-stone-800 rounded-2xl space-y-1 border border-stone-700">
+                            <span class="text-amber-400 font-bold font-mono">STEP 1 (Launch)</span>
+                            <div class="font-bold text-white">Labour/Débours Auto-Split</div>
+                            <p class="text-stone-400 text-[11px]">Works with zero external APIs; writes invoice from grocery data.</p>
+                        </div>
+                        <div class="p-3.5 bg-stone-800 rounded-2xl space-y-1 border border-stone-700">
+                            <span class="text-amber-400 font-bold font-mono">STEP 2 (Activation)</span>
+                            <div class="font-bold text-white">Recurring SEPA / Stripe</div>
+                            <p class="text-stone-400 text-[11px]">Eliminates chasing bank transfers; automatic monthly debits.</p>
+                        </div>
+                        <div class="p-3.5 bg-stone-800 rounded-2xl space-y-1 border border-stone-700">
+                            <span class="text-amber-400 font-bold font-mono">STEP 3 (Retention)</span>
+                            <div class="font-bold text-white">URSSAF API + Attestation</div>
+                            <p class="text-stone-400 text-[11px]">Chef inputs their own SIRET pipe; 1-click annual tax certificates.</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+
+            <!-- ======================================================== -->
+            <!-- SECTION 6: PRICING & MICRO-SAAS ECONOMICS -->
+            <!-- ======================================================== -->
+            <section id="section-6" class="space-y-6 pt-6 page-break">
+                <div class="flex items-center gap-3">
+                    <span class="h-7 w-7 rounded-xl bg-gradient-to-br from-terracotta-500 to-terracotta-700 text-white font-mono text-xs font-bold flex items-center justify-center shadow-xs">06</span>
+                    <h2 class="text-2xl md:text-3xl font-serif font-bold text-stone-900">Recalibrated Pricing & Micro-SaaS Unit Economics</h2>
                 </div>
 
                 <p class="text-sm text-stone-600 max-w-3xl leading-relaxed">
-                    Simple, transparent, recurring SaaS pricing with a 14-day free trial. Chefs recoup the monthly software cost within their very first booked cooking session.
+                    Pricing is recalibrated to culinary reality. A chef with 8 clients is already a full-time pro. URSSAF support is placed where it belongs—in the solo tiers. Paid founding beta replaces free trials.
                 </p>
 
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <!-- Tier 1 -->
+                    <!-- Starter -->
                     <div class="bg-white rounded-3xl p-7 border border-stone-200 shadow-xs space-y-6 flex flex-col justify-between">
                         <div class="space-y-4">
                             <div class="space-y-1">
-                                <h3 class="font-bold text-lg text-stone-900">Starter</h3>
-                                <p class="text-xs text-stone-500">For solo chefs launching their practice</p>
+                                <h3 class="font-bold text-lg text-stone-900">Starter (Part-Time)</h3>
+                                <p class="text-xs text-stone-500">Up to 4 active weekly households</p>
                             </div>
                             <div class="flex items-baseline gap-1">
                                 <span class="text-3xl font-serif font-black text-stone-950">€29</span>
                                 <span class="text-xs text-stone-500 font-medium">/ month</span>
                             </div>
                             <ul class="space-y-2.5 text-xs text-stone-600">
-                                <li class="flex items-center gap-2"><i data-lucide="check" class="w-3.5 h-3.5 text-emerald-600"></i> Up to 8 active clients</li>
-                                <li class="flex items-center gap-2"><i data-lucide="check" class="w-3.5 h-3.5 text-emerald-600"></i> 50 Recipe Vault & Menu Builder</li>
+                                <li class="flex items-center gap-2"><i data-lucide="check" class="w-3.5 h-3.5 text-emerald-600"></i> Max 4 active households</li>
+                                <li class="flex items-center gap-2"><i data-lucide="check" class="w-3.5 h-3.5 text-emerald-600"></i> Unlimited AI Recipe Imports</li>
                                 <li class="flex items-center gap-2"><i data-lucide="check" class="w-3.5 h-3.5 text-emerald-600"></i> WhatsApp Magic Choice Links</li>
-                                <li class="flex items-center gap-2"><i data-lucide="check" class="w-3.5 h-3.5 text-emerald-600"></i> Standard Instagram Story Studio</li>
+                                <li class="flex items-center gap-2"><i data-lucide="check" class="w-3.5 h-3.5 text-emerald-600"></i> Auto-split Labour/Food Invoicing</li>
                             </ul>
                         </div>
                         <div class="pt-4 border-t border-stone-100 text-center text-xs font-semibold text-stone-500">
-                            14-Day Free Trial
+                            €19/mo Founding Price
                         </div>
                     </div>
 
-                    <!-- Tier 2 (Highlighted) -->
+                    <!-- Pro -->
                     <div class="bg-gradient-to-b from-stone-950 to-stone-900 text-white rounded-3xl p-7 border border-terracotta-500/40 shadow-xl shadow-glow-terracotta space-y-6 flex flex-col justify-between relative overflow-hidden ring-2 ring-terracotta-500/60">
                         <div class="absolute top-4 right-4 px-2.5 py-0.5 rounded-full bg-gradient-to-r from-terracotta-500 to-rose-500 text-white text-[10px] font-bold uppercase tracking-wider shadow-xs">
-                            POPULAR
+                            MOST POPULAR
                         </div>
                         <div class="space-y-4">
                             <div class="space-y-1">
-                                <h3 class="font-bold text-lg text-white">Pro Chef</h3>
-                                <p class="text-xs text-stone-400">For full-time independent chefs</p>
+                                <h3 class="font-bold text-lg text-white">Pro Chef (Full-Time)</h3>
+                                <p class="text-xs text-stone-400">Unlimited clients & full operational power</p>
                             </div>
                             <div class="flex items-baseline gap-1">
                                 <span class="text-3xl font-serif font-black text-white">€69</span>
@@ -661,22 +835,22 @@
                             <ul class="space-y-2.5 text-xs text-stone-300">
                                 <li class="flex items-center gap-2"><i data-lucide="check" class="w-3.5 h-3.5 text-terracotta-400"></i> <strong>Unlimited</strong> clients & recipes</li>
                                 <li class="flex items-center gap-2"><i data-lucide="check" class="w-3.5 h-3.5 text-terracotta-400"></i> <strong>Smart Grocery Aggregator</strong></li>
-                                <li class="flex items-center gap-2"><i data-lucide="check" class="w-3.5 h-3.5 text-terracotta-400"></i> Google & Apple Calendar 2-Way Sync</li>
+                                <li class="flex items-center gap-2"><i data-lucide="check" class="w-3.5 h-3.5 text-terracotta-400"></i> URSSAF <em>Avance Immédiate</em> Pipe</li>
+                                <li class="flex items-center gap-2"><i data-lucide="check" class="w-3.5 h-3.5 text-terracotta-400"></i> Annual <em>Attestation Fiscale</em> Generator</li>
                                 <li class="flex items-center gap-2"><i data-lucide="check" class="w-3.5 h-3.5 text-terracotta-400"></i> Tablet Kitchen Mode with Wake Lock</li>
-                                <li class="flex items-center gap-2"><i data-lucide="check" class="w-3.5 h-3.5 text-terracotta-400"></i> Custom brand colors & styling</li>
                             </ul>
                         </div>
                         <div class="pt-4 border-t border-stone-800 text-center text-xs font-semibold text-terracotta-400">
-                            Most popular for batch cookers
+                            €29/mo Founding Price (First 20 Chefs)
                         </div>
                     </div>
 
-                    <!-- Tier 3 -->
+                    <!-- Brigade -->
                     <div class="bg-white rounded-3xl p-7 border border-stone-200 shadow-xs space-y-6 flex flex-col justify-between">
                         <div class="space-y-4">
                             <div class="space-y-1">
-                                <h3 class="font-bold text-lg text-stone-900">Brigade</h3>
-                                <p class="text-xs text-stone-500">For multi-chef agencies & teams</p>
+                                <h3 class="font-bold text-lg text-stone-900">Brigade (Agencies)</h3>
+                                <p class="text-xs text-stone-500">Multi-chef businesses & teams</p>
                             </div>
                             <div class="flex items-baseline gap-1">
                                 <span class="text-3xl font-serif font-black text-stone-950">€149</span>
@@ -684,14 +858,13 @@
                             </div>
                             <ul class="space-y-2.5 text-xs text-stone-600">
                                 <li class="flex items-center gap-2"><i data-lucide="check" class="w-3.5 h-3.5 text-emerald-600"></i> Everything in Pro plan</li>
-                                <li class="flex items-center gap-2"><i data-lucide="check" class="w-3.5 h-3.5 text-emerald-600"></i> Up to 5 Assistant Chef logins</li>
-                                <li class="flex items-center gap-2"><i data-lucide="check" class="w-3.5 h-3.5 text-emerald-600"></i> Scoped mobile kitchen sheets</li>
-                                <li class="flex items-center gap-2"><i data-lucide="check" class="w-3.5 h-3.5 text-emerald-600"></i> Custom domain (<code>menu.chefpaul.com</code>)</li>
-                                <li class="flex items-center gap-2"><i data-lucide="check" class="w-3.5 h-3.5 text-emerald-600"></i> Automated French URSSAF Tax Invoicing</li>
+                                <li class="flex items-center gap-2"><i data-lucide="check" class="w-3.5 h-3.5 text-emerald-600"></i> Up to 5 Scoped Assistant Chef Logins</li>
+                                <li class="flex items-center gap-2"><i data-lucide="check" class="w-3.5 h-3.5 text-emerald-600"></i> Multi-Calendar Route Dispatch</li>
+                                <li class="flex items-center gap-2"><i data-lucide="check" class="w-3.5 h-3.5 text-emerald-600"></i> Custom Domain (<code>menu.chefcindy.com</code>)</li>
                             </ul>
                         </div>
                         <div class="pt-4 border-t border-stone-100 text-center text-xs font-semibold text-stone-500">
-                            Priority Concierge Support
+                            Includes €9/mo Off-Season Pause Tier
                         </div>
                     </div>
                 </div>
@@ -699,212 +872,61 @@
 
 
             <!-- ======================================================== -->
-            <!-- SECTION 6: EXTENSIVE SOCIAL MEDIA & ORGANIC GROWTH PLAYBOOK -->
+            <!-- SECTION 7: SOCIAL STORYTELLING & THE GENEVA TEST -->
             <!-- ======================================================== -->
-            <section id="section-6" class="space-y-8 pt-6 page-break">
-                <div class="flex items-center gap-3">
-                    <span class="h-7 w-7 rounded-xl bg-gradient-to-br from-terracotta-500 to-terracotta-700 text-white font-mono text-xs font-bold flex items-center justify-center shadow-xs">06</span>
-                    <h2 class="text-2xl md:text-3xl font-serif font-bold text-stone-900">Extensive Social Media & Organic Growth Playbook</h2>
-                </div>
-
-                <!-- Master Philosophy Banner -->
-                <div class="p-8 rounded-3xl bg-gradient-to-br from-terracotta-50 via-white to-amber-50/50 border border-terracotta-200/90 shadow-sm space-y-4">
-                    <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-terracotta-100 text-terracotta-800 font-mono text-xs font-bold">
-                        <i data-lucide="sparkles" class="w-3.5 h-3.5"></i> The Solo Founder Growth Engine
-                    </div>
-                    <h3 class="text-xl md:text-2xl font-serif font-bold text-stone-900">
-                        "Document, Don't Create" — The Dual-Funnel Storytelling Strategy
-                    </h3>
-                    <p class="text-xs md:text-sm text-stone-700 leading-relaxed max-w-3xl">
-                        Instead of burning hours acting like a generic marketing agency, you document the authentic, cinematic journey of a tech developer building bespoke operating software for his private chef partner in <strong>Annecy, France</strong>. 
-                    </p>
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
-                        <div class="p-4 rounded-2xl bg-white border border-stone-200 text-xs space-y-1">
-                            <strong class="text-stone-900 font-bold flex items-center gap-1.5 text-terracotta-700">
-                                <i data-lucide="instagram" class="w-4 h-4"></i> Instagram & TikTok (Chef Acquisition)
-                            </strong>
-                            <p class="text-stone-600">Visual before/afters, morning Annecy market runs, kitchen iPad demos, relatable Sunday struggles.</p>
-                        </div>
-                        <div class="p-4 rounded-2xl bg-white border border-stone-200 text-xs space-y-1">
-                            <strong class="text-stone-900 font-bold flex items-center gap-1.5 text-blue-700">
-                                <i data-lucide="linkedin" class="w-4 h-4"></i> LinkedIn & Threads (Founder Authority)
-                            </strong>
-                            <p class="text-stone-600">Operational breakdowns, vertical Micro-SaaS economics, metrics, and scaling from solo to team.</p>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- The 4 Core Content Pillars -->
-                <div class="space-y-4">
-                    <h3 class="text-lg font-serif font-bold text-stone-900 flex items-center gap-2">
-                        <i data-lucide="layers" class="w-4 h-4 text-terracotta-600"></i> The 4 Content Pillars
-                    </h3>
-                    
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
-                        <!-- Pillar A -->
-                        <div class="p-6 rounded-3xl bg-white border border-rose-200/80 shadow-xs space-y-3">
-                            <div class="flex items-center justify-between">
-                                <span class="text-xs font-mono font-bold text-rose-700 bg-rose-50 px-2.5 py-1 rounded-lg border border-rose-200/60">PILLAR 1: KITCHEN CHAOS VS ORDER</span>
-                                <span class="text-[11px] font-semibold text-stone-400">Instagram / TikTok</span>
-                            </div>
-                            <h4 class="font-serif font-bold text-base text-stone-900">The "Before vs. After" Contrast</h4>
-                            <p class="text-xs text-stone-600 leading-relaxed">
-                                Highlighting the exact moment pain turns into relief: messy hand-written paper lists vs. the clean mobile screen wake lock, or chasing 10 clients over WhatsApp vs. 1-click magic link choices.
-                            </p>
-                        </div>
-
-                        <!-- Pillar B -->
-                        <div class="p-6 rounded-3xl bg-white border border-amber-200/80 shadow-xs space-y-3">
-                            <div class="flex items-center justify-between">
-                                <span class="text-xs font-mono font-bold text-amber-800 bg-amber-50 px-2.5 py-1 rounded-lg border border-amber-200/60">PILLAR 2: THE TECH & AUTOMATION</span>
-                                <span class="text-[11px] font-semibold text-stone-400">LinkedIn / Reels</span>
-                            </div>
-                            <h4 class="font-serif font-bold text-base text-stone-900">How We Built the Feature (Behind the Scenes)</h4>
-                            <p class="text-xs text-stone-600 leading-relaxed">
-                                Screen recording of you coding a feature on your laptop in Annecy, followed by Elisa testing it 10 minutes later in a real kitchen. High engagement for both chefs and tech builders.
-                            </p>
-                        </div>
-
-                        <!-- Pillar C -->
-                        <div class="p-6 rounded-3xl bg-white border border-emerald-200/80 shadow-xs space-y-3">
-                            <div class="flex items-center justify-between">
-                                <span class="text-xs font-mono font-bold text-emerald-800 bg-emerald-50 px-2.5 py-1 rounded-lg border border-emerald-200/60">PILLAR 3: SCALING TO 2 CHEFS</span>
-                                <span class="text-[11px] font-semibold text-stone-400">All Channels</span>
-                            </div>
-                            <h4 class="font-serif font-bold text-base text-stone-900">The Delegation & Hiring Journey</h4>
-                            <p class="text-xs text-stone-600 leading-relaxed">
-                                Documenting Elisa hiring her first assistant chef for October: how they divide routes, assign client slots, and use restricted assistant logins to protect client privacy.
-                            </p>
-                        </div>
-
-                        <!-- Pillar D -->
-                        <div class="p-6 rounded-3xl bg-white border border-purple-200/80 shadow-xs space-y-3">
-                            <div class="flex items-center justify-between">
-                                <span class="text-xs font-mono font-bold text-purple-800 bg-purple-50 px-2.5 py-1 rounded-lg border border-purple-200/60">PILLAR 4: ANNECY LIFESTYLE & FOOD</span>
-                                <span class="text-[11px] font-semibold text-stone-400">Stories / Reels</span>
-                            </div>
-                            <h4 class="font-serif font-bold text-base text-stone-900">Lake Annecy & Haute-Savoie Markets</h4>
-                            <p class="text-xs text-stone-600 leading-relaxed">
-                                Aesthetic, cinematic footage: Lake Annecy morning fog, fresh market produce at the Old Town market, and beautiful plating. Builds a loyal, high-taste visual brand identity.
-                            </p>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Ready-to-Shoot Video Reel Blueprints -->
-                <div class="space-y-4 pt-2">
-                    <h3 class="text-lg font-serif font-bold text-stone-900 flex items-center gap-2">
-                        <i data-lucide="video" class="w-4 h-4 text-terracotta-600"></i> 4 Ready-to-Shoot Video Scripts (Reels / TikTok)
-                    </h3>
-
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
-                        <!-- Script 1 -->
-                        <div class="p-6 rounded-3xl bg-white border border-stone-200 shadow-xs space-y-3">
-                            <div class="flex items-center justify-between">
-                                <span class="font-mono text-xs font-bold text-terracotta-700">SCRIPT 1: SUNDAY NIGHT CHAOS</span>
-                                <span class="text-[10px] px-2 py-0.5 rounded bg-stone-100 font-bold text-stone-600">18 SECONDS</span>
-                            </div>
-                            <div class="text-xs space-y-2 text-stone-700">
-                                <p><strong class="text-stone-900">Visual:</strong> Split screen. Left: Fast scroll through 8 chaotic WhatsApp chats. Right: Clean <code>/admin/semaine</code> dashboard where all badges turn green.</p>
-                                <p><strong class="text-stone-900">Voiceover/Audio:</strong> Trending upbeat sound.</p>
-                                <p><strong class="text-stone-900">On-Screen Text:</strong> "How my private chef girlfriend used to spend 2.5 hours every Sunday night collecting meal choices... vs. how she does it in 30 seconds today."</p>
-                                <p><strong class="text-stone-900">Call to Action:</strong> "Comment 'CHEF' and I’ll send you the beta link."</p>
-                            </div>
-                        </div>
-
-                        <!-- Script 2 -->
-                        <div class="p-6 rounded-3xl bg-white border border-stone-200 shadow-xs space-y-3">
-                            <div class="flex items-center justify-between">
-                                <span class="font-mono text-xs font-bold text-terracotta-700">SCRIPT 2: THE MARKET RUN</span>
-                                <span class="text-[10px] px-2 py-0.5 rounded bg-stone-100 font-bold text-stone-600">22 SECONDS</span>
-                            </div>
-                            <div class="text-xs space-y-2 text-stone-700">
-                                <p><strong class="text-stone-900">Visual:</strong> Annecy fresh market. Elisa walking between stalls, tapping her phone screen to strike through aggregated quantities (Butcher 2.4kg, Fish 1.8kg).</p>
-                                <p><strong class="text-stone-900">On-Screen Text:</strong> "Doing grocery math for 8 different households in your head: ❌ | Auto-aggregating ingredient weights by market aisle in 1 tap: ✅"</p>
-                                <p><strong class="text-stone-900">Caption:</strong> "When you have 8 clients ordering 4 different meals with varying household portions, manual math is hell. Here is how we automated grocery lists in ChefOS."</p>
-                            </div>
-                        </div>
-
-                        <!-- Script 3 -->
-                        <div class="p-6 rounded-3xl bg-white border border-stone-200 shadow-xs space-y-3">
-                            <div class="flex items-center justify-between">
-                                <span class="font-mono text-xs font-bold text-terracotta-700">SCRIPT 3: WET HANDS & IPADS</span>
-                                <span class="text-[10px] px-2 py-0.5 rounded bg-stone-100 font-bold text-stone-600">15 SECONDS</span>
-                            </div>
-                            <div class="text-xs space-y-2 text-stone-700">
-                                <p><strong class="text-stone-900">Visual:</strong> Elisa searing fish, hands covered in olive oil. Tapping the iPad with a knuckle to check off a prep step, screen never goes black.</p>
-                                <p><strong class="text-stone-900">On-Screen Text:</strong> "Built a feature specifically so my chef partner never has to enter her passcode with olive-oil fingers ever again (Web Screen Wake Lock mode)."</p>
-                                <p><strong class="text-stone-900">Caption:</strong> "Built by a developer who actually watches his partner cook. ChefOS is in private beta."</p>
-                            </div>
-                        </div>
-
-                        <!-- Script 4 -->
-                        <div class="p-6 rounded-3xl bg-white border border-stone-200 shadow-xs space-y-3">
-                            <div class="flex items-center justify-between">
-                                <span class="font-mono text-xs font-bold text-terracotta-700">SCRIPT 4: HIRING CHEF #2</span>
-                                <span class="text-[10px] px-2 py-0.5 rounded bg-stone-100 font-bold text-stone-600">30 SECONDS</span>
-                            </div>
-                            <div class="text-xs space-y-2 text-stone-700">
-                                <p><strong class="text-stone-900">Visual:</strong> A quick sit-down interview clip with Elisa explaining why she hit a revenue ceiling at 25 hours a week and how delegating with scoped tablet sheets doubled her capacity.</p>
-                                <p><strong class="text-stone-900">Hook:</strong> "How Elisa went from turning down clients to scaling her batch cooking business across Annecy with an assistant."</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Sustainable Weekly Cadence Table -->
-                <div class="p-7 bg-white rounded-3xl border border-stone-200 space-y-4">
-                    <h3 class="text-base font-serif font-bold text-stone-900 flex items-center gap-2">
-                        <i data-lucide="calendar" class="w-4 h-4 text-terracotta-600"></i> Sustainable Weekly Solo Founder Cadence (< 2 Hours/Week)
-                    </h3>
-                    <div class="grid grid-cols-1 sm:grid-cols-4 gap-3 text-xs">
-                        <div class="p-3.5 rounded-2xl bg-stone-50 border border-stone-200 space-y-1">
-                            <span class="font-mono font-bold text-terracotta-700">MONDAY</span>
-                            <div class="font-bold text-stone-900">Market & Grocery Reel</div>
-                            <p class="text-stone-600 text-[11px]">10-second clip of in-store shopping with auto-grocery list.</p>
-                        </div>
-                        <div class="p-3.5 rounded-2xl bg-stone-50 border border-stone-200 space-y-1">
-                            <span class="font-mono font-bold text-blue-700">WEDNESDAY</span>
-                            <div class="font-bold text-stone-900">LinkedIn Authority Post</div>
-                            <p class="text-stone-600 text-[11px]">Breakdown of 1 business/tech lesson from building ChefOS.</p>
-                        </div>
-                        <div class="p-3.5 rounded-2xl bg-stone-50 border border-stone-200 space-y-1">
-                            <span class="font-mono font-bold text-terracotta-700">FRIDAY</span>
-                            <div class="font-bold text-stone-900">Kitchen BTS Reel</div>
-                            <p class="text-stone-600 text-[11px]">iPad cook mode, plating, or client magic link demo.</p>
-                        </div>
-                        <div class="p-3.5 rounded-2xl bg-stone-50 border border-stone-200 space-y-1">
-                            <span class="font-mono font-bold text-emerald-700">SUNDAY</span>
-                            <div class="font-bold text-stone-900">10 Direct Chef DMs</div>
-                            <p class="text-stone-600 text-[11px]">Personalized Instagram DMs to batch cookers offering beta access.</p>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Direct Outreach DM Script Template -->
-                <div class="p-6 rounded-3xl bg-stone-900 text-stone-200 space-y-3">
-                    <div class="flex items-center justify-between">
-                        <span class="font-mono text-xs font-bold text-terracotta-400 uppercase tracking-wider flex items-center gap-1.5">
-                            <i data-lucide="send" class="w-3.5 h-3.5"></i> High-Converting Instagram DM Outreach Template
-                        </span>
-                        <span class="text-[11px] text-stone-400">Response Rate: ~35%</span>
-                    </div>
-                    <div class="p-4 rounded-2xl bg-stone-800/80 border border-stone-700 text-xs font-mono text-stone-300 leading-relaxed">
-                        "Hey Chef [Name]! Love your [Dish Name] from your recent post 👏<br><br>
-                        My partner Elisa is an in-home batch cooker here in Annecy. I’m a software engineer and I built a custom operating system for her that automates weekly menu WhatsApp magic links, auto-calculates total grocery market weights, and gives her an interactive tablet cooking sheet.<br><br>
-                        It saved her 10+ hours a week and got her 100% fully booked in 7 months. We’re inviting 5 other batch cookers to try it completely free for 1 month to get feedback. Would you be open to checking out a 90-second video demo?"
-                    </div>
-                </div>
-            </section>
-
-
-            <!-- ======================================================== -->
-            <!-- SECTION 7: MASTER ROADMAP -->
-            <!-- ======================================================== -->
-            <section id="section-7" class="space-y-6 pt-6 page-break">
+            <section id="section-7" class="space-y-8 pt-6 page-break">
                 <div class="flex items-center gap-3">
                     <span class="h-7 w-7 rounded-xl bg-gradient-to-br from-terracotta-500 to-terracotta-700 text-white font-mono text-xs font-bold flex items-center justify-center shadow-xs">07</span>
-                    <h2 class="text-2xl md:text-3xl font-serif font-bold text-stone-900">The 4-Phase Master Execution Roadmap</h2>
+                    <h2 class="text-2xl md:text-3xl font-serif font-bold text-stone-900">Social Storytelling, Outreach & The Geneva Test</h2>
+                </div>
+
+                <!-- The Geneva Validation Test -->
+                <div class="p-7 rounded-3xl bg-gradient-to-br from-blue-500/10 via-white to-blue-50 border-2 border-blue-300 shadow-sm space-y-3">
+                    <div class="flex items-center justify-between">
+                        <span class="font-mono text-xs font-bold text-blue-900 uppercase tracking-wider flex items-center gap-1.5">
+                            <i data-lucide="compass" class="w-4 h-4 text-blue-600"></i> The Geneva Alps Validation Experiment
+                        </span>
+                        <span class="px-2.5 py-0.5 rounded-full bg-blue-100 text-blue-800 text-[10px] font-bold">ZERO SUBSIDY TEST</span>
+                    </div>
+                    <h3 class="font-serif font-bold text-lg text-stone-900">
+                        Testing Workflow Demand Without Tax Credit Crutches
+                    </h3>
+                    <p class="text-xs text-stone-700 leading-relaxed">
+                        Geneva, Vaud, and Chamonix share our language, high client wealth, and an active private chef scene—<strong>with zero tax credit subsidies</strong>. 
+                        By selling ChefOS to 5 chefs in Switzerland with the tax adapter switched off, we prove that chefs buy for the core operational workflow (menu magic links, grocery sum, payment collection), and that tax credit integration is an accelerator rather than a crutch.
+                    </p>
+                </div>
+
+                <!-- Social Audience Separation -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="p-6 bg-white rounded-3xl border border-stone-200 space-y-3">
+                        <h4 class="font-serif font-bold text-base text-stone-900 flex items-center gap-2 text-terracotta-700">
+                            <i data-lucide="instagram" class="w-4 h-4"></i> Instagram (Customer Acquisition)
+                        </h4>
+                        <p class="text-xs text-stone-600">
+                            Transition the hero from "my girlfriend" to third-party chefs ASAP. Highlight <em>"How Camille in Geneva runs 11 households in 1 click."</em> Free Story Studio acts as an organic top-of-funnel magnet.
+                        </p>
+                    </div>
+
+                    <div class="p-6 bg-white rounded-3xl border border-stone-200 space-y-3">
+                        <h4 class="font-serif font-bold text-base text-stone-900 flex items-center gap-2 text-blue-700">
+                            <i data-lucide="linkedin" class="w-4 h-4"></i> LinkedIn (Founder Brand & B2B)
+                        </h4>
+                        <p class="text-xs text-stone-600">
+                            Build-in-public content attracts developers and automation clients for Gabriel's consulting practice. Keep this audience distinct from ChefOS subscriber acquisition.
+                        </p>
+                    </div>
+                </div>
+            </section>
+
+
+            <!-- ======================================================== -->
+            <!-- SECTION 8: REVISED ROADMAP & DISCOVERY PLAN -->
+            <!-- ======================================================== -->
+            <section id="section-8" class="space-y-6 pt-6 page-break">
+                <div class="flex items-center gap-3">
+                    <span class="h-7 w-7 rounded-xl bg-gradient-to-br from-terracotta-500 to-terracotta-700 text-white font-mono text-xs font-bold flex items-center justify-center shadow-xs">08</span>
+                    <h2 class="text-2xl md:text-3xl font-serif font-bold text-stone-900">Revised 4-Phase Master Execution Roadmap</h2>
                 </div>
 
                 <div class="space-y-4">
@@ -915,8 +937,8 @@
                                 <span class="px-2.5 py-0.5 rounded-full bg-stone-100 font-mono text-[10px] font-bold text-stone-700">PHASE 1</span>
                                 <span class="text-xs font-semibold text-terracotta-600">THIS WEEK (BEFORE TRAVEL)</span>
                             </div>
-                            <h4 class="font-serif font-bold text-base text-stone-900">Pre-Trip Baseline & Operational Debrief</h4>
-                            <p class="text-xs text-stone-600">30-minute structured interview with Elisa on assistant delegation needs in Annecy + seeding 20 core recipes into the vault.</p>
+                            <h4 class="font-serif font-bold text-base text-stone-900">15 Discovery Reach-Outs & Formalize Elisa's Role</h4>
+                            <p class="text-xs text-stone-600">Written design partner / advisor agreement with Elisa + reach out to 15 French/Swiss batch cookers on Instagram for 15-min discovery interviews.</p>
                         </div>
                         <span class="px-3 py-1 rounded-xl bg-emerald-50 text-emerald-700 font-mono text-xs font-bold whitespace-nowrap border border-emerald-200">Week 0</span>
                     </div>
@@ -926,10 +948,10 @@
                         <div class="space-y-1">
                             <div class="flex items-center gap-2">
                                 <span class="px-2.5 py-0.5 rounded-full bg-stone-100 font-mono text-[10px] font-bold text-stone-700">PHASE 2</span>
-                                <span class="text-xs font-semibold text-terracotta-600">THE 1-MONTH TRIP (FOUNDER RETREAT)</span>
+                                <span class="text-xs font-semibold text-terracotta-600">THE 1-MONTH TRIP (THE FOUNDER RETREAT)</span>
                             </div>
-                            <h4 class="font-serif font-bold text-base text-stone-900">Core Feature Build (Multi-Chef & Grocery Engine)</h4>
-                            <p class="text-xs text-stone-600">Build the 2 killer features on your laptop: 1) Multi-Chef Session Delegation & Scoped Mobile View, 2) Smart Aggregated Market Grocery Engine.</p>
+                            <h4 class="font-serif font-bold text-base text-stone-900">Build AI Recipe Importer & Auto-Split Invoicing</h4>
+                            <p class="text-xs text-stone-600">Build the 2 critical features on your laptop: 1) Multimodal AI Recipe Importer (Photo/Text $\rightarrow$ Structured), 2) Auto-split Labour/Débours Invoicing Engine.</p>
                         </div>
                         <span class="px-3 py-1 rounded-xl bg-amber-50 text-amber-700 font-mono text-xs font-bold whitespace-nowrap border border-amber-200">Month 1</span>
                     </div>
@@ -939,10 +961,10 @@
                         <div class="space-y-1">
                             <div class="flex items-center gap-2">
                                 <span class="px-2.5 py-0.5 rounded-full bg-stone-100 font-mono text-[10px] font-bold text-stone-700">PHASE 3</span>
-                                <span class="text-xs font-semibold text-terracotta-600">OCTOBER (THE LIVE CRUCIBLE)</span>
+                                <span class="text-xs font-semibold text-terracotta-600">OCTOBER (THE 3 PAYING STRANGERS TEST)</span>
                             </div>
-                            <h4 class="font-serif font-bold text-base text-stone-900">Live Peak-Season Stress Test with 2 Chefs in Annecy</h4>
-                            <p class="text-xs text-stone-600">Elisa + her newly hired assistant chef run 100% of their fully-booked October schedule on the software. Collect live metrics, video clips, and testimonials.</p>
+                            <h4 class="font-serif font-bold text-base text-stone-900">Live Concierge Onboarding of 3 Paying Chefs</h4>
+                            <p class="text-xs text-stone-600">Elisa runs peak schedule + onboard 3 external chefs at €19–€29/mo with white-glove manual setup to validate willingness to pay.</p>
                         </div>
                         <span class="px-3 py-1 rounded-xl bg-purple-50 text-purple-700 font-mono text-xs font-bold whitespace-nowrap border border-purple-200">Month 2</span>
                     </div>
@@ -952,77 +974,32 @@
                         <div class="space-y-1">
                             <div class="flex items-center gap-2">
                                 <span class="px-2.5 py-0.5 rounded-full bg-stone-100 font-mono text-[10px] font-bold text-stone-700">PHASE 4</span>
-                                <span class="text-xs font-semibold text-terracotta-600">NOVEMBER (SAAS EXTRACTION & LAUNCH)</span>
+                                <span class="text-xs font-semibold text-terracotta-600">NOVEMBER (SAAS MULTI-TENANT EXTRACTION)</span>
                             </div>
-                            <h4 class="font-serif font-bold text-base text-stone-900">Multi-Tenant ChefOS SaaS Beta Launch</h4>
-                            <p class="text-xs text-stone-600">Extract standalone codebase to <code>chefos.app</code> with Supabase Auth & Stripe Billing. Onboard 5-10 external beta chefs from Instagram outreach.</p>
+                            <h4 class="font-serif font-bold text-base text-stone-900">Extract Standalone ChefOS Platform & Roll Out URSSAF Pipe</h4>
+                            <p class="text-xs text-stone-600">Extract clean multi-tenant codebase to <code>chefos.app</code> with Supabase Auth & Stripe Billing, rolling out the URSSAF API pipe as a retention driver.</p>
                         </div>
                         <span class="px-3 py-1 rounded-xl bg-rose-50 text-rose-700 font-mono text-xs font-bold whitespace-nowrap border border-rose-200">Month 3</span>
                     </div>
                 </div>
             </section>
 
-
-            <!-- ======================================================== -->
-            <!-- SECTION 8: STRATEGIC SUMMARY -->
-            <!-- ======================================================== -->
-            <section id="section-8" class="space-y-6 pt-6 page-break">
-                <div class="flex items-center gap-3">
-                    <span class="h-7 w-7 rounded-xl bg-gradient-to-br from-terracotta-500 to-terracotta-700 text-white font-mono text-xs font-bold flex items-center justify-center shadow-xs">08</span>
-                    <h2 class="text-2xl md:text-3xl font-serif font-bold text-stone-900">Strategic Summary: Why We Win</h2>
+            <!-- Signature footer banner -->
+            <div class="p-8 rounded-3xl bg-gradient-to-br from-stone-950 via-stone-900 to-terracotta-950 text-white flex flex-col sm:flex-row items-center justify-between gap-6 shadow-xl border border-terracotta-900/40">
+                <div class="space-y-1 text-center sm:text-left">
+                    <h3 class="font-serif font-bold text-xl text-white">Ready to execute ChefOS?</h3>
+                    <p class="text-xs text-stone-300">Phase 1 begins this week with customer discovery reach-outs.</p>
                 </div>
-
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
-                    <div class="p-6 rounded-3xl bg-gradient-to-b from-white to-emerald-50/20 border border-emerald-200/80 shadow-xs space-y-2">
-                        <div class="w-9 h-9 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center shadow-xs">
-                            <i data-lucide="check-circle-2" class="w-4 h-4"></i>
-                        </div>
-                        <h3 class="font-bold text-sm text-stone-900">1. Real-World Kitchen DNA</h3>
-                        <p class="text-xs text-stone-600 leading-relaxed">Unlike competitors building hypothetical features, ChefOS is engineered directly against real weekly client operations in Annecy with immediate live feedback.</p>
-                    </div>
-
-                    <div class="p-6 rounded-3xl bg-gradient-to-b from-white to-amber-50/20 border border-amber-200/80 shadow-xs space-y-2">
-                        <div class="w-9 h-9 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center shadow-xs">
-                            <i data-lucide="zap" class="w-4 h-4"></i>
-                        </div>
-                        <h3 class="font-bold text-sm text-stone-900">2. Extreme Screen-Time Reduction</h3>
-                        <p class="text-xs text-stone-600 leading-relaxed">Every workflow is designed to reduce desk time: 1-click WhatsApp choice links, automated grocery sum, instant calendar matching, and wake-locked kitchen sheets.</p>
-                    </div>
-
-                    <div class="p-6 rounded-3xl bg-gradient-to-b from-white to-rose-50/20 border border-rose-200/80 shadow-xs space-y-2">
-                        <div class="w-9 h-9 rounded-xl bg-rose-100 text-rose-700 flex items-center justify-center shadow-xs">
-                            <i data-lucide="sparkles" class="w-4 h-4"></i>
-                        </div>
-                        <h3 class="font-bold text-sm text-stone-900">3. Built-In Organic Growth Loops</h3>
-                        <p class="text-xs text-stone-600 leading-relaxed">Every client selection link and weekly Instagram Story flyer acts as a native viral marketing billboard for ChefOS among chefs and high-net-worth clients.</p>
-                    </div>
-
-                    <div class="p-6 rounded-3xl bg-gradient-to-b from-white to-purple-50/20 border border-purple-200/80 shadow-xs space-y-2">
-                        <div class="w-9 h-9 rounded-xl bg-purple-100 text-purple-700 flex items-center justify-center shadow-xs">
-                            <i data-lucide="compass" class="w-4 h-4"></i>
-                        </div>
-                        <h3 class="font-bold text-sm text-stone-900">4. Uncontested Vertical Wedge</h3>
-                        <p class="text-xs text-stone-600 leading-relaxed">By laser-focusing on the booming in-home weekly batch cooking market, ChefOS avoids direct competition with legacy restaurant POS behemoths.</p>
-                    </div>
-                </div>
-
-                <!-- Signature footer banner -->
-                <div class="p-8 rounded-3xl bg-gradient-to-br from-stone-950 via-stone-900 to-terracotta-950 text-white flex flex-col sm:flex-row items-center justify-between gap-6 shadow-xl border border-terracotta-900/40">
-                    <div class="space-y-1 text-center sm:text-left">
-                        <h3 class="font-serif font-bold text-xl text-white">Ready to execute ChefOS?</h3>
-                        <p class="text-xs text-stone-300">Step 1 begins this week with Elisa's pre-trip debrief in Annecy.</p>
-                    </div>
-                    <button onclick="window.print()" class="no-print px-5 py-2.5 rounded-xl bg-gradient-to-r from-terracotta-600 to-rose-600 hover:from-terracotta-500 hover:to-rose-500 text-white font-bold text-xs shadow-md shadow-terracotta-600/30 transition-all cursor-pointer flex items-center gap-2">
-                        <i data-lucide="download" class="w-4 h-4"></i>
-                        Save as PDF / Print Document
-                    </button>
-                </div>
-            </section>
+                <button onclick="window.print()" class="no-print px-5 py-2.5 rounded-xl bg-gradient-to-r from-terracotta-600 to-rose-600 hover:from-terracotta-500 hover:to-rose-500 text-white font-bold text-xs shadow-md shadow-terracotta-600/30 transition-all cursor-pointer flex items-center gap-2">
+                    <i data-lucide="download" class="w-4 h-4"></i>
+                    Save as PDF / Print Document
+                </button>
+            </div>
 
         </main>
 
         <footer class="text-center py-10 text-xs text-stone-500 border-t border-stone-200/80 mt-16 font-mono">
-            ChefOS Master Strategic Blueprint • Confidential • Annecy, France
+            ChefOS Master Strategic Blueprint v2.0 • Confidential • Annecy, France & Geneva Alps
         </footer>
     </div>
 
@@ -1049,7 +1026,6 @@
             const val = input.value.trim();
 
             if (val === CORRECT_PIN) {
-                // Save session
                 sessionStorage.setItem(AUTH_KEY, 'true');
                 localStorage.setItem(AUTH_KEY, 'true');
                 errorMsg.classList.add('hidden');

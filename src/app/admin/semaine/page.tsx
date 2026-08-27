@@ -24,7 +24,11 @@ import {
     Sun,
     Moon,
     LayoutGrid,
-    ListFilter
+    ListFilter,
+    Navigation,
+    ChevronLeft,
+    ChevronRight,
+    MapPin
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -53,7 +57,7 @@ export default function WeeklyOpsAdminDashboard() {
     const [allClients, setAllClients] = useState<ClientProfile[]>([]);
     const [copiedToken, setCopiedToken] = useState<string | null>(null);
     const [viewMode, setViewMode] = useState<'calendar' | 'list'>('calendar');
-    const [targetWeek, setTargetWeek] = useState<'current' | 'next'>('current');
+    const [weekOffset, setWeekOffset] = useState<number>(0);
     
     // Calendar Sync State & Toast Info
     const [isSyncingCalendar, setIsSyncingCalendar] = useState(false);
@@ -79,7 +83,6 @@ export default function WeeklyOpsAdminDashboard() {
     const [slotTargetTimeSlot, setSlotTargetTimeSlot] = useState<'Matin' | 'Après-midi'>('Matin');
     const [isSavingClient, setIsSavingClient] = useState(false);
 
-    const weekOffset = targetWeek === 'next' ? 1 : 0;
     const weekInfo = useMemo(() => getWeekBounds(weekOffset), [weekOffset]);
 
     const loadWeekOverview = async (offset = weekOffset) => {
@@ -98,10 +101,10 @@ export default function WeeklyOpsAdminDashboard() {
         }
     };
 
-    const handleCalendarSync = async (weekToSync = targetWeek) => {
+    const handleCalendarSync = async (offset = weekOffset) => {
         try {
             setIsSyncingCalendar(true);
-            const res = await fetch(`/api/cooking-ops/calendar-sync?week=${weekToSync}`);
+            const res = await fetch(`/api/cooking-ops/calendar-sync?offset=${offset}`);
             if (!res.ok) throw new Error('Erreur de synchronisation');
             const data = await res.json();
             setSlotStatuses(data.slotStatuses || []);
@@ -114,15 +117,18 @@ export default function WeeklyOpsAdminDashboard() {
             setTimeout(() => setSyncSummary(null), 5000);
         } catch (e) {
             console.error('Calendar sync error:', e);
-            alert('Impossible de synchroniser avec Google Calendar pour le moment.');
+            // Fallback load without blocking
+            loadWeekOverview(offset);
         } finally {
             setIsSyncingCalendar(false);
+            setLoading(false);
         }
     };
 
+    // Automatically sync calendar and load data whenever weekOffset changes
     useEffect(() => {
-        loadWeekOverview(weekOffset);
-    }, [targetWeek]);
+        handleCalendarSync(weekOffset);
+    }, [weekOffset]);
 
     const copyClientLink = (token: string) => {
         const url = `${window.location.origin}/choisir/${token}`;
@@ -219,7 +225,7 @@ export default function WeeklyOpsAdminDashboard() {
 
     return (
         <div className="min-h-screen bg-[#FAFAF9] text-stone-800 pb-28 font-sans">
-            {/* Standardized Header with Vertically Stacked Controls */}
+            {/* Standardized Header with Controls */}
             <AdminPageHeader
                 badgeText="ESPACE ADMIN • PLANNING & COMMANDES"
                 title="Planning Hebdo & Commandes"
@@ -228,51 +234,84 @@ export default function WeeklyOpsAdminDashboard() {
                 backLabel="Retour à l'admin"
                 actionElement={
                     <div className="flex flex-col sm:items-end gap-2.5">
-                        {/* Top Row: Week Selector & Sync Calendar */}
+                        {/* Top Row: Week Stepper & Today Page & Sync */}
                         <div className="flex flex-wrap items-center gap-2">
+                            {/* Link to Mobile Today Page */}
+                            <Link href="/admin/aujourd-hui">
+                                <Button
+                                    size="sm"
+                                    className="bg-stone-900 hover:bg-stone-800 text-white text-xs h-9 px-3.5 rounded-full font-bold gap-1.5 shadow-xs cursor-pointer"
+                                >
+                                    <Navigation className="w-3.5 h-3.5 text-[#E1567A]" />
+                                    📍 Aujourd&apos;hui
+                                </Button>
+                            </Link>
+
+                            {/* Interactive Week Stepper */}
                             <div className="flex items-center bg-stone-100 p-1 rounded-full border border-stone-200 text-xs">
                                 <button
-                                    onClick={() => {
-                                        setTargetWeek('current');
-                                        handleCalendarSync('current');
-                                    }}
-                                    className={`px-3 py-1 rounded-full font-bold transition-all ${
-                                        targetWeek === 'current' ? 'bg-white text-stone-900 shadow-xs' : 'text-stone-500 hover:text-stone-800'
-                                    }`}
+                                    onClick={() => setWeekOffset(w => w - 1)}
+                                    className="p-1.5 rounded-full hover:bg-white text-stone-700 hover:text-stone-900 transition-all font-bold flex items-center gap-1 cursor-pointer px-2"
+                                    title="Semaine précédente"
                                 >
-                                    Cette Semaine
+                                    <ChevronLeft className="w-4 h-4" />
+                                    <span className="hidden sm:inline">Précédente</span>
                                 </button>
+
+                                <div className="px-2 font-bold text-stone-900 flex items-center gap-1 text-[11px]">
+                                    {weekOffset === 0 ? (
+                                        <Badge className="bg-[#E1567A] text-white text-[10px] font-bold rounded-full px-2 py-0.2">
+                                            Cette semaine
+                                        </Badge>
+                                    ) : weekOffset === 1 ? (
+                                        <Badge className="bg-amber-100 text-amber-900 border-amber-300 text-[10px] font-bold rounded-full px-2 py-0.2">
+                                            Semaine +1
+                                        </Badge>
+                                    ) : (
+                                        <Badge variant="outline" className="text-[10px] font-semibold rounded-full px-2 py-0.2 bg-white">
+                                            {weekOffset > 0 ? `+${weekOffset} sem.` : `${weekOffset} sem.`}
+                                        </Badge>
+                                    )}
+                                </div>
+
                                 <button
-                                    onClick={() => {
-                                        setTargetWeek('next');
-                                        handleCalendarSync('next');
-                                    }}
-                                    className={`px-3 py-1 rounded-full font-bold transition-all ${
-                                        targetWeek === 'next' ? 'bg-white text-stone-900 shadow-xs' : 'text-stone-500 hover:text-stone-800'
-                                    }`}
+                                    onClick={() => setWeekOffset(w => w + 1)}
+                                    className="p-1.5 rounded-full hover:bg-white text-stone-700 hover:text-stone-900 transition-all font-bold flex items-center gap-1 cursor-pointer px-2"
+                                    title="Semaine suivante"
                                 >
-                                    Semaine Prochaine
+                                    <span className="hidden sm:inline">Suivante</span>
+                                    <ChevronRight className="w-4 h-4" />
                                 </button>
                             </div>
 
+                            {/* Manual Re-sync Button */}
                             <Button
                                 size="sm"
                                 variant="outline"
-                                onClick={() => handleCalendarSync(targetWeek)}
+                                onClick={() => handleCalendarSync(weekOffset)}
                                 disabled={isSyncingCalendar}
-                                className="text-xs h-9 px-3.5 gap-1.5 border-stone-300 rounded-full font-semibold bg-white shadow-xs"
+                                className="text-xs h-9 px-3.5 gap-1.5 border-stone-300 rounded-full font-semibold bg-white shadow-xs cursor-pointer"
                             >
                                 <RefreshCw className={`w-3.5 h-3.5 text-amber-600 ${isSyncingCalendar ? 'animate-spin' : ''}`} />
-                                {isSyncingCalendar ? 'Scan Calendar...' : 'Sync Google Calendar'}
+                                {isSyncingCalendar ? 'Syncing...' : 'Sync GCal'}
                             </Button>
                         </div>
 
-                        {/* Bottom Row: View Mode Switcher & Add Client */}
+                        {/* Bottom Row: Reset Week / View Mode / Add Client */}
                         <div className="flex flex-wrap items-center gap-2">
+                            {weekOffset !== 0 && (
+                                <button
+                                    onClick={() => setWeekOffset(0)}
+                                    className="text-xs text-[#E1567A] font-bold hover:underline cursor-pointer bg-rose-50 px-2.5 py-1 rounded-full border border-rose-200 mr-1"
+                                >
+                                    ↩ Revenir à cette semaine
+                                </button>
+                            )}
+
                             <div className="flex items-center bg-stone-100 p-1 rounded-full border border-stone-200 text-xs">
                                 <button
                                     onClick={() => setViewMode('calendar')}
-                                    className={`px-3 py-1 rounded-full font-bold transition-all flex items-center gap-1 ${
+                                    className={`px-3 py-1 rounded-full font-bold transition-all flex items-center gap-1 cursor-pointer ${
                                         viewMode === 'calendar' ? 'bg-white text-stone-900 shadow-xs' : 'text-stone-500 hover:text-stone-800'
                                     }`}
                                 >
@@ -281,7 +320,7 @@ export default function WeeklyOpsAdminDashboard() {
                                 </button>
                                 <button
                                     onClick={() => setViewMode('list')}
-                                    className={`px-3 py-1 rounded-full font-bold transition-all flex items-center gap-1 ${
+                                    className={`px-3 py-1 rounded-full font-bold transition-all flex items-center gap-1 cursor-pointer ${
                                         viewMode === 'list' ? 'bg-white text-stone-900 shadow-xs' : 'text-stone-500 hover:text-stone-800'
                                     }`}
                                 >
@@ -293,7 +332,7 @@ export default function WeeklyOpsAdminDashboard() {
                             <Button 
                                 size="sm" 
                                 onClick={() => openCreateClientForSlot('Lundi', 'Matin', weekInfo.daysWithDates[0].isoDate)}
-                                className="bg-[#E1567A] hover:bg-[#c94567] text-white gap-1 shadow-xs text-xs h-9 px-4 rounded-full font-semibold"
+                                className="bg-[#E1567A] hover:bg-[#c94567] text-white gap-1 shadow-xs text-xs h-9 px-4 rounded-full font-semibold cursor-pointer"
                             >
                                 <Plus className="w-3.5 h-3.5" /> Nouveau Client
                             </Button>
@@ -311,7 +350,7 @@ export default function WeeklyOpsAdminDashboard() {
                         <div className="flex items-center gap-2.5">
                             <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
                             <span>
-                                <strong>Google Calendar synchronisé ({targetWeek === 'current' ? 'cette semaine' : 'semaine prochaine'}) :</strong> {syncSummary.validCount} séance(s) active(s)
+                                <strong>Google Calendar synchronisé ({weekInfo.weekLabel}) :</strong> {syncSummary.validCount} séance(s) active(s)
                                 {syncSummary.createdCount > 0 && ` • ${syncSummary.createdCount} nouvelle(s) fiche(s)`}
                                 {syncSummary.ignoredBlocks > 0 && ` • ${syncSummary.ignoredBlocks} créneau(x) "Bloc" ignoré(s)`}
                             </span>
@@ -327,7 +366,7 @@ export default function WeeklyOpsAdminDashboard() {
                                 {weekInfo.weekLabel}
                             </span>
                             <Badge variant="outline" className="bg-rose-50 text-[#E1567A] border-[#E1567A]/30 text-xs rounded-full font-bold">
-                                {targetWeek === 'current' ? 'Semaine Active' : 'Semaine Prochaine'}
+                                {weekOffset === 0 ? 'Semaine Active' : weekOffset > 0 ? `Semaine +${weekOffset}` : `Semaine ${weekOffset}`}
                             </Badge>
                         </div>
                         <h2 className="text-2xl font-serif font-bold text-stone-900">
@@ -336,7 +375,7 @@ export default function WeeklyOpsAdminDashboard() {
                         <p className="text-xs sm:text-sm text-stone-600 mt-1">
                             {bookedCount > 0 
                                 ? `${bookedCount} séance(s) planifiée(s) du lundi au vendredi • ${submittedCount} client(s) ont validé leurs plats.`
-                                : 'Aucune réservation synchronisée pour cette semaine. Cliquez sur "Sync Google Calendar" ci-dessus.'}
+                                : 'Aucune réservation pour cette semaine.'}
                         </p>
                     </div>
 
@@ -367,19 +406,35 @@ export default function WeeklyOpsAdminDashboard() {
                     </div>
                 ) : viewMode === 'calendar' ? (
                     /* ========================================================================= */
-                    /* CALENDAR GRID VIEW: Monday to Friday (With Exact Day & Month in Headers) */
+                    /* CALENDAR GRID VIEW: Monday to Friday (With Light Highlight for Today)     */
                     /* ========================================================================= */
                     <div className="grid grid-cols-1 md:grid-cols-5 gap-4 items-start">
-                        {weekInfo.daysWithDates.map(({ dayName, dateNumber, monthName, isoDate }) => (
-                            <div key={dayName} className="space-y-3">
-                                {/* Day Column Header with Day Number and Month */}
-                                <div className="bg-stone-900 text-white rounded-2xl py-3 px-2 text-center shadow-xs">
+                        {weekInfo.daysWithDates.map(({ dayName, dateNumber, monthName, isoDate, isToday }) => (
+                            <div 
+                                key={dayName} 
+                                className={`space-y-3 transition-all rounded-3xl ${
+                                    isToday 
+                                        ? 'bg-rose-50/50 p-2.5 -m-2.5 rounded-3xl border-2 border-[#E1567A]/30 shadow-xs' 
+                                        : ''
+                                }`}
+                            >
+                                {/* Day Column Header with Day Number, Month & Today indicator */}
+                                <div className={`rounded-2xl py-3 px-2 text-center shadow-xs ${
+                                    isToday 
+                                        ? 'bg-gradient-to-br from-[#E1567A] to-[#c94567] text-white shadow-md ring-2 ring-[#E1567A]/20' 
+                                        : 'bg-stone-900 text-white'
+                                }`}>
                                     <h3 className="font-serif font-bold text-sm tracking-wide">
                                         {dayName}
                                     </h3>
-                                    <span className="text-[11px] text-stone-300 font-medium block mt-0.5">
+                                    <span className={`text-[11px] font-medium block mt-0.5 ${isToday ? 'text-rose-100' : 'text-stone-300'}`}>
                                         {dateNumber} {monthName}
                                     </span>
+                                    {isToday && (
+                                        <span className="bg-white text-[#E1567A] text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full mt-1.5 inline-block shadow-2xs">
+                                            Aujourd&apos;hui
+                                        </span>
+                                    )}
                                 </div>
 
                                 {/* Slots for this day */}

@@ -147,29 +147,21 @@ function AdminDashboardContent() {
                     >
                         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 relative z-10">
                             <div className="flex items-center gap-4">
-                                <div className="w-14 h-14 rounded-2xl bg-[#E1567A] flex items-center justify-center text-white shadow-lg shadow-[#E1567A]/30 group-hover:scale-110 transition-transform">
-                                    <Navigation className="w-7 h-7" />
+                                <div className="w-13 h-13 sm:w-14 sm:h-14 rounded-2xl bg-[#E1567A] flex items-center justify-center text-white shadow-lg shadow-[#E1567A]/30 group-hover:scale-110 transition-transform shrink-0">
+                                    <Navigation className="w-6 h-6 sm:w-7 sm:h-7" />
                                 </div>
                                 <div className="space-y-0.5">
-                                    <div className="flex items-center gap-2">
-                                        <span className="text-[10px] uppercase font-black tracking-wider bg-rose-500/30 text-rose-300 border border-rose-500/40 px-2.5 py-0.5 rounded-full">
-                                            Smartphone & GPS
-                                        </span>
-                                        <span className="text-xs text-stone-400 font-medium">
-                                            Itinéraires Waze & Google Maps
-                                        </span>
-                                    </div>
-                                    <h3 className="text-xl font-bold font-serif text-white">
+                                    <h3 className="text-xl sm:text-2xl font-bold font-serif text-white">
                                         📍 Aujourd&apos;hui / En Route
                                     </h3>
-                                    <p className="text-xs text-stone-300">
-                                        Clients du jour, 1-tap itinéraire direct, codes d&apos;accès porte et fiches cuisine actives.
+                                    <p className="text-xs text-stone-300 font-medium">
+                                        Clients du jour, itinéraires Waze / Plans et fiches cuisine.
                                     </p>
                                 </div>
                             </div>
 
-                            <Button className="bg-white hover:bg-rose-50 text-stone-900 rounded-full text-xs font-bold h-10 px-5 gap-1.5 shrink-0 shadow-sm group-hover:translate-x-1 transition-transform">
-                                Ouvrir pour aujourd&apos;hui <ArrowRight className="w-4 h-4 text-[#E1567A]" />
+                            <Button className="bg-white hover:bg-rose-50 text-stone-900 rounded-full text-xs font-bold h-10 px-5 gap-1.5 shrink-0 shadow-sm group-hover:translate-x-1 transition-transform cursor-pointer">
+                                Ouvrir <ArrowRight className="w-4 h-4 text-[#E1567A]" />
                             </Button>
                         </div>
                     </Card>
