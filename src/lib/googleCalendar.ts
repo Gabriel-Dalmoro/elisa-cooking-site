@@ -36,16 +36,17 @@ function normalizeString(str: string): string {
 }
 
 /**
- * Checks if an event is strictly an internal calendar block (e.g. "Bloc", "Indispo", "Vacances", "Rencontre Chef").
- * Non-aggressive: Never blocks valid bookings that contain a client name.
+ * Checks if an event is strictly an internal calendar block (e.g. "Bloc", "Indispo", "Vacances").
+ * Non-aggressive: Never blocks bookings like "Rencontre Chef à Domicile" or events with client names.
  */
 export function isInternalBlock(title: string): boolean {
     if (!title) return false;
     const clean = normalizeString(title);
 
+    // Only block strictly personal blocks or unavailability
     const strictBlockKeywords = [
-        'bloc', 'bloque', 'bloque', 'indispo', 'indisponible', 
-        'vacances', 'conges', 'conges', 'rencontre chef', 'non dispo', 'fermeture', 'off'
+        'bloc', 'bloque', 'indispo', 'indisponible', 
+        'vacances', 'conges', 'fermeture', 'non dispo', 'off'
     ];
 
     // 1. Exact match
@@ -107,20 +108,35 @@ export function extractPeopleCountFromText(text: string): number | null {
 }
 
 /**
- * Extracts client name from event title like "Thibault 5 recettes, 2 personnes", "Romain & Amélie 14h", "Audrey".
+ * Extracts client name from event title like:
+ * - "Rencontre Chef à Domicile (Adrien Mikaeloff)" -> "Adrien Mikaeloff"
+ * - "Thibault 5 recettes, 2 personnes" -> "Thibault"
+ * - "Romain & Amélie 14h" -> "Romain & Amélie"
  */
 export function extractClientNameFromTitle(title: string): string | null {
     if (!title || isInternalBlock(title)) return null;
 
     let cleaned = title
-        .replace(/\d+\s*(recettes?|plats?|repas|portions?|pers|personnes?|pax|p\b|r\b)/gi, '')
-        .replace(/\d+h\d*/gi, '') // Removes "14h" or "14h30"
+        // Remove common event prefixes (including automation prefixes)
+        .replace(/rencontre\s*chef\s*(\u00e0|a)?\s*domicile/gi, '')
+        .replace(/rencontre\s*chef/gi, '')
+        .replace(/s\u00e9ance\s*d\u00e9couverte/gi, '')
+        .replace(/seance\s*decouverte/gi, '')
+        .replace(/r\u00e9servation/gi, '')
+        .replace(/reservation/gi, '')
+        .replace(/rendez-vous/gi, '')
+        .replace(/rdv/gi, '')
+        .replace(/prestation/gi, '')
         .replace(/batch\s*cooking/gi, '')
-        .replace(/séance/gi, '')
+        .replace(/s\u00e9ance/gi, '')
         .replace(/seance/gi, '')
         .replace(/cuisine\s*chez/gi, '')
         .replace(/chez/gi, '')
-        .replace(/[\(\)\,\-\:\;\/\&]/g, ' ')
+        // Remove quotas & quantities
+        .replace(/\d+\s*(recettes?|plats?|repas|portions?|pers|personnes?|pax|p\b|r\b)/gi, '')
+        .replace(/\d+h\d*/gi, '') // Removes "14h" or "14h30"
+        // Remove punctuation, parentheses, brackets, etc.
+        .replace(/[\(\)\[\]\,\-\:\;\/\&\|\@]/g, ' ')
         .replace(/\s+/g, ' ')
         .trim();
 
