@@ -125,7 +125,7 @@ export default function TodayOperationsPage() {
     // Render a single Session Card
     const renderSessionCard = (slotStatus: SlotSessionStatus | undefined, slotType: 'Matin' | 'Après-midi') => {
         const isMorning = slotType === 'Matin';
-        const timeRange = isMorning ? '09:00 - 13:00' : '14:00 - 18:00';
+        const timeRange = isMorning ? '09:00 - 12:00' : '14:00 - 18:00';
 
         if (!slotStatus) {
             return (
@@ -430,7 +430,7 @@ export default function TodayOperationsPage() {
                         <div className="space-y-2">
                             <h4 className="text-xs font-bold uppercase tracking-wider text-stone-500 px-2 flex items-center gap-1.5">
                                 <Sun className="w-3.5 h-3.5 text-amber-500" />
-                                1. Matinée (09:00 - 13:00)
+                                1. Matinée (09:00 - 12:00)
                             </h4>
                             {renderSessionCard(morningSession, 'Matin')}
                         </div>
