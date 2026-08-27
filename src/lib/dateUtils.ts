@@ -163,3 +163,27 @@ export function getWeekBounds(offsetWeeks = 0): {
         daysWithDates
     };
 }
+
+/**
+ * Computes the integer week offset (e.g. -1, 0, 1, 2) of any date relative to today's week in Paris timezone.
+ */
+export function getWeekOffsetForDate(target: Date | string): number {
+    const todayParis = getParisDateTimeInfo(new Date());
+    const [curYear, curMonth, curDay] = todayParis.isoDate.split('-').map(Number);
+    const currentMonday = new Date(curYear, curMonth - 1, curDay);
+    const curDayOfWeek = currentMonday.getDay();
+    const curDistToMonday = (curDayOfWeek + 6) % 7;
+    currentMonday.setDate(currentMonday.getDate() - curDistToMonday);
+    currentMonday.setHours(0, 0, 0, 0);
+
+    const targetParis = getParisDateTimeInfo(target);
+    const [tYear, tMonth, tDay] = targetParis.isoDate.split('-').map(Number);
+    const targetMonday = new Date(tYear, tMonth - 1, tDay);
+    const tDayOfWeek = targetMonday.getDay();
+    const tDistToMonday = (tDayOfWeek + 6) % 7;
+    targetMonday.setDate(targetMonday.getDate() - tDistToMonday);
+    targetMonday.setHours(0, 0, 0, 0);
+
+    const diffDays = Math.round((targetMonday.getTime() - currentMonday.getTime()) / (1000 * 60 * 60 * 24));
+    return Math.round(diffDays / 7);
+}

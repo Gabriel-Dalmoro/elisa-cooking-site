@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import Link from 'next/link';
 import { 
     Calendar, 
@@ -26,7 +26,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import AdminPageHeader from '@/components/admin/AdminPageHeader';
 import { SlotSessionStatus, ClientProfile, BookingSession } from '@/lib/types/cooking-ops';
-import { formatLocalDateToIso, FRENCH_DAYS } from '@/lib/dateUtils';
+import { formatLocalDateToIso, FRENCH_DAYS, getWeekOffsetForDate } from '@/lib/dateUtils';
 
 export default function TodayOperationsPage() {
     // Current selected date (defaults to Today local)
@@ -52,11 +52,18 @@ export default function TodayOperationsPage() {
         return isoSelectedDate === todayIso;
     }, [isoSelectedDate]);
 
-    const loadData = async () => {
+    const currentWeekOffset = useMemo(() => {
+        return getWeekOffsetForDate(selectedDate);
+    }, [selectedDate]);
+
+    const loadData = useCallback(async () => {
         try {
             setLoading(true);
-            // Fetch current week overview (and offset if needed)
-            const res = await fetch('/api/cooking-ops/admin');
+            // 1. Auto-sync with Google Calendar for the selected date's week
+            await fetch(`/api/cooking-ops/calendar-sync?offset=${currentWeekOffset}`);
+
+            // 2. Fetch updated sessions and clients for this week
+            const res = await fetch(`/api/cooking-ops/admin?offset=${currentWeekOffset}`);
             if (!res.ok) throw new Error('Erreur de chargement');
             const data = await res.json();
             setAllSessions(data.slotStatuses || []);
@@ -66,11 +73,11 @@ export default function TodayOperationsPage() {
         } finally {
             setLoading(false);
         }
-    };
+    }, [currentWeekOffset]);
 
     useEffect(() => {
         loadData();
-    }, []);
+    }, [loadData]);
 
     // Filter sessions matching the selected date
     const todaySessions = useMemo(() => {

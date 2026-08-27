@@ -239,92 +239,44 @@ export default function WeeklyOpsAdminDashboard() {
                 backHref="/admin"
                 backLabel="Retour à l'admin"
                 actionElement={
-                    <div className="flex flex-col sm:items-end gap-2">
-                        {/* Top Row: Week Stepper & View Switchers & New Client */}
-                        <div className="flex flex-wrap items-center gap-2">
-                            {/* Intuitive Minimal Week Stepper */}
-                            <div className="flex items-center bg-stone-100 p-1 rounded-full border border-stone-200 text-xs">
-                                <button
-                                    onClick={() => setWeekOffset(w => w - 1)}
-                                    className="w-7 h-7 rounded-full hover:bg-white text-stone-700 hover:text-stone-900 transition-all font-bold flex items-center justify-center cursor-pointer"
-                                    title="Semaine précédente"
-                                >
-                                    <ChevronLeft className="w-4 h-4" />
-                                </button>
-
-                                <span className="px-2.5 font-bold text-stone-900 text-xs whitespace-nowrap">
-                                    {weekInfo.dateRangeOnly}
-                                </span>
-
-                                <button
-                                    onClick={() => setWeekOffset(w => w + 1)}
-                                    className="w-7 h-7 rounded-full hover:bg-white text-stone-700 hover:text-stone-900 transition-all font-bold flex items-center justify-center cursor-pointer"
-                                    title="Semaine suivante"
-                                >
-                                    <ChevronRight className="w-4 h-4" />
-                                </button>
-                            </div>
-
-                            {/* Manual Re-sync Button */}
-                            <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => handleCalendarSync(weekOffset)}
-                                disabled={isSyncingCalendar}
-                                className="text-xs h-9 px-3 gap-1.5 border-stone-300 rounded-full font-semibold bg-white shadow-xs cursor-pointer"
-                                title="Resynchroniser Google Calendar"
+                    <div className="flex items-center gap-2">
+                        {/* View Switchers: Calendrier | Liste | Aujourd'hui */}
+                        <div className="flex items-center bg-stone-100 p-1 rounded-full border border-stone-200 text-xs">
+                            <button
+                                onClick={() => setViewMode('calendar')}
+                                className={`px-3 py-1.5 rounded-full font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+                                    viewMode === 'calendar' ? 'bg-white text-stone-900 shadow-xs' : 'text-stone-500 hover:text-stone-800'
+                                }`}
                             >
-                                <RefreshCw className={`w-3.5 h-3.5 text-amber-600 ${isSyncingCalendar ? 'animate-spin' : ''}`} />
-                                <span className="hidden sm:inline">{isSyncingCalendar ? 'Syncing...' : 'Sync GCal'}</span>
-                            </Button>
-
-                            {/* View Switchers: Calendrier | Liste | Aujourd'hui */}
-                            <div className="flex items-center bg-stone-100 p-1 rounded-full border border-stone-200 text-xs">
-                                <button
-                                    onClick={() => setViewMode('calendar')}
-                                    className={`px-3 py-1 rounded-full font-bold transition-all flex items-center gap-1 cursor-pointer ${
-                                        viewMode === 'calendar' ? 'bg-white text-stone-900 shadow-xs' : 'text-stone-500 hover:text-stone-800'
-                                    }`}
-                                >
-                                    <LayoutGrid className="w-3.5 h-3.5 text-[#E1567A]" />
-                                    Calendrier
-                                </button>
-                                <button
-                                    onClick={() => setViewMode('list')}
-                                    className={`px-3 py-1 rounded-full font-bold transition-all flex items-center gap-1 cursor-pointer ${
-                                        viewMode === 'list' ? 'bg-white text-stone-900 shadow-xs' : 'text-stone-500 hover:text-stone-800'
-                                    }`}
-                                >
-                                    <ListFilter className="w-3.5 h-3.5 text-stone-600" />
-                                    Liste
-                                </button>
-                                <Link href="/admin/aujourd-hui">
-                                    <button
-                                        className="px-3 py-1 rounded-full font-bold text-stone-600 hover:text-stone-900 transition-all flex items-center gap-1 cursor-pointer"
-                                    >
-                                        <Navigation className="w-3.5 h-3.5 text-[#E1567A]" />
-                                        Aujourd&apos;hui
-                                    </button>
-                                </Link>
-                            </div>
-
-                            <Button 
-                                size="sm" 
-                                onClick={() => openCreateClientForSlot('Lundi', 'Matin', weekInfo.daysWithDates[0].isoDate)}
-                                className="bg-[#E1567A] hover:bg-[#c94567] text-white gap-1 shadow-xs text-xs h-9 px-3.5 rounded-full font-semibold cursor-pointer"
+                                <LayoutGrid className="w-3.5 h-3.5 text-[#E1567A]" />
+                                Calendrier
+                            </button>
+                            <button
+                                onClick={() => setViewMode('list')}
+                                className={`px-3 py-1.5 rounded-full font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+                                    viewMode === 'list' ? 'bg-white text-stone-900 shadow-xs' : 'text-stone-500 hover:text-stone-800'
+                                }`}
                             >
-                                <Plus className="w-3.5 h-3.5" /> Nouveau Client
-                            </Button>
+                                <ListFilter className="w-3.5 h-3.5 text-stone-600" />
+                                Liste
+                            </button>
+                            <Link href="/admin/aujourd-hui">
+                                <button
+                                    className="px-3 py-1.5 rounded-full font-bold text-stone-600 hover:text-stone-900 transition-all flex items-center gap-1.5 cursor-pointer"
+                                >
+                                    <Navigation className="w-3.5 h-3.5 text-[#E1567A]" />
+                                    Aujourd&apos;hui
+                                </button>
+                            </Link>
                         </div>
 
-                        {weekOffset !== 0 && (
-                            <button
-                                onClick={() => setWeekOffset(0)}
-                                className="text-xs text-[#E1567A] font-bold hover:underline cursor-pointer bg-rose-50 px-2.5 py-0.5 rounded-full border border-rose-200 self-start sm:self-auto"
-                            >
-                                ↩ Revenir à cette semaine
-                            </button>
-                        )}
+                        <Button 
+                            size="sm" 
+                            onClick={() => openCreateClientForSlot('Lundi', 'Matin', weekInfo.daysWithDates[0].isoDate)}
+                            className="bg-[#E1567A] hover:bg-[#c94567] text-white gap-1.5 shadow-xs text-xs h-9 px-4 rounded-full font-semibold cursor-pointer"
+                        >
+                            <Plus className="w-3.5 h-3.5" /> Nouveau Client
+                        </Button>
                     </div>
                 }
             />
@@ -346,24 +298,61 @@ export default function WeeklyOpsAdminDashboard() {
                     </div>
                 )}
 
-                {/* Clean Hero Date & Stats Card */}
-                <div className="bg-white rounded-3xl p-5 sm:p-6 border border-stone-200 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                    <div className="flex items-center gap-3">
-                        <h2 className="text-2xl font-serif font-bold text-stone-900 capitalize">
-                            {weekInfo.dateRangeOnly}
-                        </h2>
+                {/* Clean Hero Date, Stepper, Sync & Stats Card */}
+                <div className="bg-white rounded-3xl p-5 sm:p-6 border border-stone-200 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
+                    <div className="flex flex-wrap items-center gap-3">
+                        {/* Big Date Stepper */}
+                        <div className="flex items-center gap-2">
+                            <button
+                                onClick={() => setWeekOffset(w => w - 1)}
+                                className="w-9 h-9 rounded-full bg-stone-100 hover:bg-stone-200 text-stone-700 transition-colors flex items-center justify-center cursor-pointer shadow-2xs"
+                                title="Semaine précédente"
+                            >
+                                <ChevronLeft className="w-5 h-5" />
+                            </button>
+
+                            <h2 className="text-2xl font-serif font-bold text-stone-900 capitalize px-1">
+                                {weekInfo.dateRangeOnly}
+                            </h2>
+
+                            <button
+                                onClick={() => setWeekOffset(w => w + 1)}
+                                className="w-9 h-9 rounded-full bg-stone-100 hover:bg-stone-200 text-stone-700 transition-colors flex items-center justify-center cursor-pointer shadow-2xs"
+                                title="Semaine suivante"
+                            >
+                                <ChevronRight className="w-5 h-5" />
+                            </button>
+                        </div>
+
                         {weekOffset === 0 ? (
-                            <Badge className="bg-rose-50 text-[#E1567A] border-[#E1567A]/30 text-xs rounded-full font-bold px-3 py-0.5">
+                            <Badge className="bg-rose-50 text-[#E1567A] border-[#E1567A]/30 text-xs rounded-full font-bold px-3 py-1">
                                 Semaine Active
                             </Badge>
                         ) : (
-                            <Badge variant="outline" className="text-xs rounded-full font-semibold px-2.5 py-0.5 bg-stone-50">
-                                {weekOffset > 0 ? `+${weekOffset} sem.` : `${weekOffset} sem.`}
-                            </Badge>
+                            <button
+                                onClick={() => setWeekOffset(0)}
+                                className="text-xs text-[#E1567A] font-bold hover:underline cursor-pointer bg-rose-50 px-3 py-1 rounded-full border border-rose-200"
+                            >
+                                ↩ Revenir à cette semaine
+                            </button>
                         )}
+
+                        {/* Sync GCal Button inside Hero */}
+                        <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleCalendarSync(weekOffset)}
+                            disabled={isSyncingCalendar}
+                            className="text-xs h-8 px-3 gap-1.5 border-stone-300 rounded-full font-semibold bg-white shadow-2xs cursor-pointer ml-1"
+                            title="Resynchroniser Google Calendar"
+                        >
+                            <RefreshCw className={`w-3.5 h-3.5 text-amber-600 ${isSyncingCalendar ? 'animate-spin' : ''}`} />
+                            <span>{isSyncingCalendar ? 'Syncing...' : 'Sync GCal'}</span>
+                        </Button>
                     </div>
 
-                    <div className="flex items-center gap-4 bg-stone-50 p-3 sm:p-3.5 rounded-2xl border border-stone-200 self-start sm:self-auto">
+                    {/* Stats Counters */}
+                    <div className="flex items-center gap-4 bg-stone-50 p-3 sm:p-3.5 rounded-2xl border border-stone-200 self-start md:self-auto">
                         <div className="text-center px-2">
                             <div className="text-xl sm:text-2xl font-bold font-serif text-[#E1567A]">
                                 {submittedCount} / {bookedCount}
