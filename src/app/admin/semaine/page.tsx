@@ -200,8 +200,14 @@ export default function WeeklyOpsAdminDashboard() {
             });
 
             if (!res.ok) throw new Error('Erreur lors de l’enregistrement');
+            const data = await res.json();
+            
             setIsAddClientOpen(false);
             loadWeekOverview(weekOffset);
+
+            if (data.gcalSyncResult && !data.gcalSyncResult.success) {
+                alert(`⚠️ La séance a bien été enregistrée dans l'app, mais l'écriture vers Google Calendar a échoué :\n"${data.gcalSyncResult.error}"\n\n👉 Solution : Dans Google Calendar (Paramètres de l'agenda > Partager avec des personnes spécifiques), donnez l'autorisation "Apporter des modifications aux événements" à l'adresse de service.`);
+            }
         } catch (err: unknown) {
             const message = err instanceof Error ? err.message : 'Erreur';
             alert(message);

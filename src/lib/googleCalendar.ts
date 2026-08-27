@@ -336,10 +336,12 @@ export async function createGoogleCalendarEvent(session: {
     dishCount: number;
     personCount?: number;
     notes?: string;
-}): Promise<string | null> {
+}): Promise<{ success: boolean; eventId?: string; error?: string }> {
     try {
         const calendar = getGoogleCalendarClient();
-        if (!calendar) return null;
+        if (!calendar) {
+            return { success: false, error: 'Compte de service Google non configuré dans .env.local' };
+        }
 
         const calendarId = process.env.GOOGLE_CALENDAR_ID || 'primary';
         
@@ -371,9 +373,10 @@ export async function createGoogleCalendarEvent(session: {
             },
         });
 
-        return response.data.id || null;
-    } catch (error) {
-        console.error('[GoogleCalendar] Error creating event:', error);
-        return null;
+        return { success: true, eventId: response.data.id || undefined };
+    } catch (error: any) {
+        console.error('[GoogleCalendar] Error creating event:', error?.response?.data || error);
+        const gcalMsg = error?.response?.data?.error?.message || error?.message || 'Erreur Google Calendar';
+        return { success: false, error: gcalMsg };
     }
 }

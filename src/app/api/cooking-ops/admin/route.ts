@@ -63,11 +63,12 @@ export async function POST(req: NextRequest) {
         });
 
         let gcalEventId = body.gcalEventId;
+        let gcalSyncResult: { success: boolean; error?: string } = { success: true };
 
         // If booking a specific date & slot (Two-Way Sync to Google Calendar!)
         if (body.bookingDateIso && body.timeSlot) {
             if (!gcalEventId) {
-                const createdGcalId = await createGoogleCalendarEvent({
+                const gcalRes = await createGoogleCalendarEvent({
                     clientName: savedClient.name,
                     dateIso: body.bookingDateIso,
                     timeSlot: body.timeSlot,
@@ -75,8 +76,11 @@ export async function POST(req: NextRequest) {
                     personCount: savedClient.personCount,
                     notes: savedClient.notes
                 });
-                if (createdGcalId) {
-                    gcalEventId = createdGcalId;
+
+                if (gcalRes.success && gcalRes.eventId) {
+                    gcalEventId = gcalRes.eventId;
+                } else if (!gcalRes.success) {
+                    gcalSyncResult = { success: false, error: gcalRes.error };
                 }
             }
 
@@ -96,7 +100,8 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({
             success: true,
             client: savedClient,
-            gcalEventId
+            gcalEventId,
+            gcalSyncResult
         });
     } catch (error) {
         console.error('Error saving client in admin:', error);
