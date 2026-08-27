@@ -279,6 +279,38 @@ export function toggleClientBookedWeek(clientId: string, isBooked: boolean, book
     return client;
 }
 
+export async function getAllClientsAsync(): Promise<ClientProfile[]> {
+    if (isSupabaseConfigured) {
+        try {
+            const data = await supabaseFetch<any[]>('clients?select=*&order=created_at.desc');
+            if (data && Array.isArray(data)) {
+                const mappedClients: ClientProfile[] = data.map(c => ({
+                    id: c.id,
+                    token: c.token || c.id,
+                    name: c.name,
+                    phone: c.phone || '',
+                    email: c.email || '',
+                    address: c.address || '',
+                    allergies: Array.isArray(c.allergies) ? c.allergies : [],
+                    dislikes: c.dislikes || '',
+                    defaultDishCount: c.default_dish_count || 4,
+                    personCount: 2,
+                    notes: c.notes || '',
+                    isBookedThisWeek: Boolean(c.is_booked_this_week),
+                    bookingDay: c.booking_day || undefined,
+                    createdAt: c.created_at || new Date().toISOString()
+                }));
+
+                // Update clientsStore cache
+                clientsStore = mappedClients;
+            }
+        } catch (e) {
+            console.error('Error fetching clients from Supabase:', e);
+        }
+    }
+    return [...clientsStore];
+}
+
 export function getAllClients(): ClientProfile[] {
     return [...clientsStore];
 }
@@ -338,16 +370,18 @@ export function getClientById(id: string): ClientProfile | null {
 }
 
 export function saveClient(clientData: Partial<ClientProfile> & { name: string }): ClientProfile {
+    const cleanName = clientData.name.trim();
     const existingIndex = clientsStore.findIndex(
         c => c.id === clientData.id || 
              (clientData.token && c.token === clientData.token) ||
-             (clientData.name && c.name.toLowerCase() === clientData.name.toLowerCase())
+             (c.name.toLowerCase() === cleanName.toLowerCase())
     );
     
     if (existingIndex >= 0) {
         const updated = {
             ...clientsStore[existingIndex],
             ...clientData,
+            name: cleanName,
             personCount: clientData.personCount || clientsStore[existingIndex].personCount || 2
         };
         clientsStore[existingIndex] = updated;
@@ -363,7 +397,6 @@ export function saveClient(clientData: Partial<ClientProfile> & { name: string }
                     allergies: updated.allergies,
                     dislikes: updated.dislikes,
                     default_dish_count: updated.defaultDishCount,
-                    person_count: updated.personCount,
                     notes: updated.notes
                 }
             }).catch(err => console.error('Supabase update client error:', err));
@@ -372,11 +405,11 @@ export function saveClient(clientData: Partial<ClientProfile> & { name: string }
         return updated;
     } else {
         const id = clientData.id || `client_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
-        const token = clientData.token || `${clientData.name.toLowerCase().replace(/[^a-z0-9]/g, '')}-${Math.random().toString(36).substring(2, 6)}`;
+        const token = clientData.token || `${cleanName.toLowerCase().replace(/[^a-z0-9]/g, '')}-${Math.random().toString(36).substring(2, 6)}`;
         const newClient: ClientProfile = {
             id,
             token,
-            name: clientData.name,
+            name: cleanName,
             phone: clientData.phone || '',
             email: clientData.email || '',
             address: clientData.address || '',
@@ -402,7 +435,6 @@ export function saveClient(clientData: Partial<ClientProfile> & { name: string }
                     allergies: newClient.allergies,
                     dislikes: newClient.dislikes,
                     default_dish_count: newClient.defaultDishCount,
-                    person_count: newClient.personCount,
                     notes: newClient.notes
                 }
             }).catch(err => console.error('Supabase insert client error:', err));
@@ -416,6 +448,12 @@ export function deleteClient(clientId: string): boolean {
     const initialLen = clientsStore.length;
     clientsStore = clientsStore.filter(c => c.id !== clientId);
     bookingSessionsStore = bookingSessionsStore.filter(s => s.clientId !== clientId);
+    
+    if (isSupabaseConfigured) {
+        supabaseFetch(`clients?id=eq.${clientId}`, { method: 'DELETE' })
+            .catch(err => console.error('Supabase delete client error:', err));
+    }
+
     return clientsStore.length < initialLen;
 }
 

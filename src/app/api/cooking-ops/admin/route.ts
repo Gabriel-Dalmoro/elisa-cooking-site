@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { 
     getWeeklyOverview, 
     saveClient, 
-    getAllClients, 
+    getAllClientsAsync, 
     upsertBookingSession, 
     getSessionsForWeek,
     getActiveWeeklyMenu,
@@ -23,8 +23,8 @@ export async function GET(req: NextRequest) {
         const endIso = daysWithDates[daysWithDates.length - 1].isoDate;
 
         const weekMenu = await getActiveWeeklyMenu();
+        const clients = await getAllClientsAsync();
         const slotStatuses = getSessionsForWeek(startIso, endIso);
-        const clients = getAllClients();
         const vaultRecipes = getRecipeVault();
 
         return NextResponse.json({
@@ -117,7 +117,8 @@ export async function DELETE(req: NextRequest) {
             return NextResponse.json({ error: 'ID requis' }, { status: 400 });
         }
         deleteClient(clientId);
-        return NextResponse.json({ success: true, clients: getAllClients() });
+        const clients = await getAllClientsAsync();
+        return NextResponse.json({ success: true, clients });
     } catch (error) {
         console.error('Error deleting client:', error);
         return NextResponse.json({ error: 'Erreur suppression' }, { status: 500 });

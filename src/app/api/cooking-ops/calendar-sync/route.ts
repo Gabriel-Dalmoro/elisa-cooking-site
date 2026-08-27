@@ -1,13 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { 
-    getAllClients, 
+    getAllClientsAsync,
     saveClient, 
     upsertBookingSession, 
     clearSessionsForDateRange, 
     getSessionsForWeek,
     getActiveWeeklyMenu 
 } from '@/lib/cookingOpsStore';
-import { getUpcomingCalendarBookings } from '@/lib/googleCalendar';
+import { getUpcomingCalendarBookings, matchEventToClient } from '@/lib/googleCalendar';
 import { getWeekBounds } from '@/lib/dateUtils';
 
 export async function GET(request: NextRequest) {
@@ -28,7 +28,8 @@ export async function GET(request: NextRequest) {
         const startIso = daysWithDates[0].isoDate;
         const endIso = daysWithDates[daysWithDates.length - 1].isoDate;
 
-        const clients = getAllClients();
+        // Fetch latest clients directly from Supabase / store
+        const clients = await getAllClientsAsync();
         const { matches, validBookingsCount, ignoredBlocksCount } = await getUpcomingCalendarBookings(clients, offsetWeeks);
 
         // Clear existing sessions strictly for this week's date range to prevent stale data
@@ -38,41 +39,41 @@ export async function GET(request: NextRequest) {
         let updatedCount = 0;
 
         for (const match of matches) {
-            let targetClientId = match.matchedClient ? match.matchedClient.id : '';
+            let targetClient = match.matchedClient || (match.extractedName ? matchEventToClient(match.extractedName, clients) : null);
 
-            if (!targetClientId && match.extractedName) {
-                // Auto-create new client profile with personCount
-                const newClient = saveClient({
+            if (!targetClient && match.extractedName) {
+                // Only create new client if no match exists anywhere in Supabase / clients table
+                targetClient = saveClient({
                     name: match.extractedName,
                     defaultDishCount: match.extractedQuota || 4,
                     personCount: match.extractedPeopleCount || 2,
                     notes: `Créé depuis Google Calendar (${match.dayLabel} ${match.dayNumber} ${match.monthName})`
                 });
-                targetClientId = newClient.id;
+                clients.push(targetClient);
                 createdCount++;
-            } else if (!targetClientId && match.isAnonymousSession) {
+            } else if (!targetClient && match.isAnonymousSession) {
                 // Create placeholder client for anonymous booking
-                const anonClient = saveClient({
+                targetClient = saveClient({
                     name: `Client (${match.formattedSlot})`,
                     defaultDishCount: match.extractedQuota || 3,
                     personCount: match.extractedPeopleCount || 2,
                     notes: `Réservation sans nom sur Google Calendar ("${match.eventTitle}")`
                 });
-                targetClientId = anonClient.id;
+                clients.push(targetClient);
                 createdCount++;
-            } else if (match.matchedClient) {
+            } else if (targetClient) {
                 updatedCount++;
             }
 
-            if (targetClientId) {
+            if (targetClient) {
                 upsertBookingSession({
-                    clientId: targetClientId,
-                    clientName: match.extractedName || match.matchedClient?.name || 'Client',
+                    clientId: targetClient.id,
+                    clientName: targetClient.name,
                     dateIso: match.dateIso,
                     dayName: match.dayLabel,
                     timeSlot: match.timeSlot,
-                    dishCount: match.extractedQuota || 4,
-                    personCount: match.extractedPeopleCount || match.matchedClient?.personCount || 2,
+                    dishCount: match.extractedQuota || targetClient.defaultDishCount || 4,
+                    personCount: match.extractedPeopleCount || targetClient.personCount || 2,
                     gcalEventId: match.gcalEventId,
                     notes: match.eventTitle
                 });
