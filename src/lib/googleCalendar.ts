@@ -116,7 +116,7 @@ export function extractPeopleCountFromText(text: string): number | null {
 export function extractClientNameFromTitle(title: string): string | null {
     if (!title || isInternalBlock(title)) return null;
 
-    let cleaned = title
+    const cleaned = title
         // Remove common event prefixes (including automation prefixes)
         .replace(/rencontre\s*chef\s*(\u00e0|a)?\s*domicile/gi, '')
         .replace(/rencontre\s*chef/gi, '')

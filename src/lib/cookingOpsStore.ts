@@ -11,7 +11,7 @@ import { isSupabaseConfigured, supabaseFetch } from './db/supabase';
 import { getInitialHistoricalRecipeVault } from './historicalRecipes';
 
 // Recipe Vault with all past recipes from Elisa's spreadsheet history
-let recipeVaultStore: VaultRecipe[] = getInitialHistoricalRecipeVault();
+const recipeVaultStore: VaultRecipe[] = getInitialHistoricalRecipeVault();
 
 // Active weekly dishes
 let activeWeeklyDishesStore: WeeklyDish[] = [
@@ -193,7 +193,7 @@ const INITIAL_CLIENTS: ClientProfile[] = [
 // In-Memory Stores
 let clientsStore: ClientProfile[] = [...INITIAL_CLIENTS];
 let bookingSessionsStore: BookingSession[] = [];
-let selectionsStore: ClientSelection[] = [];
+const selectionsStore: ClientSelection[] = [];
 
 export async function getActiveWeeklyMenu(): Promise<WeeklyMenuData> {
     return {
