@@ -247,16 +247,24 @@ export function matchEventToClient(summary: string, clients: ClientProfile[] = [
 }
 
 function getGoogleCalendarClient() {
-    if (!process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL || !process.env.GOOGLE_PRIVATE_KEY) {
+    const clientEmail = process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL;
+    const privateKeyRaw = process.env.GOOGLE_PRIVATE_KEY;
+
+    if (!clientEmail || !privateKeyRaw) {
+        console.warn('[GoogleCalendar] Missing GOOGLE_SERVICE_ACCOUNT_EMAIL or GOOGLE_PRIVATE_KEY in environment');
         return null;
     }
 
+    let privateKey = privateKeyRaw.trim();
+    if ((privateKey.startsWith('"') && privateKey.endsWith('"')) || (privateKey.startsWith("'") && privateKey.endsWith("'"))) {
+        privateKey = privateKey.slice(1, -1);
+    }
+    privateKey = privateKey.replace(/\\n/g, '\n');
+
     const auth = new google.auth.GoogleAuth({
         credentials: {
-            client_email: process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL,
-            private_key: (process.env.GOOGLE_PRIVATE_KEY || '')
-                .replace(/^["']|["']$/g, '')
-                .replace(/\\n/g, '\n'),
+            client_email: clientEmail,
+            private_key: privateKey,
         },
         scopes: [
             'https://www.googleapis.com/auth/calendar',

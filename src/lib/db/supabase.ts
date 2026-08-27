@@ -8,10 +8,10 @@ export function getSupabaseConfig() {
     };
 }
 
-export const isSupabaseConfigured = Boolean(
-    process.env.NEXT_PUBLIC_SUPABASE_URL && 
-    (process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY)
-);
+export function isSupabaseConfigured(): boolean {
+    const config = getSupabaseConfig();
+    return Boolean(config.url && config.key);
+}
 
 interface SupabaseQueryOptions {
     headers?: Record<string, string>;

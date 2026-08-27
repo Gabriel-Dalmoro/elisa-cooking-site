@@ -280,7 +280,7 @@ export function toggleClientBookedWeek(clientId: string, isBooked: boolean, book
 }
 
 export async function getAllClientsAsync(): Promise<ClientProfile[]> {
-    if (isSupabaseConfigured) {
+    if (isSupabaseConfigured()) {
         try {
             const data = await supabaseFetch<any[]>('clients?select=*&order=created_at.desc');
             if (data && Array.isArray(data)) {
@@ -386,7 +386,7 @@ export function saveClient(clientData: Partial<ClientProfile> & { name: string }
         };
         clientsStore[existingIndex] = updated;
 
-        if (isSupabaseConfigured) {
+        if (isSupabaseConfigured()) {
             supabaseFetch(`clients?id=eq.${updated.id}`, {
                 method: 'PATCH',
                 body: {
@@ -422,7 +422,7 @@ export function saveClient(clientData: Partial<ClientProfile> & { name: string }
         };
         clientsStore.push(newClient);
 
-        if (isSupabaseConfigured) {
+        if (isSupabaseConfigured()) {
             supabaseFetch('clients', {
                 method: 'POST',
                 body: {
@@ -449,7 +449,7 @@ export function deleteClient(clientId: string): boolean {
     clientsStore = clientsStore.filter(c => c.id !== clientId);
     bookingSessionsStore = bookingSessionsStore.filter(s => s.clientId !== clientId);
     
-    if (isSupabaseConfigured) {
+    if (isSupabaseConfigured()) {
         supabaseFetch(`clients?id=eq.${clientId}`, { method: 'DELETE' })
             .catch(err => console.error('Supabase delete client error:', err));
     }
@@ -579,7 +579,7 @@ export function saveClientSelection(selectionData: {
         selectionsStore.push(selection);
     }
 
-    if (isSupabaseConfigured) {
+    if (isSupabaseConfigured()) {
         supabaseFetch('client_selections', {
             method: 'POST',
             headers: { 'Prefer': 'resolution=merge-duplicates' },
