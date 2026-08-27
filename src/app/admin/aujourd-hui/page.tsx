@@ -140,14 +140,13 @@ export default function TodayOperationsPage() {
     // Render a single Session Card
     const renderSessionCard = (slotStatus: SlotSessionStatus | undefined, slotType: 'Matin' | 'Après-midi') => {
         const isMorning = slotType === 'Matin';
-        const timeRange = isMorning ? '09:00 - 12:00' : '14:00 - 17:00';
 
         if (!slotStatus) {
             return (
                 <div className="bg-white rounded-3xl p-6 border border-dashed border-stone-300 text-center space-y-2">
                     <div className="flex items-center justify-center gap-1.5 text-stone-400 text-xs font-bold uppercase tracking-wider">
                         {isMorning ? <Sun className="w-4 h-4 text-amber-500" /> : <Moon className="w-4 h-4 text-indigo-500" />}
-                        Séance {slotType} ({timeRange})
+                        Créneau libre
                     </div>
                     <p className="text-stone-500 text-xs font-medium">
                         Aucun client réservé sur ce créneau.
@@ -170,9 +169,9 @@ export default function TodayOperationsPage() {
                 {/* Header Badge */}
                 <div className="flex items-center justify-between gap-2 border-b border-stone-100 pb-3">
                     <div className="flex items-center gap-2">
-                        <span className="text-xs font-bold uppercase tracking-wider text-amber-900 bg-amber-100/90 border border-amber-300 px-3 py-1 rounded-full flex items-center gap-1.5">
-                            {isMorning ? <Sun className="w-3.5 h-3.5 text-amber-600" /> : <Moon className="w-3.5 h-3.5 text-indigo-600" />}
-                            {slotType} • {timeRange}
+                        <span className="text-xs font-bold text-stone-500 flex items-center gap-1.5">
+                            {isMorning ? <Sun className="w-3.5 h-3.5 text-amber-500" /> : <Moon className="w-3.5 h-3.5 text-indigo-500" />}
+                            Séance confirmée
                         </span>
                     </div>
 
