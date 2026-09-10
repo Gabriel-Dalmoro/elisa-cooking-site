@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useState, Suspense } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import React, { Suspense } from 'react';
+import { useRouter } from 'next/navigation';
 import { 
     ChefHat, 
     Calculator, 
@@ -9,108 +9,26 @@ import {
     Gift, 
     Sparkles, 
     ArrowRight, 
-    Lock, 
     LogOut,
     Utensils,
     Calendar,
     Users,
-    Navigation,
-    Eye,
-    EyeOff
+    Navigation
 } from 'lucide-react';
 import { Card } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { motion } from 'framer-motion';
+import { createSupabaseBrowserClient } from '@/lib/supabase/browser';
 
 function AdminDashboardContent() {
     const router = useRouter();
-    const searchParams = useSearchParams();
-    const [password, setPassword] = useState('');
-    const [showPassword, setShowPassword] = useState(false);
-    const [error, setError] = useState(false);
-    const [isAuthenticated, setIsAuthenticated] = useState(() => {
-        if (typeof window !== 'undefined') {
-            return sessionStorage.getItem('admin_auth') === 'true';
-        }
-        return false;
-    });
 
-    const handleLogin = (e: React.FormEvent) => {
-        e.preventDefault();
-        if (password === 'elisa2025' || password === 'admin' || password === 'elisa') {
-            sessionStorage.setItem('admin_auth', 'true');
-            setIsAuthenticated(true);
-            setError(false);
-            const redirectUrl = searchParams.get('redirect');
-            if (redirectUrl) {
-                router.push(decodeURIComponent(redirectUrl));
-            }
-        } else {
-            setError(true);
-        }
+    // Access is enforced server-side (middleware + API checks); this only ends the session
+    const handleLogout = async () => {
+        await createSupabaseBrowserClient().auth.signOut();
+        router.replace('/admin/login');
+        router.refresh();
     };
-
-    const handleLogout = () => {
-        sessionStorage.removeItem('admin_auth');
-        setIsAuthenticated(false);
-    };
-
-    if (!isAuthenticated) {
-        return (
-            <div className="min-h-screen bg-[#FAFAF9] flex items-center justify-center p-4 selection:bg-[#E1567A]/20">
-                <motion.div 
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="max-w-md w-full"
-                >
-                    <Card className="p-8 border-stone-200 shadow-xl rounded-3xl bg-white space-y-6">
-                        <div className="text-center space-y-2">
-                            <div className="h-12 w-12 rounded-2xl bg-rose-50 border border-rose-200 flex items-center justify-center mx-auto text-[#E1567A]">
-                                <Lock className="h-6 w-6" />
-                            </div>
-                            <h1 className="text-2xl font-bold font-serif text-stone-900">Espace Administration</h1>
-                            <p className="text-xs text-stone-500">Veuillez entrer le mot de passe pour accéder à vos outils.</p>
-                        </div>
-
-                        <form onSubmit={handleLogin} className="space-y-4">
-                            <div className="space-y-1">
-                                <div className="relative">
-                                    <Input 
-                                        type={showPassword ? 'text' : 'password'} 
-                                        placeholder="Mot de passe" 
-                                        value={password}
-                                        onChange={(e) => setPassword(e.target.value)}
-                                        className={`rounded-2xl border-stone-200 pr-10 ${error ? 'border-red-500 ring-red-100' : ''}`}
-                                    />
-                                    <button
-                                        type="button"
-                                        onClick={() => setShowPassword(!showPassword)}
-                                        className="absolute right-3 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-700 p-1"
-                                        tabIndex={-1}
-                                    >
-                                        {showPassword ? (
-                                            <EyeOff className="w-4 h-4" />
-                                        ) : (
-                                            <Eye className="w-4 h-4" />
-                                        )}
-                                    </button>
-                                </div>
-                                {error && <p className="text-xs text-red-500 font-medium pl-1">Mot de passe incorrect</p>}
-                            </div>
-
-                            <Button 
-                                type="submit" 
-                                className="w-full bg-[#E1567A] hover:bg-[#c94567] text-white rounded-2xl font-bold text-xs h-11 shadow-sm transition-all"
-                            >
-                                Accéder à l&apos;espace
-                            </Button>
-                        </form>
-                    </Card>
-                </motion.div>
-            </div>
-        );
-    }
 
     return (
         <div className="min-h-screen bg-[#FAFAF9] py-12 md:py-16 relative overflow-hidden text-stone-900 font-sans selection:bg-[#E1567A]/20">

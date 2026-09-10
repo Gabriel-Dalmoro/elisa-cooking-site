@@ -37,17 +37,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import AdminPageHeader from '@/components/admin/AdminPageHeader';
 import { ClientProfile, SlotSessionStatus, WeeklyMenuData } from '@/lib/types/cooking-ops';
 import { getWeekBounds, WEEK_DAY_NAMES } from '@/lib/dateUtils';
-
-const COMMON_ALLERGIES = [
-    'Sans Gluten',
-    'Sans Lactose',
-    'Sans Arachides',
-    'Sans Fruits à coque',
-    'Sans Porc',
-    'Sans Crustacés',
-    'Végétarien',
-    'Végan'
-];
+import { COMMON_ALLERGIES } from '@/lib/allergies';
 
 const SLOTS: ('Matin' | 'Après-midi')[] = ['Matin', 'Après-midi'];
 
@@ -91,6 +81,8 @@ export default function WeeklyOpsAdminDashboard() {
     const [slotTargetDayName, setSlotTargetDayName] = useState<string>('Lundi');
     const [slotTargetTimeSlot, setSlotTargetTimeSlot] = useState<'Matin' | 'Après-midi'>('Matin');
     const [isSavingClient, setIsSavingClient] = useState(false);
+    // When booking a slot: '' = new client, otherwise the id of an existing client (their profile is not modified)
+    const [bookingExistingClientId, setBookingExistingClientId] = useState<string>('');
 
     const weekInfo = useMemo(() => getWeekBounds(weekOffset), [weekOffset]);
 
@@ -169,6 +161,23 @@ export default function WeeklyOpsAdminDashboard() {
         setClientFormAllergies(client.allergies || []);
         setClientFormNotes(client.notes || '');
         setSlotTargetDateIso('');
+        setBookingExistingClientId('');
+        setIsAddClientOpen(true);
+    };
+
+    // Calendar event with no client record: create the profile only (the calendar event already exists)
+    const openCreateClientFromUnmatched = (name: string, dishCount: number, personCount: number) => {
+        setEditingClient(null);
+        setClientFormName(name);
+        setClientFormPhone('');
+        setClientFormEmail('');
+        setClientFormAddress('');
+        setClientFormQuota(dishCount || 4);
+        setClientFormPersonCount(personCount || 2);
+        setClientFormAllergies([]);
+        setClientFormNotes('');
+        setSlotTargetDateIso('');
+        setBookingExistingClientId('');
         setIsAddClientOpen(true);
     };
 
@@ -185,19 +194,26 @@ export default function WeeklyOpsAdminDashboard() {
         setSlotTargetDateIso(isoDate);
         setSlotTargetDayName(dayName);
         setSlotTargetTimeSlot(slot);
+        setBookingExistingClientId('');
         setIsAddClientOpen(true);
     };
 
     const handleSaveClientForm = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!clientFormName.trim()) return;
+        if (!bookingExistingClientId && !clientFormName.trim()) return;
 
         try {
             setIsSavingClient(true);
+            const bookingOnly = !editingClient && bookingExistingClientId && slotTargetDateIso;
             const res = await fetch('/api/cooking-ops/admin', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
+                body: JSON.stringify(bookingOnly ? {
+                    existingClientId: bookingExistingClientId,
+                    bookingDateIso: slotTargetDateIso,
+                    dayName: slotTargetDayName,
+                    timeSlot: slotTargetTimeSlot
+                } : {
                     id: editingClient ? editingClient.id : undefined,
                     name: clientFormName,
                     phone: clientFormPhone,
@@ -213,12 +229,12 @@ export default function WeeklyOpsAdminDashboard() {
                 })
             });
 
-            if (!res.ok) throw new Error('Erreur lors de l’enregistrement');
-            const data = await res.json();
+            const data = await res.json().catch(() => ({}));
+            if (!res.ok) throw new Error(data.error || 'Erreur lors de l’enregistrement');
 
             setIsAddClientOpen(false);
             await handleCalendarSync(weekOffset);
-            showToast(`Séance pour ${clientFormName} enregistrée et synchronisée !`, 'calendar');
+            showToast(`Fiche / séance de ${data.client?.name || clientFormName} enregistrée !`, 'calendar');
 
             if (data.gcalSyncResult && !data.gcalSyncResult.success) {
                 showToast(`Google Calendar: ${data.gcalSyncResult.error || 'Erreur synchronisation'}`, 'calendar');
@@ -413,8 +429,8 @@ export default function WeeklyOpsAdminDashboard() {
                                         const isMorning = slot === 'Matin';
 
                                         if (status) {
-                                            const { client, isSubmitted, selectedCount, session } = status;
-                                            const isMissingPhone = !client.phone || client.phone.trim().length === 0;
+                                            const { client, isSubmitted, selectedCount, session, isUnmatchedClient } = status;
+                                            const isMissingPhone = !isUnmatchedClient && (!client.phone || client.phone.trim().length === 0);
 
                                             return (
                                                 <div 
@@ -429,14 +445,27 @@ export default function WeeklyOpsAdminDashboard() {
                                                                 {slot}
                                                             </span>
 
-                                                            <button
-                                                                onClick={() => openEditClient(client)}
-                                                                className="text-stone-400 hover:text-stone-800 p-1"
-                                                                title="Modifier ce client"
-                                                            >
-                                                                <Edit2 className="w-3.5 h-3.5" />
-                                                            </button>
+                                                            {!isUnmatchedClient && (
+                                                                <button
+                                                                    onClick={() => openEditClient(client)}
+                                                                    className="text-stone-400 hover:text-stone-800 p-1"
+                                                                    title="Modifier ce client"
+                                                                >
+                                                                    <Edit2 className="w-3.5 h-3.5" />
+                                                                </button>
+                                                            )}
                                                         </div>
+
+                                                        {isUnmatchedClient && (
+                                                            <button
+                                                                onClick={() => openCreateClientFromUnmatched(session.clientName, session.dishCount, session.personCount)}
+                                                                className="text-[10px] text-red-700 bg-red-50 border border-red-200 rounded-lg p-1.5 w-full text-left font-semibold flex items-center gap-1"
+                                                                title={`Événement Google Calendar : ${session.notes || ''}`}
+                                                            >
+                                                                <AlertCircle className="w-3 h-3 text-red-600 shrink-0" />
+                                                                <span>Fiche client introuvable — Créer la fiche</span>
+                                                            </button>
+                                                        )}
 
                                                         {/* Client Name & Quota */}
                                                         <div>
@@ -489,6 +518,7 @@ export default function WeeklyOpsAdminDashboard() {
                                                     </div>
 
                                                     {/* Quick Action Buttons */}
+                                                    {!isUnmatchedClient && (
                                                     <div className="pt-2 border-t border-stone-100 grid grid-cols-2 gap-1.5 text-xs mt-2">
                                                         {client.phone ? (
                                                             <a
@@ -528,6 +558,7 @@ export default function WeeklyOpsAdminDashboard() {
                                                             </Button>
                                                         </Link>
                                                     </div>
+                                                    )}
                                                 </div>
                                             );
                                         }
@@ -563,8 +594,8 @@ export default function WeeklyOpsAdminDashboard() {
                                 Aucun client réservé pour cette semaine.
                             </div>
                         ) : (
-                            slotStatuses.map(({ client, isSubmitted, selectedCount, session }) => {
-                                const isMissingPhone = !client.phone || client.phone.trim().length === 0;
+                            slotStatuses.map(({ client, isSubmitted, selectedCount, session, isUnmatchedClient }) => {
+                                const isMissingPhone = !isUnmatchedClient && (!client.phone || client.phone.trim().length === 0);
 
                                 return (
                                     <div 
@@ -577,14 +608,26 @@ export default function WeeklyOpsAdminDashboard() {
                                                 <div className="flex flex-wrap items-center gap-2.5">
                                                     <h4 className="font-serif font-bold text-lg text-stone-900 flex items-center gap-2">
                                                         {session.clientName || client.name}
-                                                        <button
-                                                            onClick={() => openEditClient(client)}
-                                                            className="text-stone-400 hover:text-stone-700 p-1"
-                                                            title="Modifier ce client"
-                                                        >
-                                                            <Edit2 className="w-3.5 h-3.5" />
-                                                        </button>
+                                                        {!isUnmatchedClient && (
+                                                            <button
+                                                                onClick={() => openEditClient(client)}
+                                                                className="text-stone-400 hover:text-stone-700 p-1"
+                                                                title="Modifier ce client"
+                                                            >
+                                                                <Edit2 className="w-3.5 h-3.5" />
+                                                            </button>
+                                                        )}
                                                     </h4>
+
+                                                    {isUnmatchedClient && (
+                                                        <button
+                                                            onClick={() => openCreateClientFromUnmatched(session.clientName, session.dishCount, session.personCount)}
+                                                            className="text-[11px] text-red-700 bg-red-50 border border-red-200 rounded-full px-3 py-1 font-semibold flex items-center gap-1"
+                                                        >
+                                                            <AlertCircle className="w-3 h-3 text-red-600" />
+                                                            Fiche client introuvable — Créer la fiche
+                                                        </button>
+                                                    )}
 
                                                     {/* Booking Slot pill */}
                                                     <span className="text-[11px] bg-amber-50 text-amber-900 border border-amber-200 px-3 py-1 rounded-full font-bold flex items-center gap-1.5">
@@ -642,6 +685,7 @@ export default function WeeklyOpsAdminDashboard() {
                                             </div>
 
                                             {/* Action Buttons Toolbar */}
+                                            {!isUnmatchedClient && (
                                             <div className="flex flex-wrap items-center gap-2 pt-2 lg:pt-0 shrink-0">
                                                 {/* 1. WhatsApp Reminder Link */}
                                                 {client.phone ? (
@@ -701,6 +745,7 @@ export default function WeeklyOpsAdminDashboard() {
                                                     </Button>
                                                 </Link>
                                             </div>
+                                            )}
                                         </div>
                                     </div>
                                 );
@@ -745,10 +790,30 @@ export default function WeeklyOpsAdminDashboard() {
                         <DialogTitle className="font-serif text-xl font-bold">
                             {editingClient 
                                 ? `Modifier : ${editingClient.name}` 
-                                : `Réserver créneau : ${slotTargetDayName} ${slotTargetTimeSlot}`}
+                                : slotTargetDateIso
+                                    ? `Réserver créneau : ${slotTargetDayName} ${slotTargetTimeSlot}`
+                                    : `Nouvelle fiche client`}
                         </DialogTitle>
                     </DialogHeader>
                     <form onSubmit={handleSaveClientForm} className="space-y-3.5 py-2 text-xs">
+                        {!editingClient && slotTargetDateIso && (
+                            <div>
+                                <label className="font-semibold block text-stone-700 mb-1">Client</label>
+                                <select
+                                    value={bookingExistingClientId}
+                                    onChange={e => setBookingExistingClientId(e.target.value)}
+                                    className="w-full p-2.5 rounded-xl border border-stone-300 bg-white focus:ring-2 focus:ring-[#E1567A] focus:outline-none"
+                                >
+                                    <option value="">+ Nouveau client</option>
+                                    {[...allClients]
+                                        .sort((a, b) => a.name.localeCompare(b.name, 'fr'))
+                                        .map(c => (
+                                            <option key={c.id} value={c.id}>{c.name}</option>
+                                        ))}
+                                </select>
+                            </div>
+                        )}
+                        {!bookingExistingClientId && (<>
                         <div>
                             <label className="font-semibold block text-stone-700 mb-1">Nom & Prénom *</label>
                             <input 
@@ -847,12 +912,21 @@ export default function WeeklyOpsAdminDashboard() {
                                 className="w-full p-2.5 rounded-xl border border-stone-300 focus:ring-2 focus:ring-[#E1567A] focus:outline-none"
                             />
                         </div>
+                        </>)}
                         <Button 
                             type="submit" 
                             disabled={isSavingClient}
                             className="w-full bg-[#E1567A] hover:bg-[#c94567] text-white mt-2 rounded-xl h-10 font-bold"
                         >
-                            {isSavingClient ? 'Enregistrement & Sync...' : editingClient ? 'Mettre à jour la fiche' : 'Créer la séance & Sync Google Calendar'}
+                            {isSavingClient
+                                ? 'Enregistrement...'
+                                : editingClient
+                                    ? 'Mettre à jour la fiche'
+                                    : !slotTargetDateIso
+                                        ? 'Créer la fiche client'
+                                        : bookingExistingClientId
+                                            ? 'Réserver ce créneau & Sync Google Calendar'
+                                            : 'Créer le client & la séance'}
                         </Button>
                     </form>
                 </DialogContent>

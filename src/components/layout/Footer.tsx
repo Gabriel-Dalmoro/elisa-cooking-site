@@ -111,6 +111,14 @@ export function Footer() {
                         >
                             GabrielDalmoro.com
                         </a>
+                        {' · '}
+                        <Link
+                            href="/admin"
+                            rel="nofollow"
+                            className="hover:text-brand-rose transition-colors"
+                        >
+                            Espace admin
+                        </Link>
                     </p>
                 </div>
             </div>

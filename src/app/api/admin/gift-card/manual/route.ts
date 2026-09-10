@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createGiftCard } from '@/lib/googleSheets';
+import { requireOwner } from '@/lib/auth';
 
 const PACKAGES = {
     discovery: {
@@ -40,11 +41,9 @@ function generateVoucherCode() {
 
 export async function POST(request: Request) {
     try {
-        // 1. Password Verification
-        const authHeader = request.headers.get('Authorization');
-        if (authHeader !== 'Bearer elisa2024') {
-            return NextResponse.json({ success: false, error: 'Non autorisé.' }, { status: 401 });
-        }
+        // 1. Owner login check (server-side session)
+        const denied = await requireOwner();
+        if (denied) return denied;
 
         const { packageId, senderName, recipientName, message, deliveryEmail, customRecipes, customPeople, startDate, customText } = await request.json();
 
