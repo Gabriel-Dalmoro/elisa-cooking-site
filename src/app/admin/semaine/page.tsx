@@ -106,10 +106,22 @@ export default function WeeklyOpsAdminDashboard() {
         try {
             setIsSyncingCalendar(true);
             const res = await fetch(`/api/cooking-ops/calendar-sync?offset=${offset}`);
-            if (!res.ok) throw new Error('Erreur de synchronisation');
-            const data = await res.json();
+            const data = await res.json().catch(() => ({}));
+            if (!res.ok) {
+                // Google unreachable: the server still returns the last stored sessions
+                if (data.slotStatuses) {
+                    setSlotStatuses(data.slotStatuses);
+                    setWeekMenu(data.weekMenu);
+                    setAllClients(data.clients || []);
+                } else {
+                    loadWeekOverview(offset);
+                }
+                showToast(`Google Calendar injoignable : dernières séances enregistrées affichées${data.error ? ` (${data.error})` : ''}`, 'calendar');
+                return;
+            }
             setSlotStatuses(data.slotStatuses || []);
             setWeekMenu(data.weekMenu);
+            setAllClients(data.clients || []);
             
             const validCount = data.validBookingsCount || 0;
             const ignoredCount = data.ignoredBlocksCount || 0;
@@ -256,9 +268,39 @@ export default function WeeklyOpsAdminDashboard() {
     const bookedCount = slotStatuses.length;
     const submittedCount = slotStatuses.filter(s => s.isSubmitted).length;
 
-    const getClientForSlot = (isoDate: string, slot: 'Matin' | 'Après-midi') => {
-        return slotStatuses.find(s => s.session.dateIso === isoDate && s.session.timeSlot === slot);
+    // Several sessions can share a slot (e.g. Elisa and an assistant cooking at the same time)
+    const getSessionsForSlot = (isoDate: string, slot: 'Matin' | 'Après-midi') => {
+        return slotStatuses.filter(s => s.session.dateIso === isoDate && s.session.timeSlot === slot);
     };
+
+    const handleIgnoreSession = async (sessionId: string, name: string) => {
+        if (!confirm(`Masquer « ${name} » du planning ? (à utiliser pour un événement qui n'est pas une séance de cuisine)`)) return;
+        const res = await fetch(`/api/cooking-ops/session/${encodeURIComponent(sessionId)}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ ignored: true })
+        });
+        if (!res.ok) {
+            showToast('Impossible de masquer cet événement', 'calendar');
+            return;
+        }
+        setSlotStatuses(prev => prev.filter(s => s.session.id !== sessionId));
+        showToast(`« ${name} » masqué du planning`, 'check');
+    };
+
+    // Per-dish totals for the week (one count per household, portions = household size)
+    const dishSummary = useMemo(() => {
+        if (!weekMenu) return [];
+        return weekMenu.recipes.map(dish => {
+            const households = new Map<string, number>();
+            slotStatuses.forEach(s => {
+                if (s.selection?.selectedDishIds.includes(dish.id) && !households.has(s.client.id)) {
+                    households.set(s.client.id, s.session.personCount || s.client.personCount || 2);
+                }
+            });
+            return { dish, households: households.size, portions: Array.from(households.values()).reduce((a, b) => a + b, 0) };
+        });
+    }, [weekMenu, slotStatuses]);
 
     return (
         <div className="min-h-screen bg-[#FAFAF9] text-stone-800 pb-28 font-sans">
@@ -390,6 +432,23 @@ export default function WeeklyOpsAdminDashboard() {
                     </div>
                 </div>
 
+                {weekMenu && (
+                    <div className="flex flex-wrap items-center gap-2 text-xs px-1">
+                        <span className="font-semibold text-stone-600">Menu de cette semaine :</span>
+                        {weekMenu.status === 'open' ? (
+                            <span className="bg-emerald-100 text-emerald-800 border border-emerald-300 px-2.5 py-0.5 rounded-full font-bold">Ouvert aux clients</span>
+                        ) : weekMenu.status === 'closed' ? (
+                            <span className="bg-stone-200 text-stone-700 border border-stone-300 px-2.5 py-0.5 rounded-full font-bold">Choix clôturés</span>
+                        ) : (
+                            <span className="bg-amber-50 text-amber-800 border border-amber-300 px-2.5 py-0.5 rounded-full font-bold">Brouillon — les liens clients ne l&apos;affichent pas</span>
+                        )}
+                        <span className="text-stone-500">{weekMenu.recipes.length} plat(s)</span>
+                        <Link href={`/admin/recettes?offset=${weekOffset}`} className="text-[#E1567A] font-bold hover:underline">
+                            Gérer le menu →
+                        </Link>
+                    </div>
+                )}
+
                 {loading ? (
                     <div className="bg-white rounded-3xl p-12 text-center text-stone-500 border border-stone-200">
                         Chargement du planning...
@@ -425,16 +484,19 @@ export default function WeeklyOpsAdminDashboard() {
                                 {/* Slots for this day */}
                                 <div className="space-y-3">
                                     {SLOTS.map((slot) => {
-                                        const status = getClientForSlot(isoDate, slot);
+                                        const cellStatuses = getSessionsForSlot(isoDate, slot);
                                         const isMorning = slot === 'Matin';
 
-                                        if (status) {
-                                            const { client, isSubmitted, selectedCount, session, isUnmatchedClient } = status;
+                                        if (cellStatuses.length > 0) {
+                                            return (
+                                            <div key={slot} className="space-y-3">
+                                            {cellStatuses.map((status) => {
+                                            const { client, isSubmitted, selectedCount, session, isUnmatchedClient, selection } = status;
                                             const isMissingPhone = !isUnmatchedClient && (!client.phone || client.phone.trim().length === 0);
 
                                             return (
                                                 <div 
-                                                    key={slot}
+                                                    key={session.id}
                                                     className="bg-white rounded-3xl p-4 border border-rose-200 shadow-xs hover:shadow-md transition-all relative group ring-1 ring-[#E1567A]/20 min-h-[220px] flex flex-col justify-between"
                                                 >
                                                     <div className="space-y-2.5">
@@ -457,14 +519,22 @@ export default function WeeklyOpsAdminDashboard() {
                                                         </div>
 
                                                         {isUnmatchedClient && (
-                                                            <button
-                                                                onClick={() => openCreateClientFromUnmatched(session.clientName, session.dishCount, session.personCount)}
-                                                                className="text-[10px] text-red-700 bg-red-50 border border-red-200 rounded-lg p-1.5 w-full text-left font-semibold flex items-center gap-1"
-                                                                title={`Événement Google Calendar : ${session.notes || ''}`}
-                                                            >
-                                                                <AlertCircle className="w-3 h-3 text-red-600 shrink-0" />
-                                                                <span>Fiche client introuvable — Créer la fiche</span>
-                                                            </button>
+                                                            <div className="space-y-1">
+                                                                <button
+                                                                    onClick={() => openCreateClientFromUnmatched(session.clientName, session.dishCount, session.personCount)}
+                                                                    className="text-[10px] text-red-700 bg-red-50 border border-red-200 rounded-lg p-1.5 w-full text-left font-semibold flex items-center gap-1"
+                                                                    title={`Événement Google Calendar : ${session.notes || ''}`}
+                                                                >
+                                                                    <AlertCircle className="w-3 h-3 text-red-600 shrink-0" />
+                                                                    <span>Fiche client introuvable — Créer la fiche</span>
+                                                                </button>
+                                                                <button
+                                                                    onClick={() => handleIgnoreSession(session.id, session.clientName)}
+                                                                    className="text-[10px] text-stone-500 hover:text-stone-800 underline w-full text-left px-1"
+                                                                >
+                                                                    Pas une séance ? Ignorer cet événement
+                                                                </button>
+                                                            </div>
                                                         )}
 
                                                         {/* Client Name & Quota */}
@@ -502,6 +572,11 @@ export default function WeeklyOpsAdminDashboard() {
                                                                         ⚠️ {al}
                                                                     </span>
                                                                 ))}
+                                                            </div>
+                                                        )}
+                                                        {selection && selection.allergiesAdded.length > 0 && (
+                                                            <div className="text-[10px] text-white bg-red-600 rounded-lg p-1.5 font-bold">
+                                                                ⚠️ Ajoutée par le client : {selection.allergiesAdded.join(', ')}
                                                             </div>
                                                         )}
 
@@ -548,7 +623,7 @@ export default function WeeklyOpsAdminDashboard() {
                                                             </Button>
                                                         )}
 
-                                                        <Link href={`/admin/cuisine/${client.id}`} className="w-full">
+                                                        <Link href={`/admin/cuisine/${session.id}`} className="w-full">
                                                             <Button
                                                                 size="sm"
                                                                 className="w-full bg-[#E1567A] hover:bg-[#c94567] text-white text-[11px] h-7 px-1 shadow-xs font-bold rounded-xl gap-1"
@@ -560,6 +635,9 @@ export default function WeeklyOpsAdminDashboard() {
                                                     </div>
                                                     )}
                                                 </div>
+                                            );
+                                            })}
+                                            </div>
                                             );
                                         }
 
@@ -594,7 +672,7 @@ export default function WeeklyOpsAdminDashboard() {
                                 Aucun client réservé pour cette semaine.
                             </div>
                         ) : (
-                            slotStatuses.map(({ client, isSubmitted, selectedCount, session, isUnmatchedClient }) => {
+                            slotStatuses.map(({ client, isSubmitted, selectedCount, session, isUnmatchedClient, selection }) => {
                                 const isMissingPhone = !isUnmatchedClient && (!client.phone || client.phone.trim().length === 0);
 
                                 return (
@@ -620,13 +698,21 @@ export default function WeeklyOpsAdminDashboard() {
                                                     </h4>
 
                                                     {isUnmatchedClient && (
-                                                        <button
-                                                            onClick={() => openCreateClientFromUnmatched(session.clientName, session.dishCount, session.personCount)}
-                                                            className="text-[11px] text-red-700 bg-red-50 border border-red-200 rounded-full px-3 py-1 font-semibold flex items-center gap-1"
-                                                        >
-                                                            <AlertCircle className="w-3 h-3 text-red-600" />
-                                                            Fiche client introuvable — Créer la fiche
-                                                        </button>
+                                                        <>
+                                                            <button
+                                                                onClick={() => openCreateClientFromUnmatched(session.clientName, session.dishCount, session.personCount)}
+                                                                className="text-[11px] text-red-700 bg-red-50 border border-red-200 rounded-full px-3 py-1 font-semibold flex items-center gap-1"
+                                                            >
+                                                                <AlertCircle className="w-3 h-3 text-red-600" />
+                                                                Fiche client introuvable — Créer la fiche
+                                                            </button>
+                                                            <button
+                                                                onClick={() => handleIgnoreSession(session.id, session.clientName)}
+                                                                className="text-[11px] text-stone-500 hover:text-stone-800 underline"
+                                                            >
+                                                                Ignorer cet événement
+                                                            </button>
+                                                        </>
                                                     )}
 
                                                     {/* Booking Slot pill */}
@@ -670,7 +756,18 @@ export default function WeeklyOpsAdminDashboard() {
                                                             ({client.dislikes})
                                                         </span>
                                                     )}
+                                                    {selection && selection.allergiesAdded.length > 0 && (
+                                                        <span className="text-[11px] text-white bg-red-600 px-2.5 py-0.5 rounded-full font-bold">
+                                                            ⚠️ Ajoutée par le client : {selection.allergiesAdded.join(', ')}
+                                                        </span>
+                                                    )}
                                                 </div>
+
+                                                {selection && selection.selectedDishNames.length > 0 && (
+                                                    <p className="text-[11px] text-stone-600">
+                                                        <span className="font-semibold">Choix :</span> {selection.selectedDishNames.join(' • ')}
+                                                    </p>
+                                                )}
 
                                                 {/* Missing Phone Alert */}
                                                 {isMissingPhone && (
@@ -735,7 +832,7 @@ export default function WeeklyOpsAdminDashboard() {
                                                 </Button>
 
                                                 {/* 3. Open Kitchen Cook Mode */}
-                                                <Link href={`/admin/cuisine/${client.id}`}>
+                                                <Link href={`/admin/cuisine/${session.id}`}>
                                                     <Button
                                                         size="sm"
                                                         className="bg-[#E1567A] hover:bg-[#c94567] text-white text-xs h-9 px-4 gap-1.5 shadow-xs font-bold rounded-full"
@@ -751,6 +848,33 @@ export default function WeeklyOpsAdminDashboard() {
                                 );
                             })
                         )}
+                    </div>
+                )}
+                {!loading && dishSummary.length > 0 && submittedCount > 0 && (
+                    <div className="bg-white rounded-3xl p-5 sm:p-6 border border-stone-200 shadow-xs space-y-3">
+                        <h3 className="text-xs font-bold uppercase tracking-wider text-stone-600">
+                            Récapitulatif des choix ({submittedCount} / {bookedCount} reçus)
+                        </h3>
+                        <div className="overflow-x-auto">
+                            <table className="w-full text-left text-xs">
+                                <thead className="text-stone-500 uppercase tracking-wider text-[10px] border-b border-stone-200">
+                                    <tr>
+                                        <th className="py-2 pr-3">Plat</th>
+                                        <th className="py-2 px-3 text-center">Foyers</th>
+                                        <th className="py-2 pl-3 text-center">Portions</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-stone-100">
+                                    {dishSummary.map(({ dish, households, portions }) => (
+                                        <tr key={dish.id} className={households === 0 ? 'text-stone-400' : 'text-stone-800'}>
+                                            <td className="py-2 pr-3 font-medium">{dish.name}</td>
+                                            <td className="py-2 px-3 text-center font-bold">{households}</td>
+                                            <td className="py-2 pl-3 text-center font-bold">{portions}</td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
                 )}
             </main>

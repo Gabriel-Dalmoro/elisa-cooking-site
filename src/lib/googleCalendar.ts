@@ -6,6 +6,8 @@ export interface CalendarBookingMatch {
     gcalEventId: string;
     eventTitle: string;
     startDateTime: string;
+    startsAt: string | null; // Timed events only (null for all-day events)
+    endsAt: string | null;
     dateIso: string; // "YYYY-MM-DD" in local Paris time
     dayLabel: string; // e.g. "Lundi", "Mardi"
     dayNumber: number; // e.g. 17, 18
@@ -282,6 +284,8 @@ export async function getUpcomingCalendarBookings(
     clients: ClientProfile[] = [], 
     offsetWeeks = 0
 ): Promise<{
+    ok: boolean; // false = Google could not be reached / not configured (matches is then NOT the real list)
+    error?: string;
     matches: CalendarBookingMatch[];
     weekLabel: string;
     validBookingsCount: number;
@@ -290,8 +294,8 @@ export async function getUpcomingCalendarBookings(
     try {
         const calendar = getGoogleCalendarClient();
         if (!calendar) {
-            console.warn('[GoogleCalendar] Missing service account credentials in .env.local');
-            return { matches: [], weekLabel: '', validBookingsCount: 0, ignoredBlocksCount: 0 };
+            console.warn('[GoogleCalendar] Missing service account credentials');
+            return { ok: false, error: 'Compte Google Calendar non configuré', matches: [], weekLabel: '', validBookingsCount: 0, ignoredBlocksCount: 0 };
         }
 
         const { startIso, endIso, weekLabel } = getWeekBounds(offsetWeeks);
@@ -349,6 +353,8 @@ export async function getUpcomingCalendarBookings(
                 gcalEventId: event.id || '',
                 eventTitle: title,
                 startDateTime: typeof startRaw === 'string' ? startRaw : new Date(startRaw).toISOString(),
+                startsAt: event.start?.dateTime || null,
+                endsAt: event.end?.dateTime || null,
                 dateIso: dateInfo.isoDate,
                 dayLabel: dateInfo.dayName,
                 dayNumber: dateInfo.dayNumber,
@@ -367,6 +373,7 @@ export async function getUpcomingCalendarBookings(
         }
 
         return {
+            ok: true,
             matches: results,
             weekLabel,
             validBookingsCount,
@@ -374,7 +381,8 @@ export async function getUpcomingCalendarBookings(
         };
     } catch (error) {
         console.error('[GoogleCalendar] Error fetching events:', error);
-        return { matches: [], weekLabel: '', validBookingsCount: 0, ignoredBlocksCount: 0 };
+        const message = error instanceof Error ? error.message : 'Erreur Google Calendar';
+        return { ok: false, error: message, matches: [], weekLabel: '', validBookingsCount: 0, ignoredBlocksCount: 0 };
     }
 }
 

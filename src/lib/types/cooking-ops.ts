@@ -19,22 +19,27 @@ export interface ClientProfile {
     createdAt: string;
 }
 
+export type TimeSlot = 'Matin' | 'Après-midi';
+
 export interface BookingSession {
     id: string;
-    clientId: string;
-    clientName: string;
+    clientId: string; // '' when the calendar event matches no client record
+    clientName: string; // Client name, or the name read from the calendar event
     dateIso: string; // "YYYY-MM-DD" e.g. "2026-08-25"
     dayName: string; // "Lundi", "Mardi", etc.
-    timeSlot: 'Matin' | 'Après-midi';
+    timeSlot: TimeSlot;
+    startsAt?: string; // ISO timestamp from Google Calendar (arrival time)
+    endsAt?: string;
     dishCount: number;
     personCount: number; // e.g. 2 personnes
     gcalEventId?: string;
-    notes?: string;
+    notes?: string; // Google Calendar event title
+    assignedTo?: string | null; // Staff user id of an assistant chef (null = Elisa)
     createdAt: string;
 }
 
 export interface WeeklyDish {
-    id: string;
+    id: string; // Stable id within the menu: selections point to it
     name: string;
     category: DishCategory;
     description?: string;
@@ -43,9 +48,12 @@ export interface WeeklyDish {
     tags?: string[];
 }
 
+export type MenuStatus = 'draft' | 'open' | 'closed';
+
 export interface WeeklyMenuData {
-    weekLabel: string;
-    active: boolean;
+    weekStart: string; // Monday "YYYY-MM-DD" (Paris)
+    weekLabel: string; // "Semaine du 28 septembre au 4 octobre"
+    status: MenuStatus;
     recipes: WeeklyDish[];
     updatedAt?: string;
 }
@@ -53,12 +61,14 @@ export interface WeeklyMenuData {
 export interface ClientSelection {
     id: string;
     clientId: string;
-    weekLabel: string;
-    selectedDishNames: string[];
-    dishNotes: Record<string, string>;
+    weekStart: string;
+    selectedDishIds: string[];
+    selectedDishNames: string[]; // Snapshot at submission (kept if a dish is later removed)
+    dishNotes: Record<string, string>; // Keyed by dish id
     generalNote?: string;
     submittedAt: string;
     allergiesAtSubmission: string[];
+    allergiesAdded: string[]; // Allergies the client added themselves from the link
 }
 
 export interface SlotSessionStatus {
@@ -77,6 +87,6 @@ export interface VaultRecipe {
     instructions: string[];
     chefNotes?: string;
     timesUsed?: number;
-    lastUsedWeek?: string;
+    lastUsedWeek?: string; // Monday of the last week it was on an open menu
     createdAt: string;
 }
