@@ -7,14 +7,14 @@ export type StaffRole = 'owner' | 'assistant';
 /**
  * Returns the logged-in, active staff member, or null.
  */
-export async function getCurrentStaff(): Promise<{ userId: string; role: StaffRole } | null> {
+export async function getCurrentStaff(): Promise<{ userId: string; role: StaffRole; displayName: string | null } | null> {
     const supabase = await createSupabaseServerClient();
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return null;
 
     const { data: staff, error } = await getSupabaseAdmin()
         .from('staff')
-        .select('role, active')
+        .select('role, active, display_name')
         .eq('user_id', user.id)
         .maybeSingle();
 
@@ -24,7 +24,7 @@ export async function getCurrentStaff(): Promise<{ userId: string; role: StaffRo
     }
     if (!staff || !staff.active) return null;
 
-    return { userId: user.id, role: staff.role as StaffRole };
+    return { userId: user.id, role: staff.role as StaffRole, displayName: staff.display_name || null };
 }
 
 /**
