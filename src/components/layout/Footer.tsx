@@ -69,6 +69,7 @@ export function Footer() {
                             <Link href="/mentions-legales" className="hover:text-brand-rose transition-colors">Mentions Légales</Link>
                             <Link href="/cgv" className="hover:text-brand-rose transition-colors">Conditions Générales de Vente</Link>
                             <Link href="/politique-de-confidentialite" className="hover:text-brand-rose transition-colors">Politique de Confidentialité</Link>
+                            <Link href="/admin" rel="nofollow" className="hover:text-brand-rose transition-colors">Espace admin</Link>
                         </nav>
 
                         {/* Trust Badges */}

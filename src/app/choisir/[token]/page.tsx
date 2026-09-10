@@ -2,7 +2,8 @@
 
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
-import { ClientProfile, WeeklyDish, WeeklyMenuData } from '@/lib/types/cooking-ops';
+import { WeeklyMenuData } from '@/lib/types/cooking-ops';
+import { COMMON_ALLERGIES } from '@/lib/allergies';
 import { 
     Check, 
     Sparkles, 
@@ -22,18 +23,13 @@ import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 
-const COMMON_ALLERGIES = [
-    'Sans Gluten',
-    'Sans Lactose',
-    'Sans Arachides',
-    'Sans Fruits à coque',
-    'Sans Porc',
-    'Sans Crustacés',
-    'Végétarien',
-    'Végan',
-    'Faible en sel',
-    'Femme enceinte (bien cuit)'
-];
+// Only what the public API returns for a client link
+interface PublicClient {
+    firstName: string;
+    defaultDishCount: number;
+    allergies: string[];
+    dislikes: string;
+}
 
 export default function ClientMenuSelectionPage() {
     const routeParams = useParams();
@@ -42,7 +38,7 @@ export default function ClientMenuSelectionPage() {
 
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
-    const [client, setClient] = useState<ClientProfile | null>(null);
+    const [client, setClient] = useState<PublicClient | null>(null);
     const [menu, setMenu] = useState<WeeklyMenuData | null>(null);
     
     // Form state
@@ -50,6 +46,8 @@ export default function ClientMenuSelectionPage() {
     const [dishNotes, setDishNotes] = useState<Record<string, string>>({});
     const [generalNote, setGeneralNote] = useState<string>('');
     const [allergies, setAllergies] = useState<string[]>([]);
+    // Allergies already on file can't be removed from the client link (only Elisa can)
+    const [lockedAllergies, setLockedAllergies] = useState<string[]>([]);
     const [dislikes, setDislikes] = useState<string>('');
     
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -69,6 +67,7 @@ export default function ClientMenuSelectionPage() {
                 setClient(data.client);
                 setMenu(data.menu);
                 setAllergies(data.client.allergies || []);
+                setLockedAllergies(data.client.allergies || []);
                 setDislikes(data.client.dislikes || '');
 
                 if (data.existingSelection && data.existingSelection.selectedDishNames?.length > 0) {
@@ -108,6 +107,7 @@ export default function ClientMenuSelectionPage() {
     };
 
     const toggleAllergyTag = (tag: string) => {
+        if (lockedAllergies.includes(tag)) return;
         setAllergies(prev => 
             prev.includes(tag) ? prev.filter(t => t !== tag) : [...prev, tag]
         );
@@ -196,7 +196,7 @@ export default function ClientMenuSelectionPage() {
                             Choix confirmés avec succès !
                         </h1>
                         <p className="text-stone-600 text-sm mb-6">
-                            Merci <strong>{client.name}</strong>, Elisa a bien reçu votre sélection de <strong>{selectedDishes.length} plats</strong> pour cette semaine.
+                            Merci <strong>{client.firstName}</strong>, Elisa a bien reçu votre sélection de <strong>{selectedDishes.length} plats</strong> pour cette semaine.
                         </p>
 
                         <div className="bg-stone-50 rounded-2xl p-5 text-left border border-stone-200 mb-6 space-y-3">
@@ -279,7 +279,7 @@ export default function ClientMenuSelectionPage() {
                                 </span>
                             </div>
                             <h1 className="text-2xl sm:text-3xl font-serif font-bold text-stone-900">
-                                Bonjour {client.name.split(' ')[0]} 👋
+                                Bonjour {client.firstName} 👋
                             </h1>
                             <p className="text-xs sm:text-sm text-stone-600 mt-1.5">
                                 Choisissez vos <strong>{targetCount} plats</strong> parmi les 8 recettes fraîches de la semaine.
@@ -309,21 +309,28 @@ export default function ClientMenuSelectionPage() {
                                             <p className="text-xs text-stone-600">
                                                 Sélectionnez vos restrictions. Elles seront automatiquement mémorisées pour toutes vos prochaines séances.
                                             </p>
+                                            {lockedAllergies.length > 0 && (
+                                                <p className="text-[11px] text-stone-500 flex items-center gap-1">
+                                                    <Lock className="w-3 h-3" /> Pour retirer une allergie déjà enregistrée, contactez Elisa.
+                                                </p>
+                                            )}
                                             <div className="flex flex-wrap gap-2">
-                                                {COMMON_ALLERGIES.map((item) => {
+                                                {Array.from(new Set([...lockedAllergies, ...COMMON_ALLERGIES])).map((item) => {
                                                     const isChecked = allergies.includes(item);
+                                                    const isLocked = lockedAllergies.includes(item);
                                                     return (
                                                         <button
                                                             key={item}
                                                             type="button"
                                                             onClick={() => toggleAllergyTag(item)}
+                                                            disabled={isLocked}
                                                             className={`text-xs px-3 py-1.5 rounded-full border transition-all ${
                                                                 isChecked
                                                                     ? 'bg-amber-600 text-white border-amber-600 font-semibold'
                                                                     : 'bg-stone-50 text-stone-700 border-stone-300 hover:bg-stone-100'
-                                                            }`}
+                                                            } ${isLocked ? 'cursor-not-allowed opacity-90' : ''}`}
                                                         >
-                                                            {item} {isChecked && '✓'}
+                                                            {item} {isLocked ? '🔒' : isChecked && '✓'}
                                                         </button>
                                                     );
                                                 })}

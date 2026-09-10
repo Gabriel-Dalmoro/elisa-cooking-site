@@ -2,7 +2,6 @@
 
 import React, { useState, useMemo, useEffect } from 'react';
 import Link from 'next/link';
-import AdminGuard from '@/components/admin/AdminGuard';
 import {
     Clock,
     Euro,
@@ -138,7 +137,6 @@ export default function InternalCalculator() {
         };
     }, [selectedRecipes, numPeople, travelTime, extraPersonPrice, extraPersonTime, tiers, isSubscription, promoDiscount]);
     return (
-        <AdminGuard>
             <main className="min-h-screen bg-[#FAFAF9] py-8 text-stone-900 font-sans selection:bg-brand-rose/20 print:bg-white print:p-0 print:m-0 print:h-auto print:min-h-0 print:overflow-hidden">
             <style jsx global>{`
                 @media print {
@@ -454,6 +452,5 @@ export default function InternalCalculator() {
                 </div>
             </div>
         </main>
-        </AdminGuard>
     );
 }

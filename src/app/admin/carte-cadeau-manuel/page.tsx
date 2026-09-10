@@ -18,7 +18,6 @@ import {
     FileText,
     ArrowUpRight
 } from 'lucide-react';
-import AdminGuard from '@/components/admin/AdminGuard';
 
 const PACKAGES = [
     {
@@ -181,10 +180,7 @@ export default function ManualGiftCardPage() {
         try {
             const res = await fetch('/api/admin/gift-card/manual', {
                 method: 'POST',
-                headers: { 
-                    'Content-Type': 'application/json',
-                    'Authorization': 'Bearer elisa2024'
-                },
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     packageId: isCustomMode ? 'custom' : selectedPackId,
                     customRecipes: isCustomMode ? customRecipes : undefined,
@@ -243,7 +239,6 @@ export default function ManualGiftCardPage() {
     };
 
     return (
-        <AdminGuard>
             <main className="min-h-screen bg-stone-50 py-12 md:py-20 relative overflow-hidden text-stone-900 selection:bg-brand-rose/20">
                 {/* Background elements */}
                 <div className="absolute top-0 right-0 w-1/3 h-1/3 bg-brand-rose/5 blur-[120px] rounded-full -mr-20 -mt-20 -z-10" />
@@ -970,6 +965,5 @@ export default function ManualGiftCardPage() {
                     )}
                 </AnimatePresence>
             </main>
-        </AdminGuard>
     );
 }

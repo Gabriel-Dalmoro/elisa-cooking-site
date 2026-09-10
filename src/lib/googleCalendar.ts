@@ -1,6 +1,6 @@
 import { google } from 'googleapis';
 import { ClientProfile } from './types/cooking-ops';
-import { getWeekBounds, getParisDateTimeInfo } from './dateUtils';
+import { getWeekBounds, getParisDateTimeInfo, getParisUtcOffset } from './dateUtils';
 
 export interface CalendarBookingMatch {
     gcalEventId: string;
@@ -297,9 +297,9 @@ export async function getUpcomingCalendarBookings(
         const { startIso, endIso, weekLabel } = getWeekBounds(offsetWeeks);
         const calendarId = process.env.GOOGLE_CALENDAR_ID || 'primary';
 
-        // Query with timezone 'Europe/Paris' bounds
-        const timeMin = `${startIso}T00:00:00+02:00`;
-        const timeMax = `${endIso}T23:59:59+02:00`;
+        // Query with Europe/Paris bounds (offset changes with summer/winter time)
+        const timeMin = `${startIso}T00:00:00${getParisUtcOffset(startIso)}`;
+        const timeMax = `${endIso}T23:59:59${getParisUtcOffset(endIso)}`;
 
         const response = await calendar.events.list({
             calendarId,
@@ -402,8 +402,9 @@ export async function createGoogleCalendarEvent(session: {
         const startHour = isMorning ? '09:00:00' : '14:00:00';
         const endHour = isMorning ? '12:00:00' : '17:00:00';
 
-        const startDateTime = `${session.dateIso}T${startHour}+02:00`;
-        const endDateTime = `${session.dateIso}T${endHour}+02:00`;
+        // No offset in the string: Google applies the `timeZone` below, so summer/winter time is handled
+        const startDateTime = `${session.dateIso}T${startHour}`;
+        const endDateTime = `${session.dateIso}T${endHour}`;
 
         const personTag = session.personCount ? `, ${session.personCount} personnes` : '';
         const summary = `${session.clientName} ${session.dishCount} recettes${personTag}`;

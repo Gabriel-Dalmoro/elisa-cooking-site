@@ -67,13 +67,11 @@ export default function TodayOperationsPage() {
                 }
             }
 
-            // 2. Fetch updated sessions and clients for this week
+            // 2. Fetch clients (sessions come from the sync above: this second request can land on
+            //    a different server instance whose in-memory session list is empty)
             const res = await fetch(`/api/cooking-ops/admin?offset=${currentWeekOffset}`);
             if (res.ok) {
                 const data = await res.json();
-                if (data.slotStatuses) {
-                    setAllSessions(data.slotStatuses);
-                }
                 setClients(data.clients || []);
             }
         } catch (e) {
@@ -160,7 +158,7 @@ export default function TodayOperationsPage() {
             );
         }
 
-        const { client, session, isSubmitted, selectedCount } = slotStatus;
+        const { client, session, isSubmitted, selectedCount, isUnmatchedClient } = slotStatus;
         const address = client.address || session.notes || '';
         const hasAddress = address.trim().length > 0;
 
@@ -253,6 +251,13 @@ export default function TodayOperationsPage() {
                             </button>
                         )}
                     </div>
+
+                    {client.accessCode && (
+                        <div className="bg-white p-2.5 rounded-xl border border-amber-300 text-sm text-stone-900 flex items-center gap-2 shadow-2xs">
+                            <Key className="w-4 h-4 text-amber-600 shrink-0" />
+                            <span className="font-bold">Code d&apos;accès : {client.accessCode}</span>
+                        </div>
+                    )}
 
                     {/* Building Notes & Door Code Highlight */}
                     {client.notes && (
@@ -356,14 +361,20 @@ export default function TodayOperationsPage() {
                 </div>
 
                 {/* Big Primary Action: Open Kitchen Sheet */}
-                <Link href={`/admin/cuisine/${client.id}`} className="block w-full">
-                    <Button
-                        className="w-full bg-[#E1567A] hover:bg-[#c94567] text-white text-sm h-12 rounded-2xl shadow-md font-bold gap-2 cursor-pointer"
-                    >
-                        <ChefHat className="w-5 h-5" />
-                        Ouvrir la Fiche Cuisine ({session.dishCount} plats)
-                    </Button>
-                </Link>
+                {isUnmatchedClient ? (
+                    <div className="text-center text-xs text-red-700 bg-red-50 p-3 rounded-2xl border border-red-200 font-semibold">
+                        Aucune fiche client ne correspond à cet événement Google Calendar. Créez la fiche depuis le Planning Hebdo.
+                    </div>
+                ) : (
+                    <Link href={`/admin/cuisine/${client.id}`} className="block w-full">
+                        <Button
+                            className="w-full bg-[#E1567A] hover:bg-[#c94567] text-white text-sm h-12 rounded-2xl shadow-md font-bold gap-2 cursor-pointer"
+                        >
+                            <ChefHat className="w-5 h-5" />
+                            Ouvrir la Fiche Cuisine ({session.dishCount} plats)
+                        </Button>
+                    </Link>
+                )}
             </div>
         );
     };

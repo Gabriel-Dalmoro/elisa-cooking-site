@@ -7,7 +7,8 @@ import {
     WeeklyMenuData, 
     VaultRecipe 
 } from './types/cooking-ops';
-import { isSupabaseConfigured, supabaseFetch } from './db/supabase';
+import { randomUUID } from 'crypto';
+import { getSupabaseAdmin } from './supabase/admin';
 import { getInitialHistoricalRecipeVault } from './historicalRecipes';
 
 // Recipe Vault with all past recipes from Elisa's spreadsheet history
@@ -116,82 +117,7 @@ let activeWeeklyDishesStore: WeeklyDish[] = [
     }
 ];
 
-// Initial baseline clients from Elisa's regular schedule
-const INITIAL_CLIENTS: ClientProfile[] = [
-    {
-        id: 'client_thibault',
-        token: 'thibault',
-        name: 'Thibault',
-        phone: '+33 6 12 34 56 78',
-        email: 'thibault@email.com',
-        address: '15 rue Saint-Antoine, 75004 Paris',
-        allergies: [],
-        dislikes: '',
-        defaultDishCount: 5,
-        personCount: 2,
-        notes: 'Plaques vitrocéramique, chien calme',
-        createdAt: new Date().toISOString()
-    },
-    {
-        id: 'client_audrey',
-        token: 'audrey',
-        name: 'Audrey',
-        phone: '+33 6 98 76 54 32',
-        email: 'audrey@email.com',
-        address: '28 avenue Parmentier, 75011 Paris',
-        allergies: ['Sans Gluten (Cœliaque)'],
-        dislikes: 'Pas de coriandre',
-        defaultDishCount: 5,
-        personCount: 2,
-        notes: 'Four vapeur, plaques induction',
-        createdAt: new Date().toISOString()
-    },
-    {
-        id: 'client_romain_amelie',
-        token: 'romain-amelie',
-        name: 'Romain & Amélie',
-        phone: '+33 6 45 67 89 01',
-        email: 'romain.amelie@email.com',
-        address: '8 rue de Charonne, 75011 Paris',
-        allergies: ['Sans Arachides'],
-        dislikes: 'Pas de porc',
-        defaultDishCount: 6,
-        personCount: 2,
-        notes: 'Contenants en verre sur le plan de travail',
-        createdAt: new Date().toISOString()
-    },
-    {
-        id: 'client_quentin',
-        token: 'quentin',
-        name: 'Quentin',
-        phone: '+33 6 23 45 67 89',
-        email: 'quentin@email.com',
-        address: '45 boulevard Voltaire, 75011 Paris',
-        allergies: [],
-        dislikes: 'Pas d\'oignons crus',
-        defaultDishCount: 6,
-        personCount: 2,
-        notes: 'Digicode 2489A',
-        createdAt: new Date().toISOString()
-    },
-    {
-        id: 'client_marie_laure',
-        token: 'marie-laure',
-        name: 'Marie-Laure',
-        phone: '+33 6 34 56 78 90',
-        email: 'marielaure@email.com',
-        address: '12 rue Lepic, 75018 Paris',
-        allergies: ['Sans Lactose'],
-        dislikes: '',
-        defaultDishCount: 4,
-        personCount: 4,
-        notes: 'Famille 4 personnes',
-        createdAt: new Date().toISOString()
-    }
-];
-
-// In-Memory Stores
-let clientsStore: ClientProfile[] = [...INITIAL_CLIENTS];
+// In-memory stores (menu, sessions, selections move to Supabase in the next step)
 let bookingSessionsStore: BookingSession[] = [];
 const selectionsStore: ClientSelection[] = [];
 
@@ -269,194 +195,6 @@ export function updateWeeklyDishRecipe(dishId: string, updates: { instructions?:
     return null;
 }
 
-// --- CLIENT PROFILE OPERATIONS ---
-
-export function toggleClientBookedWeek(clientId: string, isBooked: boolean, bookingDay?: string): ClientProfile | null {
-    const client = clientsStore.find(c => c.id === clientId);
-    if (!client) return null;
-    client.isBookedThisWeek = isBooked;
-    if (bookingDay !== undefined) client.bookingDay = bookingDay;
-    return client;
-}
-
-export async function getAllClientsAsync(): Promise<ClientProfile[]> {
-    if (isSupabaseConfigured()) {
-        try {
-            const data = await supabaseFetch<any[]>('clients?select=*&order=created_at.desc');
-            if (data && Array.isArray(data)) {
-                const mappedClients: ClientProfile[] = data.map(c => ({
-                    id: c.id,
-                    token: c.token || c.id,
-                    name: c.name,
-                    phone: c.phone || '',
-                    email: c.email || '',
-                    address: c.address || '',
-                    allergies: Array.isArray(c.allergies) ? c.allergies : [],
-                    dislikes: c.dislikes || '',
-                    defaultDishCount: c.default_dish_count || 4,
-                    personCount: 2,
-                    notes: c.notes || '',
-                    isBookedThisWeek: Boolean(c.is_booked_this_week),
-                    bookingDay: c.booking_day || undefined,
-                    createdAt: c.created_at || new Date().toISOString()
-                }));
-
-                // Update clientsStore cache
-                clientsStore = mappedClients;
-            }
-        } catch (e) {
-            console.error('Error fetching clients from Supabase:', e);
-        }
-    }
-    return [...clientsStore];
-}
-
-export function getAllClients(): ClientProfile[] {
-    return [...clientsStore];
-}
-
-export function getClientByToken(token: string): ClientProfile | null {
-    if (!token) return null;
-    const cleanToken = decodeURIComponent(token).trim().toLowerCase();
-    
-    // 1. Exact match by token
-    const exact = clientsStore.find(c => c.token.toLowerCase() === cleanToken);
-    if (exact) return exact;
-
-    // 2. Match by ID
-    const byId = clientsStore.find(c => c.id.toLowerCase() === cleanToken);
-    if (byId) return byId;
-
-    // 3. Match by name slug (e.g. "thibault-martin-123" or "thibault" -> "thibault")
-    const cleanAlpha = cleanToken.replace(/[^a-z0-9]/g, '');
-    const bySlug = clientsStore.find(c => {
-        const nameAlpha = c.name.toLowerCase().replace(/[^a-z0-9]/g, '');
-        const tokenAlpha = c.token.toLowerCase().replace(/[^a-z0-9]/g, '');
-        return cleanAlpha.includes(nameAlpha) || nameAlpha.includes(cleanAlpha) || cleanAlpha.includes(tokenAlpha) || tokenAlpha.includes(cleanAlpha);
-    });
-    if (bySlug) return bySlug;
-
-    // 4. Match if token starts with a client's first name
-    const byFirstName = clientsStore.find(c => {
-        const firstName = c.name.toLowerCase().split(/[\s&_-]+/)[0];
-        return firstName.length >= 3 && cleanToken.startsWith(firstName);
-    });
-    if (byFirstName) return byFirstName;
-
-    // 5. Dynamic auto-provision: If token is a new name slug, automatically create and register client
-    if (cleanToken.length >= 2) {
-        const formattedName = cleanToken
-            .split(/[-_]+/)
-            .filter(w => w.length > 0 && !/^\d+$/.test(w))
-            .map(w => w.charAt(0).toUpperCase() + w.slice(1))
-            .join(' ');
-        
-        if (formattedName.length >= 2) {
-            return saveClient({
-                name: formattedName,
-                token: cleanToken,
-                defaultDishCount: 4,
-                personCount: 2
-            });
-        }
-    }
-
-    return null;
-}
-
-export function getClientById(id: string): ClientProfile | null {
-    if (!id) return null;
-    return clientsStore.find(c => c.id === id) || null;
-}
-
-export function saveClient(clientData: Partial<ClientProfile> & { name: string }): ClientProfile {
-    const cleanName = clientData.name.trim();
-    const existingIndex = clientsStore.findIndex(
-        c => c.id === clientData.id || 
-             (clientData.token && c.token === clientData.token) ||
-             (c.name.toLowerCase() === cleanName.toLowerCase())
-    );
-    
-    if (existingIndex >= 0) {
-        const updated = {
-            ...clientsStore[existingIndex],
-            ...clientData,
-            name: cleanName,
-            personCount: clientData.personCount || clientsStore[existingIndex].personCount || 2
-        };
-        clientsStore[existingIndex] = updated;
-
-        if (isSupabaseConfigured()) {
-            supabaseFetch(`clients?id=eq.${updated.id}`, {
-                method: 'PATCH',
-                body: {
-                    name: updated.name,
-                    phone: updated.phone,
-                    email: updated.email,
-                    address: updated.address,
-                    allergies: updated.allergies,
-                    dislikes: updated.dislikes,
-                    default_dish_count: updated.defaultDishCount,
-                    notes: updated.notes
-                }
-            }).catch(err => console.error('Supabase update client error:', err));
-        }
-
-        return updated;
-    } else {
-        const id = clientData.id || `client_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
-        const token = clientData.token || `${cleanName.toLowerCase().replace(/[^a-z0-9]/g, '')}-${Math.random().toString(36).substring(2, 6)}`;
-        const newClient: ClientProfile = {
-            id,
-            token,
-            name: cleanName,
-            phone: clientData.phone || '',
-            email: clientData.email || '',
-            address: clientData.address || '',
-            allergies: clientData.allergies || [],
-            dislikes: clientData.dislikes || '',
-            defaultDishCount: clientData.defaultDishCount || 4,
-            personCount: clientData.personCount || 2,
-            notes: clientData.notes || '',
-            createdAt: new Date().toISOString()
-        };
-        clientsStore.push(newClient);
-
-        if (isSupabaseConfigured()) {
-            supabaseFetch('clients', {
-                method: 'POST',
-                body: {
-                    id: newClient.id,
-                    token: newClient.token,
-                    name: newClient.name,
-                    phone: newClient.phone,
-                    email: newClient.email,
-                    address: newClient.address,
-                    allergies: newClient.allergies,
-                    dislikes: newClient.dislikes,
-                    default_dish_count: newClient.defaultDishCount,
-                    notes: newClient.notes
-                }
-            }).catch(err => console.error('Supabase insert client error:', err));
-        }
-
-        return newClient;
-    }
-}
-
-export function deleteClient(clientId: string): boolean {
-    const initialLen = clientsStore.length;
-    clientsStore = clientsStore.filter(c => c.id !== clientId);
-    bookingSessionsStore = bookingSessionsStore.filter(s => s.clientId !== clientId);
-    
-    if (isSupabaseConfigured()) {
-        supabaseFetch(`clients?id=eq.${clientId}`, { method: 'DELETE' })
-            .catch(err => console.error('Supabase delete client error:', err));
-    }
-
-    return clientsStore.length < initialLen;
-}
-
 // --- BOOKING SESSION OPERATIONS (ISOLATED PER DATE) ---
 
 export function upsertBookingSession(sessionData: {
@@ -509,19 +247,35 @@ export function clearSessionsForDateRange(startDateIso: string, endDateIso: stri
     bookingSessionsStore = bookingSessionsStore.filter(s => s.dateIso < startDateIso || s.dateIso > endDateIso);
 }
 
-export function getSessionsForWeek(startDateIso: string, endDateIso: string): SlotSessionStatus[] {
+function placeholderClient(session: BookingSession): ClientProfile {
+    return {
+        id: '',
+        token: '',
+        name: session.clientName,
+        phone: '',
+        allergies: [],
+        defaultDishCount: session.dishCount,
+        personCount: session.personCount,
+        createdAt: session.createdAt
+    };
+}
+
+export function getSessionsForWeek(startDateIso: string, endDateIso: string, clients: ClientProfile[]): SlotSessionStatus[] {
     const weekMenuLabel = 'Menu de la semaine active';
     const sessions = bookingSessionsStore.filter(s => s.dateIso >= startDateIso && s.dateIso <= endDateIso);
 
     return sessions.map(session => {
-        let client = getClientById(session.clientId);
+        const client = session.clientId ? clients.find(c => c.id === session.clientId) : undefined;
         if (!client) {
-            client = saveClient({
-                id: session.clientId,
-                name: session.clientName,
-                defaultDishCount: session.dishCount,
-                personCount: session.personCount
-            });
+            // Calendar event without a client record: show it, but never create a client automatically
+            return {
+                session,
+                client: placeholderClient(session),
+                isUnmatchedClient: true,
+                selection: null,
+                isSubmitted: false,
+                selectedCount: 0
+            };
         }
 
         const selection = getClientSelection(client.id, weekMenuLabel);
@@ -539,39 +293,43 @@ export function getSessionsForWeek(startDateIso: string, endDateIso: string): Sl
 
 // --- CLIENT MEAL SELECTIONS ---
 
-export function saveClientSelection(selectionData: {
+export async function saveClientSelection(selectionData: {
     clientId: string;
     weekLabel: string;
     selectedDishNames: string[];
     dishNotes?: Record<string, string>;
     generalNote?: string;
-    updatedAllergies?: string[];
-    updatedDislikes?: string;
-}): ClientSelection {
-    const client = getClientById(selectionData.clientId);
-    if (client && selectionData.updatedAllergies) {
-        saveClient({
-            id: client.id,
-            name: client.name,
-            allergies: selectionData.updatedAllergies,
-            dislikes: selectionData.updatedDislikes
-        });
-    }
-
+    allergiesAtSubmission: string[];
+}): Promise<ClientSelection> {
     const existingIndex = selectionsStore.findIndex(
         s => s.clientId === selectionData.clientId && s.weekLabel === selectionData.weekLabel
     );
 
     const selection: ClientSelection = {
-        id: existingIndex >= 0 ? selectionsStore[existingIndex].id : `sel_${Date.now()}`,
+        id: existingIndex >= 0 ? selectionsStore[existingIndex].id : `sel_${randomUUID()}`,
         clientId: selectionData.clientId,
         weekLabel: selectionData.weekLabel,
         selectedDishNames: selectionData.selectedDishNames,
         dishNotes: selectionData.dishNotes || {},
         generalNote: selectionData.generalNote || '',
         submittedAt: new Date().toISOString(),
-        allergiesAtSubmission: client ? [...client.allergies] : []
+        allergiesAtSubmission: selectionData.allergiesAtSubmission
     };
+
+    // Upsert on (client_id, week_label) so a re-submission updates instead of failing on the unique constraint
+    const { error } = await getSupabaseAdmin()
+        .from('client_selections')
+        .upsert({
+            id: selection.id,
+            client_id: selection.clientId,
+            week_label: selection.weekLabel,
+            selected_dish_names: selection.selectedDishNames,
+            dish_notes: selection.dishNotes,
+            general_note: selection.generalNote,
+            allergies_at_submission: selection.allergiesAtSubmission,
+            submitted_at: selection.submittedAt
+        }, { onConflict: 'client_id,week_label' });
+    if (error) throw new Error(`Enregistrement de la sélection impossible : ${error.message}`);
 
     if (existingIndex >= 0) {
         selectionsStore[existingIndex] = selection;
@@ -579,41 +337,9 @@ export function saveClientSelection(selectionData: {
         selectionsStore.push(selection);
     }
 
-    if (isSupabaseConfigured()) {
-        supabaseFetch('client_selections', {
-            method: 'POST',
-            headers: { 'Prefer': 'resolution=merge-duplicates' },
-            body: {
-                id: selection.id,
-                client_id: selection.clientId,
-                week_label: selection.weekLabel,
-                selected_dish_names: selection.selectedDishNames,
-                dish_notes: selection.dishNotes,
-                general_note: selection.generalNote,
-                allergies_at_submission: selection.allergiesAtSubmission,
-                submitted_at: selection.submittedAt
-            }
-        }).catch(err => console.error('Supabase upsert selection error:', err));
-    }
-
     return selection;
 }
 
 export function getClientSelection(clientId: string, weekLabel: string): ClientSelection | null {
     return selectionsStore.find(s => s.clientId === clientId && s.weekLabel === weekLabel) || null;
-}
-
-export async function getWeeklyOverview(): Promise<{
-    weekMenu: WeeklyMenuData;
-    clients: ClientProfile[];
-    sessions: BookingSession[];
-    vaultRecipes: VaultRecipe[];
-}> {
-    const weekMenu = await getActiveWeeklyMenu();
-    return {
-        weekMenu,
-        clients: getAllClients(),
-        sessions: [...bookingSessionsStore],
-        vaultRecipes: getRecipeVault()
-    };
 }

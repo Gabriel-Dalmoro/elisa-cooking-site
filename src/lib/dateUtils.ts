@@ -89,6 +89,21 @@ export function getParisDateTimeInfo(input: string | Date): {
 }
 
 /**
+ * UTC offset of Paris on a given calendar date, e.g. "+02:00" (summer) or "+01:00" (winter).
+ * Probes at 12:00 UTC: DST switches happen at night, so noon always has that day's final offset
+ * (correct for the Monday 00:00 / Sunday 23:59 week bounds, since switches fall on Sundays).
+ */
+export function getParisUtcOffset(dateIso: string): string {
+    const [y, m, d] = dateIso.split('-').map(n => parseInt(n, 10));
+    const probe = new Date(Date.UTC(y, m - 1, d, 12, 0, 0));
+    const tzName = new Intl.DateTimeFormat('en-US', { timeZone: 'Europe/Paris', timeZoneName: 'longOffset' })
+        .formatToParts(probe)
+        .find(p => p.type === 'timeZoneName')?.value || '';
+    const match = tzName.match(/GMT([+-]\d{2}:\d{2})/);
+    return match ? match[1] : '+01:00';
+}
+
+/**
  * Calculates start and end dates for the target week (Monday to Friday / Sunday) in Paris time.
  * offsetWeeks = 0 for current week, -1 for previous week, +1 for next week, etc.
  */

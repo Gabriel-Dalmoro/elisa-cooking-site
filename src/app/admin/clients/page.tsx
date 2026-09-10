@@ -32,19 +32,7 @@ import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import AdminPageHeader from '@/components/admin/AdminPageHeader';
 import { ClientProfile } from '@/lib/types/cooking-ops';
-
-const COMMON_ALLERGIES = [
-    'Sans Gluten (Cœliaque)',
-    'Sans Gluten',
-    'Sans Lactose',
-    'Sans Arachides',
-    'Sans Fruits à coque',
-    'Sans Porc',
-    'Sans Crustacés',
-    'Sans Œufs',
-    'Végétarien',
-    'Végan'
-];
+import { COMMON_ALLERGIES } from '@/lib/allergies';
 
 interface ParsedCsvClient {
     name: string;
@@ -82,11 +70,13 @@ export default function ClientDirectoryPage() {
     const [formPhone, setFormPhone] = useState('');
     const [formEmail, setFormEmail] = useState('');
     const [formAddress, setFormAddress] = useState('');
+    const [formAccessCode, setFormAccessCode] = useState('');
     const [formQuota, setFormQuota] = useState(4);
     const [formPersonCount, setFormPersonCount] = useState(2);
     const [formAllergies, setFormAllergies] = useState<string[]>([]);
     const [formDislikes, setFormDislikes] = useState('');
     const [formNotes, setFormNotes] = useState('');
+    const [formPrivateNotes, setFormPrivateNotes] = useState('');
     const [isSaving, setIsSaving] = useState(false);
 
     // CSV Import State
@@ -97,15 +87,19 @@ export default function ClientDirectoryPage() {
     const [importSuccessMessage, setImportSuccessMessage] = useState<string | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
+    const [loadError, setLoadError] = useState<string | null>(null);
+
     const loadClients = async () => {
         try {
             setLoading(true);
+            setLoadError(null);
             const res = await fetch('/api/cooking-ops/admin');
             if (!res.ok) throw new Error('Erreur de chargement');
             const data = await res.json();
             setClients(data.clients || []);
         } catch (e) {
             console.error('Error loading clients:', e);
+            setLoadError('Impossible de charger les clients. Rechargez la page.');
         } finally {
             setLoading(false);
         }
@@ -140,11 +134,13 @@ export default function ClientDirectoryPage() {
         setFormPhone('');
         setFormEmail('');
         setFormAddress('');
+        setFormAccessCode('');
         setFormQuota(4);
         setFormPersonCount(2);
         setFormAllergies([]);
         setFormDislikes('');
         setFormNotes('');
+        setFormPrivateNotes('');
         setIsModalOpen(true);
     };
 
@@ -154,11 +150,13 @@ export default function ClientDirectoryPage() {
         setFormPhone(client.phone || '');
         setFormEmail(client.email || '');
         setFormAddress(client.address || '');
+        setFormAccessCode(client.accessCode || '');
         setFormQuota(client.defaultDishCount || 4);
         setFormPersonCount(client.personCount || 2);
         setFormAllergies(client.allergies || []);
         setFormDislikes(client.dislikes || '');
         setFormNotes(client.notes || '');
+        setFormPrivateNotes(client.privateNotes || '');
         setIsModalOpen(true);
     };
 
@@ -177,20 +175,26 @@ export default function ClientDirectoryPage() {
                     phone: formPhone,
                     email: formEmail,
                     address: formAddress,
+                    accessCode: formAccessCode,
                     defaultDishCount: formQuota,
                     personCount: formPersonCount,
                     allergies: formAllergies,
                     dislikes: formDislikes,
-                    notes: formNotes
+                    notes: formNotes,
+                    privateNotes: formPrivateNotes
                 })
             });
 
-            if (!res.ok) throw new Error('Erreur lors de la sauvegarde');
+            if (!res.ok) {
+                const data = await res.json().catch(() => ({}));
+                throw new Error(data.error || 'Erreur lors de la sauvegarde');
+            }
             setIsModalOpen(false);
             loadClients();
         } catch (err) {
             console.error('Error saving client:', err);
-            alert('Impossible de sauvegarder ce client.');
+            const message = err instanceof Error ? err.message : '';
+            alert(`Impossible de sauvegarder ce client. ${message}`);
         } finally {
             setIsSaving(false);
         }
@@ -199,11 +203,12 @@ export default function ClientDirectoryPage() {
     const handleDeleteClient = async (clientId: string, name: string) => {
         if (!confirm(`Êtes-vous sûre de vouloir supprimer la fiche de ${name} ?`)) return;
         try {
-            const res = await fetch(`/api/cooking-ops/admin?id=${clientId}`, { method: 'DELETE' });
+            const res = await fetch(`/api/cooking-ops/admin?id=${encodeURIComponent(clientId)}`, { method: 'DELETE' });
             if (!res.ok) throw new Error('Erreur');
             setClients(prev => prev.filter(c => c.id !== clientId));
         } catch (err) {
             console.error('Delete error:', err);
+            alert(`Impossible de supprimer la fiche de ${name}.`);
         }
     };
 
@@ -355,7 +360,11 @@ export default function ClientDirectoryPage() {
             if (!res.ok) throw new Error('Erreur lors de l’importation');
             const data = await res.json();
 
-            setImportSuccessMessage(`${data.importedCount} client(s) importé(s) avec succès !`);
+            const skipped: string[] = data.skippedNames || [];
+            setImportSuccessMessage(
+                `${data.importedCount} client(s) importé(s) avec succès !` +
+                (skipped.length > 0 ? ` ${skipped.length} ignoré(s) car déjà existant(s) : ${skipped.join(', ')}` : '')
+            );
             setParsedCsvClients([]);
             if (fileInputRef.current) fileInputRef.current.value = '';
             
@@ -528,6 +537,13 @@ export default function ClientDirectoryPage() {
                     </div>
                 </div>
 
+                {loadError && (
+                    <div className="bg-red-50 text-red-700 border border-red-200 p-4 rounded-3xl text-sm font-semibold flex items-center gap-2">
+                        <AlertTriangle className="w-4 h-4 shrink-0" />
+                        {loadError}
+                    </div>
+                )}
+
                 {/* Clients List (Table vs Cards) */}
                 {loading ? (
                     <div className="bg-white rounded-3xl p-12 text-center text-stone-500 border border-stone-200">
@@ -633,9 +649,14 @@ export default function ClientDirectoryPage() {
                                                 ) : (
                                                     <span className="text-stone-400 text-[11px]">-</span>
                                                 )}
+                                                {client.accessCode && (
+                                                    <div className="text-[10px] text-stone-700 font-semibold">
+                                                        🔑 Code : {client.accessCode}
+                                                    </div>
+                                                )}
                                                 {client.notes && (
                                                     <div className="text-[10px] text-stone-500 truncate" title={client.notes}>
-                                                        🔑 {client.notes}
+                                                        📝 {client.notes}
                                                     </div>
                                                 )}
                                             </td>
@@ -784,9 +805,22 @@ export default function ClientDirectoryPage() {
                                                 </div>
                                             )}
 
+                                            {client.accessCode && (
+                                                <div className="flex items-center gap-2 font-semibold text-stone-700">
+                                                    <span className="w-3.5 text-center shrink-0">🔑</span>
+                                                    <span>Code : {client.accessCode}</span>
+                                                </div>
+                                            )}
+
                                             {client.notes && (
                                                 <div className="text-[11px] text-stone-500 bg-stone-50 p-2 rounded-xl border border-stone-200 mt-1">
                                                     📝 {client.notes}
+                                                </div>
+                                            )}
+
+                                            {client.privateNotes && (
+                                                <div className="text-[11px] text-stone-600 bg-amber-50/60 p-2 rounded-xl border border-amber-200 mt-1">
+                                                    🔒 {client.privateNotes}
                                                 </div>
                                             )}
                                         </div>
@@ -1039,15 +1073,27 @@ export default function ClientDirectoryPage() {
                             </div>
                         </div>
 
-                        <div>
-                            <label className="font-semibold block text-stone-700 mb-1">Adresse & Code d&apos;accès</label>
-                            <input 
-                                type="text" 
-                                value={formAddress}
-                                onChange={e => setFormAddress(e.target.value)}
-                                placeholder="15 rue Saint-Antoine, 75004 Paris (Code: 2489)"
-                                className="w-full p-2.5 rounded-xl border border-stone-300 focus:ring-2 focus:ring-[#E1567A] focus:outline-none"
-                            />
+                        <div className="grid grid-cols-3 gap-2">
+                            <div className="col-span-2">
+                                <label className="font-semibold block text-stone-700 mb-1">Adresse</label>
+                                <input 
+                                    type="text" 
+                                    value={formAddress}
+                                    onChange={e => setFormAddress(e.target.value)}
+                                    placeholder="12 avenue d'Albigny, 74000 Annecy"
+                                    className="w-full p-2.5 rounded-xl border border-stone-300 focus:ring-2 focus:ring-[#E1567A] focus:outline-none"
+                                />
+                            </div>
+                            <div>
+                                <label className="font-semibold block text-stone-700 mb-1">Code d&apos;accès</label>
+                                <input 
+                                    type="text" 
+                                    value={formAccessCode}
+                                    onChange={e => setFormAccessCode(e.target.value)}
+                                    placeholder="Digicode, boîte à clés..."
+                                    className="w-full p-2.5 rounded-xl border border-stone-300 focus:ring-2 focus:ring-[#E1567A] focus:outline-none"
+                                />
+                            </div>
                         </div>
 
                         <div>
@@ -1083,13 +1129,24 @@ export default function ClientDirectoryPage() {
                         </div>
 
                         <div>
-                            <label className="font-semibold block text-stone-700 mb-1">Notes cuisine & matériel</label>
+                            <label className="font-semibold block text-stone-700 mb-1">Notes cuisine & matériel (partagées avec l&apos;équipe en cuisine)</label>
                             <textarea 
                                 rows={2}
                                 value={formNotes}
                                 onChange={e => setFormNotes(e.target.value)}
                                 placeholder="Ex: Plaques induction, four vapeur, chien affectueux..."
                                 className="w-full p-2.5 rounded-xl border border-stone-300 focus:ring-2 focus:ring-[#E1567A] focus:outline-none"
+                            />
+                        </div>
+
+                        <div>
+                            <label className="font-semibold block text-stone-700 mb-1">Notes privées (visibles par vous uniquement)</label>
+                            <textarea 
+                                rows={2}
+                                value={formPrivateNotes}
+                                onChange={e => setFormPrivateNotes(e.target.value)}
+                                placeholder="Ex: facturation, situation familiale, préférences de contact..."
+                                className="w-full p-2.5 rounded-xl border border-stone-300 bg-stone-50 focus:ring-2 focus:ring-[#E1567A] focus:outline-none"
                             />
                         </div>
 

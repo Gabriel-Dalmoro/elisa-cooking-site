@@ -7,11 +7,13 @@ export interface ClientProfile {
     phone: string;
     email?: string;
     address?: string;
+    accessCode?: string; // Door / building access code
     allergies: string[];
     dislikes?: string;
     defaultDishCount: number;
     personCount: number; // Household portions e.g. 2, 4 personnes
-    notes?: string;
+    notes?: string; // Kitchen & equipment notes (operational, will be visible to an assistant chef)
+    privateNotes?: string; // Owner only — never shown to an assistant
     isBookedThisWeek?: boolean;
     bookingDay?: string;
     createdAt: string;
@@ -62,6 +64,7 @@ export interface ClientSelection {
 export interface SlotSessionStatus {
     session: BookingSession;
     client: ClientProfile;
+    isUnmatchedClient?: boolean; // Calendar event with no matching client record (placeholder, not saved)
     selection: ClientSelection | null;
     isSubmitted: boolean;
     selectedCount: number;
