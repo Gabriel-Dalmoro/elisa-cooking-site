@@ -22,20 +22,28 @@ function LoginForm() {
     const [showPassword, setShowPassword] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const isConfigError = searchParams.get('error') === 'config';
 
     const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault();
         setIsSubmitting(true);
         setError(null);
 
-        const supabase = createSupabaseBrowserClient();
-        const { error: signInError } = await supabase.auth.signInWithPassword({
-            email: email.trim(),
-            password
-        });
+        try {
+            const supabase = createSupabaseBrowserClient();
+            const { error: signInError } = await supabase.auth.signInWithPassword({
+                email: email.trim(),
+                password
+            });
 
-        if (signInError) {
-            setError('Email ou mot de passe incorrect');
+            if (signInError) {
+                setError('Email ou mot de passe incorrect');
+                setIsSubmitting(false);
+                return;
+            }
+        } catch (err) {
+            console.error('Login error:', err);
+            setError('Connexion impossible pour le moment. Réessayez dans quelques minutes.');
             setIsSubmitting(false);
             return;
         }
@@ -55,6 +63,12 @@ function LoginForm() {
                         <h1 className="text-2xl font-bold font-serif text-stone-900">Espace Administration</h1>
                         <p className="text-xs text-stone-500">Connectez-vous pour accéder à vos outils.</p>
                     </div>
+
+                    {isConfigError && (
+                        <p className="text-xs text-red-700 bg-red-50 border border-red-200 rounded-2xl p-3 font-medium">
+                            L&apos;espace admin est momentanément indisponible (problème de configuration du serveur). Prévenez Gabriel.
+                        </p>
+                    )}
 
                     <form onSubmit={handleLogin} className="space-y-4">
                         <Input
