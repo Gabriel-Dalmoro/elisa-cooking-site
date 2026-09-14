@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getSession, setSessionIgnored } from '@/lib/db/sessions';
+import { getSession, setSessionIgnored, deleteSession } from '@/lib/db/sessions';
+import { deleteGoogleCalendarEvent } from '@/lib/googleCalendar';
 import { getClientById } from '@/lib/db/clients';
 import { getSelection } from '@/lib/db/selections';
 import { getMenu } from '@/lib/db/menus';
@@ -62,6 +63,40 @@ export async function PATCH(req: NextRequest, { params }: Params) {
         return NextResponse.json({ success: true });
     } catch (error) {
         console.error('Error updating session:', error);
+        return NextResponse.json({ error: error instanceof Error ? error.message : 'Erreur serveur' }, { status: 500 });
+    }
+}
+
+/**
+ * DELETE → cancels the booking: removes the Google Calendar event first
+ * (Google is the source of truth), then the stored session.
+ * If Google refuses, nothing is deleted, so the two never drift apart.
+ */
+export async function DELETE(_req: NextRequest, { params }: Params) {
+    const denied = await requireOwner();
+    if (denied) return denied;
+
+    try {
+        const { id } = await params;
+        const session = await getSession(id);
+        if (!session) {
+            return NextResponse.json({ error: 'Séance introuvable' }, { status: 404 });
+        }
+
+        if (session.gcalEventId) {
+            const gcalRes = await deleteGoogleCalendarEvent(session.gcalEventId);
+            if (!gcalRes.success) {
+                return NextResponse.json(
+                    { error: `Google Calendar a refusé la suppression : ${gcalRes.error}. La séance n'a pas été supprimée.` },
+                    { status: 502 }
+                );
+            }
+        }
+
+        await deleteSession(id);
+        return NextResponse.json({ success: true });
+    } catch (error) {
+        console.error('Error deleting session:', error);
         return NextResponse.json({ error: error instanceof Error ? error.message : 'Erreur serveur' }, { status: 500 });
     }
 }

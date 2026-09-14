@@ -139,3 +139,11 @@ export async function setSessionIgnored(id: string, ignored: boolean): Promise<v
         .eq('id', id);
     if (error) throw new Error(`Mise à jour de la séance impossible : ${error.message}`);
 }
+
+export async function deleteSession(id: string): Promise<void> {
+    const { error } = await getSupabaseAdmin()
+        .from('cooking_sessions')
+        .delete()
+        .eq('id', id);
+    if (error) throw new Error(`Suppression de la séance impossible : ${error.message}`);
+}

@@ -26,6 +26,7 @@ import {
     LayoutGrid,
     ListFilter,
     Navigation,
+    Trash2,
     ChevronLeft,
     ChevronRight,
     MapPin,
@@ -35,6 +36,8 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import AdminPageHeader from '@/components/admin/AdminPageHeader';
+import { useConfirm } from '@/components/admin/useConfirm';
+import { useToast } from '@/components/admin/useToast';
 import { ClientProfile, SlotSessionStatus, WeeklyMenuData } from '@/lib/types/cooking-ops';
 import { getWeekBounds, WEEK_DAY_NAMES } from '@/lib/dateUtils';
 import { COMMON_ALLERGIES } from '@/lib/allergies';
@@ -51,20 +54,9 @@ export default function WeeklyOpsAdminDashboard() {
     const [weekOffset, setWeekOffset] = useState<number>(0);
     const [isSyncingCalendar, setIsSyncingCalendar] = useState(false);
     
-    // Floating Toast Notification State
-    const [toast, setToast] = useState<{
-        id: string;
-        message: string;
-        icon?: 'check' | 'link' | 'calendar';
-    } | null>(null);
-
-    const showToast = (message: string, icon: 'check' | 'link' | 'calendar' = 'check') => {
-        const id = String(Date.now());
-        setToast({ id, message, icon });
-        setTimeout(() => {
-            setToast(curr => (curr?.id === id ? null : curr));
-        }, 3500);
-    };
+    const { confirm, confirmDialog } = useConfirm();
+    const { showToast, toastElement } = useToast();
+    const [deletingSessionId, setDeletingSessionId] = useState<string | null>(null);
 
     // New Client Dialog State
     const [isAddClientOpen, setIsAddClientOpen] = useState(false);
@@ -274,7 +266,11 @@ export default function WeeklyOpsAdminDashboard() {
     };
 
     const handleIgnoreSession = async (sessionId: string, name: string) => {
-        if (!confirm(`Masquer « ${name} » du planning ? (à utiliser pour un événement qui n'est pas une séance de cuisine)`)) return;
+        if (!(await confirm({
+            title: `Masquer « ${name} » du planning ?`,
+            description: 'À utiliser pour un événement Google Calendar qui n’est pas une séance de cuisine. L’événement reste dans votre agenda, il n’apparaît simplement plus ici.',
+            confirmLabel: 'Masquer'
+        }))) return;
         const res = await fetch(`/api/cooking-ops/session/${encodeURIComponent(sessionId)}`, {
             method: 'PATCH',
             headers: { 'Content-Type': 'application/json' },
@@ -286,6 +282,29 @@ export default function WeeklyOpsAdminDashboard() {
         }
         setSlotStatuses(prev => prev.filter(s => s.session.id !== sessionId));
         showToast(`« ${name} » masqué du planning`, 'check');
+    };
+
+    // Cancels the booking: removes the Google Calendar event, then the session here
+    const handleDeleteSession = async (sessionId: string, name: string, dateIso: string, slot: string) => {
+        if (!(await confirm({
+            title: `Supprimer la séance de ${name} ?`,
+            description: `${slot} du ${dateIso.split('-').reverse().join('/')} — l’événement sera aussi supprimé de votre Google Calendar. La fiche client et ses choix ne sont pas touchés.`,
+            confirmLabel: 'Supprimer la séance',
+            tone: 'danger'
+        }))) return;
+
+        try {
+            setDeletingSessionId(sessionId);
+            const res = await fetch(`/api/cooking-ops/session/${encodeURIComponent(sessionId)}`, { method: 'DELETE' });
+            const data = await res.json().catch(() => ({}));
+            if (!res.ok) throw new Error(data.error || 'Suppression impossible');
+            setSlotStatuses(prev => prev.filter(s => s.session.id !== sessionId));
+            showToast(`Séance de ${name} supprimée (Google Calendar mis à jour)`, 'calendar');
+        } catch (err) {
+            showToast(err instanceof Error ? err.message : 'Suppression impossible', 'error');
+        } finally {
+            setDeletingSessionId(null);
+        }
     };
 
     // Per-dish totals for the week (one count per household, portions = household size)
@@ -507,15 +526,25 @@ export default function WeeklyOpsAdminDashboard() {
                                                                 {slot}
                                                             </span>
 
-                                                            {!isUnmatchedClient && (
+                                                            <div className="flex items-center">
+                                                                {!isUnmatchedClient && (
+                                                                    <button
+                                                                        onClick={() => openEditClient(client)}
+                                                                        className="text-stone-400 hover:text-stone-800 p-1 cursor-pointer"
+                                                                        title="Modifier ce client"
+                                                                    >
+                                                                        <Edit2 className="w-3.5 h-3.5" />
+                                                                    </button>
+                                                                )}
                                                                 <button
-                                                                    onClick={() => openEditClient(client)}
-                                                                    className="text-stone-400 hover:text-stone-800 p-1"
-                                                                    title="Modifier ce client"
+                                                                    onClick={() => handleDeleteSession(session.id, session.clientName, session.dateIso, session.timeSlot)}
+                                                                    disabled={deletingSessionId === session.id}
+                                                                    className="text-stone-300 hover:text-red-600 p-1 cursor-pointer"
+                                                                    title="Supprimer cette séance (et l'événement Google Calendar)"
                                                                 >
-                                                                    <Edit2 className="w-3.5 h-3.5" />
+                                                                    <Trash2 className="w-3.5 h-3.5" />
                                                                 </button>
-                                                            )}
+                                                            </div>
                                                         </div>
 
                                                         {isUnmatchedClient && (
@@ -841,6 +870,15 @@ export default function WeeklyOpsAdminDashboard() {
                                                         Fiche Cuisine
                                                     </Button>
                                                 </Link>
+
+                                                <button
+                                                    onClick={() => handleDeleteSession(session.id, session.clientName, session.dateIso, session.timeSlot)}
+                                                    disabled={deletingSessionId === session.id}
+                                                    className="p-2 rounded-full text-stone-300 hover:text-red-600 hover:bg-red-50 transition-colors cursor-pointer"
+                                                    title="Supprimer cette séance (et l'événement Google Calendar)"
+                                                >
+                                                    <Trash2 className="w-4 h-4" />
+                                                </button>
                                             </div>
                                             )}
                                         </div>
@@ -879,33 +917,8 @@ export default function WeeklyOpsAdminDashboard() {
                 )}
             </main>
 
-            {/* Floating Toast Notification Modal */}
-            {toast && (
-                <div className="fixed bottom-6 right-6 z-50 animate-in fade-in slide-in-from-bottom-4 duration-200">
-                    <div className="bg-stone-900/95 backdrop-blur-md text-white px-4 py-3 rounded-2xl shadow-xl border border-stone-800 flex items-center gap-3 text-xs sm:text-sm font-semibold max-w-md">
-                        {toast.icon === 'calendar' ? (
-                            <div className="w-7 h-7 rounded-xl bg-amber-500/20 text-amber-400 flex items-center justify-center shrink-0">
-                                <RefreshCw className="w-4 h-4 text-amber-400" />
-                            </div>
-                        ) : toast.icon === 'link' ? (
-                            <div className="w-7 h-7 rounded-xl bg-[#E1567A]/20 text-[#E1567A] flex items-center justify-center shrink-0">
-                                <Copy className="w-4 h-4 text-[#E1567A]" />
-                            </div>
-                        ) : (
-                            <div className="w-7 h-7 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0">
-                                <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-                            </div>
-                        )}
-                        <span className="leading-snug">{toast.message}</span>
-                        <button 
-                            onClick={() => setToast(null)}
-                            className="ml-auto text-stone-400 hover:text-white p-1 rounded-lg hover:bg-stone-800 transition-colors"
-                        >
-                            <X className="w-3.5 h-3.5" />
-                        </button>
-                    </div>
-                </div>
-            )}
+            {confirmDialog}
+            {toastElement}
 
             {/* Client Add & Edit Modal */}
             <Dialog open={isAddClientOpen} onOpenChange={setIsAddClientOpen}>

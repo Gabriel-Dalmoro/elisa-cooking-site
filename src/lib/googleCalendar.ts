@@ -442,3 +442,30 @@ export async function createGoogleCalendarEvent(session: {
         return { success: false, error: gcalMsg };
     }
 }
+
+/**
+ * 3. DELETE: removes a booking from Elisa's Google Calendar.
+ * An event that is already gone counts as success (410/404).
+ */
+export async function deleteGoogleCalendarEvent(eventId: string): Promise<{ success: boolean; error?: string }> {
+    try {
+        const calendar = getGoogleCalendarClient();
+        if (!calendar) {
+            return { success: false, error: 'Compte de service Google non configuré' };
+        }
+
+        await calendar.events.delete({
+            calendarId: process.env.GOOGLE_CALENDAR_ID || 'primary',
+            eventId
+        });
+        return { success: true };
+    } catch (error: unknown) {
+        const err = error as { code?: number; response?: { status?: number; data?: { error?: { message?: string } } }; message?: string };
+        const status = err?.code || err?.response?.status;
+        if (status === 404 || status === 410) {
+            return { success: true }; // already deleted on Google's side
+        }
+        console.error('[GoogleCalendar] Error deleting event:', err?.response?.data || error);
+        return { success: false, error: err?.response?.data?.error?.message || err?.message || 'Erreur Google Calendar' };
+    }
+}

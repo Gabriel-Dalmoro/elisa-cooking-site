@@ -58,10 +58,10 @@ export default function InstagramMenuGeneratorPage() {
 
     // Categorize dishes
     const getGroupedDishes = () => {
-        if (!menu?.recipes) return { viande: [], Végétarien: [], Poisson: [], Végan: [] };
+        if (!menu?.recipes) return { Viande: [], Végétarien: [], Poisson: [], Végan: [] };
 
         const groups: Record<string, WeeklyDish[]> = {
-            'viande': [],
+            'Viande': [],
             'Végétarien': [],
             'Poisson': [],
             'Végan': []
@@ -70,7 +70,7 @@ export default function InstagramMenuGeneratorPage() {
         menu.recipes.forEach(dish => {
             const cat = dish.category?.toLowerCase() || '';
             if (cat.includes('meat') || cat.includes('viande')) {
-                groups['viande'].push(dish);
+                groups['Viande'].push(dish);
             } else if (cat.includes('fish') || cat.includes('poisson')) {
                 groups['Poisson'].push(dish);
             } else if (cat.includes('vegan') || cat.includes('végan')) {
@@ -212,7 +212,7 @@ export default function InstagramMenuGeneratorPage() {
         const maxTextWidth = W - (leftMargin * 2);
 
         const categories = [
-            { key: 'viande', label: 'viande' },
+            { key: 'Viande', label: 'Viande' },
             { key: 'Végétarien', label: 'Végétarien' },
             { key: 'Poisson', label: 'Poisson' },
             { key: 'Végan', label: 'Végan' },
