@@ -39,12 +39,17 @@ interface ParsedCsvClient {
     phone: string;
     email: string;
     address: string;
+    accessCode: string;
     defaultDishCount: number;
     personCount: number;
     allergies: string[];
     dislikes: string;
     notes: string;
+    privateNotes: string;
 }
+
+// Template example rows start with this, and rows starting with it are never imported
+const EXAMPLE_ROW_PREFIX = 'EXEMPLE';
 
 export default function ClientDirectoryPage() {
     const [loading, setLoading] = useState(true);
@@ -221,11 +226,10 @@ export default function ClientDirectoryPage() {
     // --- CSV IMPORT LOGIC ---
 
     const downloadCsvTemplate = () => {
-        const headers = ['Nom', 'Telephone', 'Email', 'Adresse', 'Plats', 'Personnes', 'Allergies', 'Aversions', 'Notes'];
+        const headers = ['Nom', 'Telephone', 'Email', 'Adresse', "Code d'accès", 'Plats', 'Personnes', 'Allergies', 'Aversions', 'Notes cuisine', 'Notes privées'];
+        // Example row only: it is skipped at import even if it is left in the file
         const sampleRows = [
-            ['Thibault Martin', '+33 6 12 34 56 78', 'thibault@email.com', '15 rue Saint-Antoine 75004 Paris (Code: 2489)', '5', '2', '', 'Pas de coriandre', 'Plaques vitrocéramique'],
-            ['Audrey Dupont', '+33 6 98 76 54 32', 'audrey@email.com', '28 avenue Parmentier 75011 Paris', '5', '2', 'Sans Gluten (Cœliaque), Sans Porc', '', 'Four vapeur'],
-            ['Famille Leroy', '+33 6 34 56 78 90', 'leroy@email.com', '12 rue Lepic 75018 Paris (2ème étage)', '4', '4', 'Sans Lactose', 'Pas d\'oignons crus', 'Grand faitout disponible']
+            [`${EXAMPLE_ROW_PREFIX} - Marie Dupont (ligne ignorée)`, '+33 6 12 34 56 78', 'marie@email.com', "12 avenue d'Albigny, 74000 Annecy", 'Digicode 2489B', '4', '2', 'Sans Gluten (Cœliaque), Sans Arachides', 'Pas de coriandre', 'Plaques induction, chien calme', 'Paie par virement']
         ];
 
         const csvContent = 'data:text/csv;charset=utf-8,\uFEFF' + 
@@ -275,20 +279,25 @@ export default function ClientDirectoryPage() {
 
             const rawHeaders = splitCsvLine(headerLine).map(h => h.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim());
 
-            // Map header indexes
-            const getColIdx = (aliases: string[]) => {
-                return rawHeaders.findIndex(h => aliases.some(a => h.includes(a)));
+            // Map header indexes. Specific columns (access code, private notes) are matched first
+            // and excluded from the generic ones, so "Notes privées" can never land in kitchen notes.
+            const getColIdx = (aliases: string[], exclude: number[] = []) => {
+                return rawHeaders.findIndex((h, i) => !exclude.includes(i) && aliases.some(a => h.includes(a)));
             };
+
+            const accessIdx = getColIdx(['acces', 'digicode', 'code porte', 'boite a cle']);
+            const privateNotesIdx = getColIdx(['prive']);
+            const reserved = [accessIdx, privateNotesIdx].filter(i => i >= 0);
 
             const nameIdx = getColIdx(['nom', 'name', 'client', 'prenom']);
             const phoneIdx = getColIdx(['tel', 'phone', 'portable', 'mobile']);
             const emailIdx = getColIdx(['email', 'mail', 'courriel']);
-            const addressIdx = getColIdx(['adresse', 'address', 'lieu', 'ville']);
+            const addressIdx = getColIdx(['adresse', 'address', 'lieu', 'ville'], reserved);
             const quotaIdx = getColIdx(['plat', 'dish', 'quota', 'formule', 'recette']);
             const personIdx = getColIdx(['person', 'pax', 'foyer', 'part']);
             const allergyIdx = getColIdx(['allergie', 'regime', 'restriction']);
             const dislikeIdx = getColIdx(['aversion', 'dislike', 'refus', 'aime pas']);
-            const notesIdx = getColIdx(['note', 'remarque', 'commentaire', 'cuisine', 'materiel']);
+            const notesIdx = getColIdx(['note', 'remarque', 'commentaire', 'cuisine', 'materiel'], reserved);
 
             if (nameIdx === -1) {
                 setImportError('Colonne "Nom" introuvable dans le CSV. Veuillez utiliser notre modèle CSV.');
@@ -301,6 +310,7 @@ export default function ClientDirectoryPage() {
                 const cols = splitCsvLine(lines[i]);
                 const rawName = cols[nameIdx];
                 if (!rawName || rawName.trim().length === 0) continue;
+                if (rawName.trim().toUpperCase().startsWith(EXAMPLE_ROW_PREFIX)) continue;
 
                 const rawAllergies = allergyIdx >= 0 ? cols[allergyIdx] : '';
                 const allergies = rawAllergies
@@ -315,11 +325,13 @@ export default function ClientDirectoryPage() {
                     phone: phoneIdx >= 0 ? (cols[phoneIdx] || '') : '',
                     email: emailIdx >= 0 ? (cols[emailIdx] || '') : '',
                     address: addressIdx >= 0 ? (cols[addressIdx] || '') : '',
+                    accessCode: accessIdx >= 0 ? (cols[accessIdx] || '') : '',
                     defaultDishCount: isNaN(quota) || quota < 1 ? 4 : quota,
                     personCount: isNaN(persons) || persons < 1 ? 2 : persons,
                     allergies,
                     dislikes: dislikeIdx >= 0 ? (cols[dislikeIdx] || '') : '',
-                    notes: notesIdx >= 0 ? (cols[notesIdx] || '') : ''
+                    notes: notesIdx >= 0 ? (cols[notesIdx] || '') : '',
+                    privateNotes: privateNotesIdx >= 0 ? (cols[privateNotesIdx] || '') : ''
                 });
             }
 
@@ -965,6 +977,7 @@ export default function ClientDirectoryPage() {
                                                 <th className="p-2">Foyer</th>
                                                 <th className="p-2">Allergies</th>
                                                 <th className="p-2">Adresse</th>
+                                                <th className="p-2">Code</th>
                                             </tr>
                                         </thead>
                                         <tbody className="divide-y divide-stone-100">
@@ -982,6 +995,7 @@ export default function ClientDirectoryPage() {
                                                         )}
                                                     </td>
                                                     <td className="p-2 text-stone-500 line-clamp-1 max-w-[140px]">{c.address || '-'}</td>
+                                                    <td className="p-2 text-stone-500">{c.accessCode || '-'}</td>
                                                 </tr>
                                             ))}
                                         </tbody>

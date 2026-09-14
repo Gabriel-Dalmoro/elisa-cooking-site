@@ -42,11 +42,13 @@ export async function POST(req: NextRequest) {
                 phone: item.phone ? String(item.phone) : '',
                 email: item.email ? String(item.email) : '',
                 address: item.address ? String(item.address) : '',
+                accessCode: item.accessCode ? String(item.accessCode) : '',
                 defaultDishCount: Number(item.defaultDishCount) || Number(item.dishCount) || 4,
                 personCount: Number(item.personCount) || 2,
                 allergies,
                 dislikes: item.dislikes ? String(item.dislikes) : '',
-                notes: item.notes ? String(item.notes) : ''
+                notes: item.notes ? String(item.notes) : '',
+                privateNotes: item.privateNotes ? String(item.privateNotes) : ''
             });
 
             existingNames.add(normalizeName(saved.name));
