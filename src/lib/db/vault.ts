@@ -97,3 +97,11 @@ export async function markDishesUsed(dishNames: string[], weekStart: string): Pr
         if (updateError) throw new Error(`Mise à jour de la recette impossible : ${updateError.message}`);
     }
 }
+
+export async function deleteVaultRecipe(id: string): Promise<void> {
+    const { error } = await getSupabaseAdmin()
+        .from('recipe_vault')
+        .delete()
+        .eq('id', id);
+    if (error) throw new Error(`Suppression de la recette impossible : ${error.message}`);
+}

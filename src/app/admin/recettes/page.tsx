@@ -25,9 +25,26 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import AdminPageHeader from '@/components/admin/AdminPageHeader';
+import { useConfirm } from '@/components/admin/useConfirm';
+import { useToast } from '@/components/admin/useToast';
 import { WeeklyDish, WeeklyMenuData, VaultRecipe, DishCategory, MenuStatus } from '@/lib/types/cooking-ops';
 
-const CATEGORIES: DishCategory[] = ['viande', 'Végétarien', 'Poisson', 'Végan'];
+const CATEGORIES: DishCategory[] = ['Viande', 'Végétarien', 'Poisson', 'Végan'];
+
+type VaultSort = 'recent' | 'oldest' | 'used' | 'name';
+
+const VAULT_SORTS: { value: VaultSort; label: string }[] = [
+    { value: 'recent', label: 'Plus récentes' },
+    { value: 'oldest', label: 'Plus anciennes' },
+    { value: 'used', label: 'Plus utilisées' },
+    { value: 'name', label: 'Ordre alphabétique' }
+];
+
+const formatDate = (iso?: string) => {
+    if (!iso) return '—';
+    const d = new Date(iso);
+    return isNaN(d.getTime()) ? '—' : d.toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: '2-digit', timeZone: 'Europe/Paris' });
+};
 
 const MENU_SLOTS = 8;
 
@@ -38,7 +55,7 @@ function newDishId(): string {
     return `dish_${random}`;
 }
 
-const emptyDish = (): WeeklyDish => ({ id: newDishId(), name: '', category: 'viande', instructions: [], chefNotes: '' });
+const emptyDish = (): WeeklyDish => ({ id: newDishId(), name: '', category: 'Viande', instructions: [], chefNotes: '' });
 
 // The editor always shows 8 slots; empty slots are dropped when saving
 function padToSlots(dishes: WeeklyDish[]): WeeklyDish[] {
@@ -70,6 +87,11 @@ export default function WeeklyRecipeAndVaultPage() {
     // Vault search & category filter
     const [vaultSearch, setVaultSearch] = useState('');
     const [vaultCategory, setVaultCategory] = useState<string>('all');
+    const [vaultSort, setVaultSort] = useState<VaultSort>('recent');
+    const [deletingRecipeId, setDeletingRecipeId] = useState<string | null>(null);
+
+    const { confirm, alert, confirmDialog } = useConfirm();
+    const { showToast, toastElement } = useToast();
     
     // Vault Recipe Detail Modal
     const [inspectedVaultRecipe, setInspectedVaultRecipe] = useState<VaultRecipe | null>(null);
@@ -114,8 +136,13 @@ export default function WeeklyRecipeAndVaultPage() {
         return () => window.removeEventListener('beforeunload', onBeforeUnload);
     }, [isDirty]);
 
-    const changeWeek = (delta: number) => {
-        if (isDirty && !confirm('Des modifications ne sont pas enregistrées. Changer de semaine quand même ?')) return;
+    const changeWeek = async (delta: number) => {
+        if (isDirty && !(await confirm({
+            title: 'Modifications non enregistrées',
+            description: 'Vos changements sur ce menu seront perdus si vous changez de semaine maintenant.',
+            confirmLabel: 'Changer quand même',
+            tone: 'danger'
+        }))) return;
         setWeekOffset(w => (w ?? 1) + delta);
     };
 
@@ -165,7 +192,7 @@ export default function WeeklyRecipeAndVaultPage() {
             setAiPasteText('');
             setIsAiModalOpen(false);
         } else {
-            alert('Aucune étape détectée. Vérifiez le texte collé.');
+            alert({ title: 'Aucune étape détectée', description: 'Vérifiez le texte collé : chaque étape doit être sur sa propre ligne.' });
         }
     };
 
@@ -179,9 +206,35 @@ export default function WeeklyRecipeAndVaultPage() {
         updateCurrentDish({ instructions: next });
     };
 
-    const handleClearCurrentDish = () => {
-        if (!currentDish?.name || confirm(`Retirer « ${currentDish.name} » du menu ?`)) {
-            updateDish(selectedDishIndex, emptyDish());
+    const handleClearCurrentDish = async () => {
+        if (currentDish?.name && !(await confirm({
+            title: `Retirer « ${currentDish.name} » du menu ?`,
+            description: 'Le plat reste dans la banque de recettes, il est seulement retiré de cette semaine.',
+            confirmLabel: 'Retirer du menu',
+            tone: 'danger'
+        }))) return;
+        updateDish(selectedDishIndex, emptyDish());
+    };
+
+    const handleDeleteVaultRecipe = async (recipe: VaultRecipe) => {
+        if (!(await confirm({
+            title: `Supprimer « ${recipe.name} » ?`,
+            description: 'Cette recette sera retirée définitivement de la banque. Les menus qui l’utilisent déjà ne changent pas.',
+            confirmLabel: 'Supprimer',
+            tone: 'danger'
+        }))) return;
+
+        try {
+            setDeletingRecipeId(recipe.id);
+            const res = await fetch(`/api/cooking-ops/admin/vault/${encodeURIComponent(recipe.id)}`, { method: 'DELETE' });
+            const data = await res.json().catch(() => ({}));
+            if (!res.ok) throw new Error(data.error || 'Suppression impossible');
+            setVault(prev => prev.filter(r => r.id !== recipe.id));
+            showToast(`« ${recipe.name} » supprimée de la banque`, 'check');
+        } catch (err) {
+            showToast(err instanceof Error ? err.message : 'Suppression impossible', 'error');
+        } finally {
+            setDeletingRecipeId(null);
         }
     };
 
@@ -201,6 +254,7 @@ export default function WeeklyRecipeAndVaultPage() {
             setMenu({ ...data.menu, recipes: padToSlots(data.menu.recipes) });
             setIsDirty(false);
             setSaveSuccess(true);
+            showToast('Menu enregistré', 'check');
             setTimeout(() => setSaveSuccess(false), 2500);
             // Refresh the bank so new recipes / edited steps show up there
             fetch(`/api/cooking-ops/admin/menu?offset=${weekOffset}`).then(r => r.json()).then(d => d.vault && setVault(d.vault)).catch(() => undefined);
@@ -215,12 +269,12 @@ export default function WeeklyRecipeAndVaultPage() {
 
     const changeStatus = async (status: MenuStatus) => {
         if (!menu) return;
-        const confirmText = status === 'open'
-            ? `Ouvrir le menu de la ${menu.weekLabel.toLowerCase()} ? Les liens clients afficheront ce menu et les clients pourront choisir.`
+        const dialogOptions = status === 'open'
+            ? { title: 'Ouvrir le menu aux clients ?', description: `Les liens clients afficheront le menu de la ${menu.weekLabel.toLowerCase()} et les clients pourront envoyer leurs choix.`, confirmLabel: 'Ouvrir aux clients' }
             : status === 'closed'
-                ? 'Clôturer les choix ? Les clients ne pourront plus envoyer ni modifier leur sélection.'
-                : 'Repasser ce menu en brouillon ? Les liens clients ne l’afficheront plus.';
-        if (!confirm(confirmText)) return;
+                ? { title: 'Clôturer les choix ?', description: 'Les clients ne pourront plus envoyer ni modifier leur sélection.', confirmLabel: 'Clôturer', tone: 'danger' as const }
+                : { title: 'Repasser en brouillon ?', description: 'Les liens clients n’afficheront plus ce menu.', confirmLabel: 'Repasser en brouillon', tone: 'danger' as const };
+        if (!(await confirm(dialogOptions))) return;
 
         // Save pending edits first so clients see the latest version
         if (isDirty && !(await saveMenu())) return;
@@ -236,6 +290,10 @@ export default function WeeklyRecipeAndVaultPage() {
             const data = await res.json().catch(() => ({}));
             if (!res.ok) throw new Error(data.error || 'Erreur');
             setMenu({ ...data.menu, recipes: padToSlots(data.menu.recipes) });
+            showToast(
+                status === 'open' ? 'Menu ouvert aux clients' : status === 'closed' ? 'Choix clôturés' : 'Menu repassé en brouillon',
+                'check'
+            );
         } catch (err: unknown) {
             setActionError(err instanceof Error ? err.message : 'Erreur');
         } finally {
@@ -259,11 +317,20 @@ export default function WeeklyRecipeAndVaultPage() {
         setActiveTab('menu');
     };
 
-    const filteredVault = vault.filter(r => {
-        const matchesCategory = vaultCategory === 'all' || r.category.toLowerCase() === vaultCategory.toLowerCase();
-        const matchesSearch = !vaultSearch.trim() || r.name.toLowerCase().includes(vaultSearch.toLowerCase());
-        return matchesCategory && matchesSearch;
-    });
+    const filteredVault = vault
+        .filter(r => {
+            const matchesCategory = vaultCategory === 'all' || r.category.toLowerCase() === vaultCategory.toLowerCase();
+            const matchesSearch = !vaultSearch.trim() || r.name.toLowerCase().includes(vaultSearch.toLowerCase());
+            return matchesCategory && matchesSearch;
+        })
+        .sort((a, b) => {
+            switch (vaultSort) {
+                case 'oldest': return (a.createdAt || '').localeCompare(b.createdAt || '');
+                case 'used': return (b.timesUsed || 0) - (a.timesUsed || 0);
+                case 'name': return a.name.localeCompare(b.name, 'fr');
+                default: return (b.createdAt || '').localeCompare(a.createdAt || '');
+            }
+        });
 
     const getCategoryBadgeClass = (cat: string) => {
         switch (cat.toLowerCase()) {
@@ -501,9 +568,14 @@ export default function WeeklyRecipeAndVaultPage() {
                                                 <Badge variant="outline" className="bg-rose-50 text-[#E1567A] border-[#E1567A]/30 text-xs mb-1.5 rounded-full">
                                                     Plat #{selectedDishIndex + 1} • {currentDish.category}
                                                 </Badge>
-                                                <h2 className="text-xl font-serif font-bold text-stone-900">
-                                                    {currentDish.name}
-                                                </h2>
+                                                <input
+                                                    type="text"
+                                                    value={currentDish.name}
+                                                    onChange={e => updateCurrentDish({ name: e.target.value })}
+                                                    placeholder={`Nom du plat #${selectedDishIndex + 1}...`}
+                                                    className="text-xl font-serif font-bold text-stone-900 bg-transparent border-b border-dashed border-stone-300 focus:border-[#E1567A] focus:outline-none pb-1 w-full"
+                                                    title="Cliquez pour modifier le nom du plat"
+                                                />
                                             </div>
 
                                             <Button
@@ -652,6 +724,17 @@ export default function WeeklyRecipeAndVaultPage() {
                                 </div>
 
                                 <select
+                                    value={vaultSort}
+                                    onChange={e => setVaultSort(e.target.value as VaultSort)}
+                                    className="text-xs py-2 px-3 rounded-full border border-stone-300 focus:outline-none focus:ring-2 focus:ring-[#E1567A] bg-stone-50 text-stone-700 font-medium cursor-pointer"
+                                    title="Trier les recettes"
+                                >
+                                    {VAULT_SORTS.map(o => (
+                                        <option key={o.value} value={o.value}>{o.label}</option>
+                                    ))}
+                                </select>
+
+                                <select
                                     value={vaultCategory}
                                     onChange={e => setVaultCategory(e.target.value)}
                                     className="text-xs py-2 px-3 rounded-full border border-stone-300 focus:outline-none focus:ring-2 focus:ring-[#E1567A] bg-stone-50 text-stone-700 font-medium"
@@ -672,6 +755,7 @@ export default function WeeklyRecipeAndVaultPage() {
                                         <th className="py-3 px-4">Nom du Plat</th>
                                         <th className="py-3 px-4">Catégorie</th>
                                         <th className="py-3 px-4 text-center">Fois Préparé</th>
+                                        <th className="py-3 px-4 text-center whitespace-nowrap">Ajoutée le</th>
                                         <th className="py-3 px-4 text-right">Actions</th>
                                     </tr>
                                 </thead>
@@ -700,6 +784,9 @@ export default function WeeklyRecipeAndVaultPage() {
                                                     {recipe.timesUsed || 0}x
                                                 </span>
                                             </td>
+                                            <td className="py-3.5 px-4 text-center text-[11px] text-stone-500 whitespace-nowrap">
+                                                {formatDate(recipe.createdAt)}
+                                            </td>
                                             <td className="py-3.5 px-4 text-right space-x-2" onClick={e => e.stopPropagation()}>
                                                 <Button
                                                     size="sm"
@@ -719,6 +806,15 @@ export default function WeeklyRecipeAndVaultPage() {
                                                     <Plus className="w-3 h-3 mr-1" />
                                                     Plat #{selectedDishIndex + 1}
                                                 </Button>
+
+                                                <button
+                                                    onClick={() => handleDeleteVaultRecipe(recipe)}
+                                                    disabled={deletingRecipeId === recipe.id}
+                                                    className="p-1.5 rounded-xl text-stone-300 hover:text-red-600 hover:bg-red-50 transition-colors cursor-pointer align-middle"
+                                                    title="Supprimer cette recette de la banque"
+                                                >
+                                                    <Trash2 className="w-4 h-4" />
+                                                </button>
                                             </td>
                                         </tr>
                                     ))}
@@ -796,6 +892,9 @@ export default function WeeklyRecipeAndVaultPage() {
                     </div>
                 </DialogContent>
             </Dialog>
+
+            {confirmDialog}
+            {toastElement}
 
             {/* AI 1-Click Steps Import Modal */}
             <Dialog open={isAiModalOpen} onOpenChange={setIsAiModalOpen}>

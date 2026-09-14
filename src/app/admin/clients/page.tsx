@@ -31,6 +31,8 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import AdminPageHeader from '@/components/admin/AdminPageHeader';
+import { useConfirm } from '@/components/admin/useConfirm';
+import { useToast } from '@/components/admin/useToast';
 import { ClientProfile } from '@/lib/types/cooking-ops';
 import { COMMON_ALLERGIES } from '@/lib/allergies';
 
@@ -58,15 +60,9 @@ export default function ClientDirectoryPage() {
     const [allergyFilter, setAllergyFilter] = useState<string>('all');
     const [viewMode, setViewMode] = useState<'cards' | 'table'>('cards');
     const [copiedToken, setCopiedToken] = useState<string | null>(null);
-    const [toast, setToast] = useState<{ id: string; message: string } | null>(null);
 
-    const showToast = (message: string) => {
-        const id = String(Date.now());
-        setToast({ id, message });
-        setTimeout(() => {
-            setToast(curr => (curr?.id === id ? null : curr));
-        }, 3000);
-    };
+    const { confirm, confirmDialog } = useConfirm();
+    const { showToast, toastElement } = useToast();
 
     // Modal state for single client create/edit
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -121,7 +117,8 @@ export default function ClientDirectoryPage() {
         showToast(
             clientName 
                 ? `Lien de choix des recettes de ${clientName} copié !` 
-                : `Lien de choix des recettes copié !`
+                : `Lien de choix des recettes copié !`,
+            'link'
         );
         setTimeout(() => setCopiedToken(null), 2500);
     };
@@ -195,25 +192,33 @@ export default function ClientDirectoryPage() {
                 throw new Error(data.error || 'Erreur lors de la sauvegarde');
             }
             setIsModalOpen(false);
+            showToast(editingClient ? `Fiche de ${formName} mise à jour` : `${formName} ajouté(e) au répertoire`, 'check');
             loadClients();
         } catch (err) {
             console.error('Error saving client:', err);
             const message = err instanceof Error ? err.message : '';
-            alert(`Impossible de sauvegarder ce client. ${message}`);
+            showToast(`Impossible de sauvegarder ce client. ${message}`, 'error');
         } finally {
             setIsSaving(false);
         }
     };
 
     const handleDeleteClient = async (clientId: string, name: string) => {
-        if (!confirm(`Êtes-vous sûre de vouloir supprimer la fiche de ${name} ?`)) return;
+        if (!(await confirm({
+            title: `Supprimer la fiche de ${name} ?`,
+            description: 'La fiche et ses choix de plats seront définitivement supprimés. Son lien personnel cessera de fonctionner.',
+            confirmLabel: 'Supprimer la fiche',
+            tone: 'danger'
+        }))) return;
+
         try {
             const res = await fetch(`/api/cooking-ops/admin?id=${encodeURIComponent(clientId)}`, { method: 'DELETE' });
             if (!res.ok) throw new Error('Erreur');
             setClients(prev => prev.filter(c => c.id !== clientId));
+            showToast(`Fiche de ${name} supprimée`, 'check');
         } catch (err) {
             console.error('Delete error:', err);
-            alert(`Impossible de supprimer la fiche de ${name}.`);
+            showToast(`Impossible de supprimer la fiche de ${name}.`, 'error');
         }
     };
 
@@ -1175,23 +1180,8 @@ export default function ClientDirectoryPage() {
                 </DialogContent>
             </Dialog>
 
-            {/* Floating Toast Notification Modal */}
-            {toast && (
-                <div className="fixed bottom-6 right-6 z-50 animate-in fade-in slide-in-from-bottom-4 duration-200">
-                    <div className="bg-stone-900/95 backdrop-blur-md text-white px-4 py-3 rounded-2xl shadow-xl border border-stone-800 flex items-center gap-3 text-xs sm:text-sm font-semibold max-w-md">
-                        <div className="w-7 h-7 rounded-xl bg-[#E1567A]/20 text-[#E1567A] flex items-center justify-center shrink-0">
-                            <Copy className="w-4 h-4 text-[#E1567A]" />
-                        </div>
-                        <span className="leading-snug">{toast.message}</span>
-                        <button 
-                            onClick={() => setToast(null)}
-                            className="ml-auto text-stone-400 hover:text-white p-1 rounded-lg hover:bg-stone-800 transition-colors"
-                        >
-                            <X className="w-3.5 h-3.5" />
-                        </button>
-                    </div>
-                </div>
-            )}
+            {confirmDialog}
+            {toastElement}
         </div>
     );
 }

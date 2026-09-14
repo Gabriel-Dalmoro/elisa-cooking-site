@@ -337,7 +337,7 @@ export default function ClientMenuSelectionPage() {
                                 Bonjour {client.firstName} 👋
                             </h1>
                             <p className="text-xs sm:text-sm text-stone-600 mt-1.5">
-                                Choisissez vos <strong>{targetCount} plats</strong> parmi les {menu.dishes.length} recettes fraîches de la semaine.
+                                Choisissez vos <strong>{targetCount} plats</strong> parmi les {menu.dishes.length} recettes fraîches de la semaine. Vous pouvez en choisir moins et préciser une demande particulière dans le message.
                             </p>
                             {previousSubmissionAt && (
                                 <p className="text-xs text-emerald-800 bg-emerald-50 border border-emerald-200 rounded-xl px-3 py-2 mt-3 inline-block">
@@ -538,6 +538,12 @@ export default function ClientMenuSelectionPage() {
 
             {/* Sticky Bottom Bar */}
             <div className="fixed bottom-0 inset-x-0 bg-white/95 backdrop-blur-md border-t border-stone-200 shadow-2xl p-4 z-40">
+                {selectedDishes.length > 0 && countDifference > 0 && (
+                    <div className="max-w-3xl mx-auto mb-3 text-xs text-amber-900 bg-amber-50 border border-amber-200 rounded-xl p-2.5 font-medium">
+                        Vous avez choisi {selectedDishes.length} plat{selectedDishes.length > 1 ? 's' : ''} sur {targetCount}. C&apos;est possible : précisez votre demande dans le message pour Elisa ci-dessus.
+                    </div>
+                )}
+
                 {submitError && (
                     <div className="max-w-3xl mx-auto mb-3 text-xs text-red-700 bg-red-50 border border-red-200 rounded-xl p-2.5 font-medium flex items-center gap-2">
                         <AlertTriangle className="w-4 h-4 shrink-0" />
@@ -567,7 +573,7 @@ export default function ClientMenuSelectionPage() {
 
                     <Button
                         size="lg"
-                        disabled={selectedDishes.length !== targetCount || isSubmitting}
+                        disabled={selectedDishes.length === 0 || isSubmitting}
                         onClick={handleSubmit}
                         className={`w-full sm:w-auto px-8 font-semibold shadow-md transition-all rounded-full ${
                             selectedDishes.length === targetCount

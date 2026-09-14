@@ -10,7 +10,7 @@
  *
  * Patch (0.9.1) = fix or small change · Minor (0.10.0) = new capability.
  */
-export const APP_VERSION = '0.9.0';
+export const APP_VERSION = '0.10.0';
 
 /**
  * Where this build is running. Vercel fills these in at build time when
