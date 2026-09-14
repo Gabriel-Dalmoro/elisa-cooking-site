@@ -19,8 +19,10 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { motion } from 'framer-motion';
 import { createSupabaseBrowserClient } from '@/lib/supabase/browser';
+import { getBuildInfo } from '@/lib/version';
 
 export default function AdminDashboard({ displayName }: { displayName: string | null }) {
+    const build = getBuildInfo();
     const router = useRouter();
 
     // Access is enforced server-side (middleware + API checks); this only ends the session
@@ -270,6 +272,13 @@ export default function AdminDashboard({ displayName }: { displayName: string | 
                         </motion.div>
                     </div>
                 </div>
+
+                {/* Discreet build marker: tells you which version is running here */}
+                <p className="text-center text-[11px] text-stone-400 pt-2">
+                    Version {build.version}
+                    {build.env ? ` · ${build.env}` : ''}
+                    {build.commit ? ` · ${build.commit}` : ''}
+                </p>
             </div>
         </div>
     );
