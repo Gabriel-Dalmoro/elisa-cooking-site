@@ -17,28 +17,55 @@ import {
     RotateCcw,
     Eye,
     Utensils,
-    Image as ImageIcon
+    Image as ImageIcon,
+    ChevronLeft,
+    ChevronRight
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import AdminPageHeader from '@/components/admin/AdminPageHeader';
-import { WeeklyDish, WeeklyMenuData, VaultRecipe, DishCategory } from '@/lib/types/cooking-ops';
+import { WeeklyDish, WeeklyMenuData, VaultRecipe, DishCategory, MenuStatus } from '@/lib/types/cooking-ops';
 
 const CATEGORIES: DishCategory[] = ['viande', 'Végétarien', 'Poisson', 'Végan'];
+
+const MENU_SLOTS = 8;
+
+function newDishId(): string {
+    const random = typeof crypto !== 'undefined' && 'randomUUID' in crypto
+        ? crypto.randomUUID().slice(0, 8)
+        : Math.random().toString(36).slice(2, 10);
+    return `dish_${random}`;
+}
+
+const emptyDish = (): WeeklyDish => ({ id: newDishId(), name: '', category: 'viande', instructions: [], chefNotes: '' });
+
+// The editor always shows 8 slots; empty slots are dropped when saving
+function padToSlots(dishes: WeeklyDish[]): WeeklyDish[] {
+    const padded = [...dishes];
+    while (padded.length < MENU_SLOTS) padded.push(emptyDish());
+    return padded;
+}
+
+const STATUS_LABELS: Record<MenuStatus, { label: string; className: string }> = {
+    draft: { label: 'Brouillon — invisible pour les clients', className: 'bg-amber-50 text-amber-800 border-amber-300' },
+    open: { label: 'Ouvert — les clients peuvent choisir', className: 'bg-emerald-100 text-emerald-800 border-emerald-300' },
+    closed: { label: 'Clôturé — choix verrouillés', className: 'bg-stone-200 text-stone-700 border-stone-300' }
+};
 
 export default function WeeklyRecipeAndVaultPage() {
     const [activeTab, setActiveTab] = useState<'menu' | 'vault'>('menu');
     const [loading, setLoading] = useState(true);
+    const [loadError, setLoadError] = useState<string | null>(null);
+    // Week being edited: 0 = this week, 1 = next week (default: menus are prepared in advance)
+    const [weekOffset, setWeekOffset] = useState<number | null>(null);
     const [menu, setMenu] = useState<WeeklyMenuData | null>(null);
     const [vault, setVault] = useState<VaultRecipe[]>([]);
     const [selectedDishIndex, setSelectedDishIndex] = useState<number>(0);
-    
-    // Dish Editor state for the selected dish in current menu
-    const [instructions, setInstructions] = useState<string[]>([]);
-    const [chefNotes, setChefNotes] = useState('');
+    const [isDirty, setIsDirty] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
     const [saveSuccess, setSaveSuccess] = useState(false);
+    const [actionError, setActionError] = useState<string | null>(null);
 
     // Vault search & category filter
     const [vaultSearch, setVaultSearch] = useState('');
@@ -47,53 +74,75 @@ export default function WeeklyRecipeAndVaultPage() {
     // Vault Recipe Detail Modal
     const [inspectedVaultRecipe, setInspectedVaultRecipe] = useState<VaultRecipe | null>(null);
 
-    const loadData = async () => {
+    // Read ?offset= once (links from the planning / flyer pages)
+    useEffect(() => {
+        const param = new URLSearchParams(window.location.search).get('offset');
+        const parsed = param !== null ? parseInt(param, 10) : NaN;
+        setWeekOffset(isNaN(parsed) ? 1 : parsed);
+    }, []);
+
+    const loadData = async (offset: number) => {
         try {
             setLoading(true);
-            const res = await fetch('/api/cooking-ops/admin');
-            if (!res.ok) throw new Error('Erreur de chargement');
-            const data = await res.json();
-            setMenu(data.weekMenu);
-            setVault(data.vaultRecipes || []);
-            
-            if (data.weekMenu?.recipes?.length > 0) {
-                const first = data.weekMenu.recipes[0];
-                setInstructions(first.instructions || ['1. ']);
-                setChefNotes(first.chefNotes || '');
-            }
+            setLoadError(null);
+            const res = await fetch(`/api/cooking-ops/admin/menu?offset=${offset}`);
+            const data = await res.json().catch(() => ({}));
+            if (!res.ok) throw new Error(data.error || 'Erreur de chargement');
+            setMenu({ ...data.menu, recipes: padToSlots(data.menu.recipes) });
+            setVault(data.vault || []);
+            setSelectedDishIndex(0);
+            setIsDirty(false);
         } catch (e) {
-            console.error('Error loading recipes & vault:', e);
+            setLoadError(e instanceof Error ? e.message : 'Erreur de chargement');
         } finally {
             setLoading(false);
         }
     };
 
     useEffect(() => {
-        loadData();
-    }, []);
+        if (weekOffset !== null) loadData(weekOffset);
+    }, [weekOffset]);
+
+    // Warn before leaving the page with unsaved changes
+    useEffect(() => {
+        if (!isDirty) return;
+        const onBeforeUnload = (e: BeforeUnloadEvent) => {
+            e.preventDefault();
+            e.returnValue = '';
+        };
+        window.addEventListener('beforeunload', onBeforeUnload);
+        return () => window.removeEventListener('beforeunload', onBeforeUnload);
+    }, [isDirty]);
+
+    const changeWeek = (delta: number) => {
+        if (isDirty && !confirm('Des modifications ne sont pas enregistrées. Changer de semaine quand même ?')) return;
+        setWeekOffset(w => (w ?? 1) + delta);
+    };
+
+    const updateDish = (index: number, patch: Partial<WeeklyDish>) => {
+        setMenu(prev => {
+            if (!prev) return prev;
+            const recipes = [...prev.recipes];
+            recipes[index] = { ...recipes[index], ...patch };
+            return { ...prev, recipes };
+        });
+        setIsDirty(true);
+        setSaveSuccess(false);
+    };
+
+    const currentDish = menu?.recipes?.[selectedDishIndex];
+    const currentInstructions = currentDish?.instructions && currentDish.instructions.length > 0 ? currentDish.instructions : [''];
+    const updateCurrentDish = (patch: Partial<WeeklyDish>) => updateDish(selectedDishIndex, patch);
 
     const selectDish = (index: number) => {
         if (!menu?.recipes?.[index]) return;
         setSelectedDishIndex(index);
-        const dish = menu.recipes[index];
-        setInstructions(dish.instructions && dish.instructions.length > 0 ? [...dish.instructions] : ['1. ']);
-        setChefNotes(dish.chefNotes || '');
         setSaveSuccess(false);
     };
 
-    const handleDishNameChange = (index: number, newName: string) => {
-        if (!menu) return;
-        const updated = [...menu.recipes];
-        updated[index] = { ...updated[index], name: newName };
-        setMenu({ ...menu, recipes: updated });
-    };
+    const handleDishNameChange = (index: number, newName: string) => updateDish(index, { name: newName });
 
-    const handleDishCategoryChange = (index: number, newCategory: DishCategory) => {
-        if (!menu) return;
-        const updated = [...menu.recipes];
-        updated[index] = { ...updated[index], category: newCategory };
-        setMenu({ ...menu, recipes: updated });
-    };
+    const handleDishCategoryChange = (index: number, newCategory: DishCategory) => updateDish(index, { category: newCategory });
 
     // AI 1-Click Importer state
     const [isAiModalOpen, setIsAiModalOpen] = useState(false);
@@ -112,7 +161,7 @@ export default function WeeklyRecipeAndVaultPage() {
             .filter(line => line.length > 3 && !/^(Ingrédients|Ingredients|Préparation|Preparation|Instructions|Étapes|Etapes)[\s:]*$/i.test(line));
 
         if (parsedSteps.length > 0) {
-            setInstructions(parsedSteps);
+            updateCurrentDish({ instructions: parsedSteps });
             setAiPasteText('');
             setIsAiModalOpen(false);
         } else {
@@ -120,102 +169,92 @@ export default function WeeklyRecipeAndVaultPage() {
         }
     };
 
-    const handleAddStep = () => {
-        setInstructions(prev => [...prev, '']);
-    };
+    const handleAddStep = () => updateCurrentDish({ instructions: [...currentInstructions, ''] });
 
-    const handleRemoveStep = (index: number) => {
-        setInstructions(prev => prev.filter((_, i) => i !== index));
-    };
+    const handleRemoveStep = (index: number) => updateCurrentDish({ instructions: currentInstructions.filter((_, i) => i !== index) });
 
     const handleStepChange = (index: number, val: string) => {
-        setInstructions(prev => {
-            const next = [...prev];
-            next[index] = val;
-            return next;
-        });
+        const next = [...currentInstructions];
+        next[index] = val;
+        updateCurrentDish({ instructions: next });
     };
 
-    // Save individual recipe instructions for currently selected dish
-    const handleSaveCurrentRecipe = async () => {
-        if (!menu?.recipes?.[selectedDishIndex]) return;
-        const currentDish = menu.recipes[selectedDishIndex];
+    const handleClearCurrentDish = () => {
+        if (!currentDish?.name || confirm(`Retirer « ${currentDish.name} » du menu ?`)) {
+            updateDish(selectedDishIndex, emptyDish());
+        }
+    };
 
+    // Saves all dishes of the week (names, categories, steps, notes) and updates the recipe bank
+    const saveMenu = async (): Promise<boolean> => {
+        if (!menu) return false;
         try {
             setIsSaving(true);
-            const res = await fetch('/api/cooking-ops/admin/recipe', {
-                method: 'POST',
+            setActionError(null);
+            const res = await fetch('/api/cooking-ops/admin/menu', {
+                method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    dishId: currentDish.id,
-                    name: currentDish.name,
-                    category: currentDish.category,
-                    instructions: instructions.filter(s => s.trim().length > 0),
-                    chefNotes
-                })
+                body: JSON.stringify({ weekStart: menu.weekStart, dishes: menu.recipes })
             });
-
-            if (!res.ok) throw new Error('Erreur lors de l’enregistrement');
+            const data = await res.json().catch(() => ({}));
+            if (!res.ok) throw new Error(data.error || 'Erreur lors de l’enregistrement');
+            setMenu({ ...data.menu, recipes: padToSlots(data.menu.recipes) });
+            setIsDirty(false);
             setSaveSuccess(true);
             setTimeout(() => setSaveSuccess(false), 2500);
-
-            // Update local state
-            const updated = [...menu.recipes];
-            updated[selectedDishIndex] = {
-                ...updated[selectedDishIndex],
-                instructions,
-                chefNotes
-            };
-            setMenu({ ...menu, recipes: updated });
+            // Refresh the bank so new recipes / edited steps show up there
+            fetch(`/api/cooking-ops/admin/menu?offset=${weekOffset}`).then(r => r.json()).then(d => d.vault && setVault(d.vault)).catch(() => undefined);
+            return true;
         } catch (err: unknown) {
-            const message = err instanceof Error ? err.message : 'Erreur';
-            alert(message);
+            setActionError(err instanceof Error ? err.message : 'Erreur');
+            return false;
         } finally {
             setIsSaving(false);
         }
     };
 
-    // Save entire weekly menu (all 8 dishes names & categories)
-    const handleSaveEntireMenu = async () => {
+    const changeStatus = async (status: MenuStatus) => {
         if (!menu) return;
+        const confirmText = status === 'open'
+            ? `Ouvrir le menu de la ${menu.weekLabel.toLowerCase()} ? Les liens clients afficheront ce menu et les clients pourront choisir.`
+            : status === 'closed'
+                ? 'Clôturer les choix ? Les clients ne pourront plus envoyer ni modifier leur sélection.'
+                : 'Repasser ce menu en brouillon ? Les liens clients ne l’afficheront plus.';
+        if (!confirm(confirmText)) return;
+
+        // Save pending edits first so clients see the latest version
+        if (isDirty && !(await saveMenu())) return;
+
         try {
             setIsSaving(true);
-            const res = await fetch('/api/cooking-ops/admin/recipe', {
+            setActionError(null);
+            const res = await fetch('/api/cooking-ops/admin/menu', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    dishes: menu.recipes
-                })
+                body: JSON.stringify({ weekStart: menu.weekStart, status })
             });
-
-            if (!res.ok) throw new Error('Erreur');
-            setSaveSuccess(true);
-            setTimeout(() => setSaveSuccess(false), 2500);
-            loadData();
+            const data = await res.json().catch(() => ({}));
+            if (!res.ok) throw new Error(data.error || 'Erreur');
+            setMenu({ ...data.menu, recipes: padToSlots(data.menu.recipes) });
         } catch (err: unknown) {
-            const message = err instanceof Error ? err.message : 'Erreur';
-            alert(message);
+            setActionError(err instanceof Error ? err.message : 'Erreur');
         } finally {
             setIsSaving(false);
         }
     };
 
-    // Import past recipe from vault into current menu slot
+    // Import past recipe from vault into current menu slot (a new dish id: it's a different dish)
     const handleImportFromVault = (vaultRecipe: VaultRecipe, targetIndex?: number) => {
         if (!menu) return;
         const indexToUse = targetIndex !== undefined ? targetIndex : selectedDishIndex;
-        const updated = [...menu.recipes];
-        updated[indexToUse] = {
-            ...updated[indexToUse],
+        updateDish(indexToUse, {
+            id: newDishId(),
             name: vaultRecipe.name,
             category: vaultRecipe.category,
             instructions: vaultRecipe.instructions || [],
             chefNotes: vaultRecipe.chefNotes || ''
-        };
-        setMenu({ ...menu, recipes: updated });
+        });
         setSelectedDishIndex(indexToUse);
-        setInstructions(vaultRecipe.instructions || []);
-        setChefNotes(vaultRecipe.chefNotes || '');
         setInspectedVaultRecipe(null);
         setActiveTab('menu');
     };
@@ -225,8 +264,6 @@ export default function WeeklyRecipeAndVaultPage() {
         const matchesSearch = !vaultSearch.trim() || r.name.toLowerCase().includes(vaultSearch.toLowerCase());
         return matchesCategory && matchesSearch;
     });
-
-    const currentDish = menu?.recipes?.[selectedDishIndex];
 
     const getCategoryBadgeClass = (cat: string) => {
         switch (cat.toLowerCase()) {
@@ -251,7 +288,7 @@ export default function WeeklyRecipeAndVaultPage() {
                 backHref="/admin"
                 backLabel="Retour à l'admin"
                 actionElement={
-                    <Link href="/admin/menu-visuel">
+                    <Link href={`/admin/menu-visuel?offset=${weekOffset ?? 1}`}>
                         <Button
                             size="sm"
                             className="bg-[#E1567A] hover:bg-[#c94567] text-white text-xs h-9 px-4 gap-2 shadow-xs font-semibold rounded-full"
@@ -268,13 +305,51 @@ export default function WeeklyRecipeAndVaultPage() {
 
                 {/* Sub-Header Tabs & Quick Actions */}
                 <div className="bg-white rounded-3xl p-5 sm:p-6 border border-stone-200 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
-                    <div className="flex items-center gap-2">
-                        <Badge variant="outline" className="bg-rose-50 text-[#E1567A] border-[#E1567A]/30 text-xs py-1 px-3 rounded-full font-bold">
-                            {menu?.weekLabel || 'Menu Actif'}
-                        </Badge>
-                        <span className="text-xs text-stone-500 font-medium">
-                            • 8 Plats au menu
-                        </span>
+                    <div className="space-y-2">
+                        <div className="flex items-center gap-2">
+                            <button
+                                onClick={() => changeWeek(-1)}
+                                className="w-8 h-8 rounded-full bg-stone-100 hover:bg-stone-200 text-stone-700 flex items-center justify-center cursor-pointer"
+                                title="Semaine précédente"
+                            >
+                                <ChevronLeft className="w-4 h-4" />
+                            </button>
+                            <Badge variant="outline" className="bg-rose-50 text-[#E1567A] border-[#E1567A]/30 text-xs py-1 px-3 rounded-full font-bold">
+                                {menu?.weekLabel || 'Chargement...'}
+                            </Badge>
+                            <button
+                                onClick={() => changeWeek(1)}
+                                className="w-8 h-8 rounded-full bg-stone-100 hover:bg-stone-200 text-stone-700 flex items-center justify-center cursor-pointer"
+                                title="Semaine suivante"
+                            >
+                                <ChevronRight className="w-4 h-4" />
+                            </button>
+                        </div>
+                        {menu && (
+                            <div className="flex flex-wrap items-center gap-2">
+                                <span className={`text-[11px] font-bold px-2.5 py-0.5 rounded-full border ${STATUS_LABELS[menu.status].className}`}>
+                                    {STATUS_LABELS[menu.status].label}
+                                </span>
+                                {menu.status !== 'open' && (
+                                    <Button size="sm" onClick={() => changeStatus('open')} disabled={isSaving}
+                                        className="bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] h-7 px-3 rounded-full font-bold">
+                                        {menu.status === 'closed' ? 'Rouvrir aux clients' : 'Ouvrir aux clients'}
+                                    </Button>
+                                )}
+                                {menu.status === 'open' && (
+                                    <Button size="sm" variant="outline" onClick={() => changeStatus('closed')} disabled={isSaving}
+                                        className="text-[11px] h-7 px-3 rounded-full font-bold border-stone-300">
+                                        Clôturer les choix
+                                    </Button>
+                                )}
+                                {menu.status !== 'draft' && (
+                                    <button onClick={() => changeStatus('draft')} disabled={isSaving}
+                                        className="text-[11px] text-stone-500 hover:text-stone-800 underline">
+                                        Repasser en brouillon
+                                    </button>
+                                )}
+                            </div>
+                        )}
                     </div>
 
                     {/* Tabs Switcher */}
@@ -304,6 +379,18 @@ export default function WeeklyRecipeAndVaultPage() {
                     </div>
                 </div>
 
+                {(loadError || actionError) && (
+                    <div className="bg-red-50 text-red-700 border border-red-200 p-4 rounded-3xl text-sm font-semibold">
+                        {loadError || actionError}
+                    </div>
+                )}
+
+                {menu?.status === 'open' && isDirty && (
+                    <div className="bg-amber-50 text-amber-900 border border-amber-300 p-3 rounded-2xl text-xs font-semibold">
+                        Ce menu est ouvert aux clients : vos modifications seront visibles dès l&apos;enregistrement. Si vous retirez un plat déjà choisi, prévenez les clients concernés.
+                    </div>
+                )}
+
                 {loading ? (
                     <div className="bg-white rounded-3xl p-12 text-center text-stone-500 border border-stone-200">
                         Chargement des recettes...
@@ -327,7 +414,7 @@ export default function WeeklyRecipeAndVaultPage() {
                                 </div>
                             </div>
 
-                            <Link href="/admin/menu-visuel">
+                            <Link href={`/admin/menu-visuel?offset=${weekOffset ?? 1}`}>
                                 <Button size="sm" className="bg-[#E1567A] hover:bg-[#c94567] text-white text-xs h-9 px-4 gap-1.5 rounded-full font-semibold shrink-0 shadow-xs">
                                     <ImageIcon className="w-3.5 h-3.5" />
                                     Voir le Flyer Instagram
@@ -344,11 +431,11 @@ export default function WeeklyRecipeAndVaultPage() {
                                     </h2>
                                     <Button 
                                         size="sm" 
-                                        variant="outline"
-                                        onClick={handleSaveEntireMenu}
-                                        className="text-[11px] h-7 px-3 rounded-full border-stone-300 font-semibold"
+                                        onClick={() => saveMenu()}
+                                        disabled={isSaving || !isDirty}
+                                        className={`text-[11px] h-7 px-3 rounded-full font-semibold ${isDirty ? 'bg-[#E1567A] hover:bg-[#c94567] text-white' : 'bg-stone-100 text-stone-500'}`}
                                     >
-                                        Sauvegarder les 8 plats
+                                        {isSaving ? 'Enregistrement...' : isDirty ? 'Enregistrer le menu' : saveSuccess ? 'Enregistré ✓' : 'Menu enregistré'}
                                     </Button>
                                 </div>
 
@@ -420,8 +507,8 @@ export default function WeeklyRecipeAndVaultPage() {
                                             </div>
 
                                             <Button
-                                                onClick={handleSaveCurrentRecipe}
-                                                disabled={isSaving}
+                                                onClick={() => saveMenu()}
+                                                disabled={isSaving || !isDirty}
                                                 className="bg-[#E1567A] hover:bg-[#c94567] text-white text-xs h-9 px-4 gap-1.5 shadow-sm font-semibold rounded-full shrink-0"
                                             >
                                                 {saveSuccess ? (
@@ -432,7 +519,7 @@ export default function WeeklyRecipeAndVaultPage() {
                                                 ) : (
                                                     <>
                                                         <Save className="w-3.5 h-3.5" />
-                                                        {isSaving ? 'Enregistrement...' : 'Enregistrer cette recette'}
+                                                        {isSaving ? 'Enregistrement...' : 'Enregistrer le menu'}
                                                     </>
                                                 )}
                                             </Button>
@@ -442,7 +529,7 @@ export default function WeeklyRecipeAndVaultPage() {
                                         <div className="space-y-3">
                                             <div className="flex flex-wrap items-center justify-between gap-2">
                                                 <label className="text-xs font-bold text-stone-700 uppercase tracking-wider block">
-                                                    Étapes de préparation & cuisson ({instructions.length})
+                                                    Étapes de préparation & cuisson ({currentInstructions.filter(st => st.trim()).length})
                                                 </label>
                                                 <div className="flex items-center gap-2">
                                                     <button
@@ -464,7 +551,7 @@ export default function WeeklyRecipeAndVaultPage() {
                                             </div>
 
                                             <div className="space-y-2.5">
-                                                {instructions.map((step, sIdx) => (
+                                                {currentInstructions.map((step, sIdx) => (
                                                     <div key={sIdx} className="flex items-start gap-2">
                                                         <span className="text-xs font-bold text-[#E1567A] bg-rose-50 border border-rose-200 w-6 h-6 rounded-lg flex items-center justify-center shrink-0 mt-2">
                                                             {sIdx + 1}
@@ -476,7 +563,7 @@ export default function WeeklyRecipeAndVaultPage() {
                                                             placeholder={`Détaillez l'étape ${sIdx + 1}...`}
                                                             className="flex-1 text-xs p-2.5 rounded-2xl border border-stone-300 focus:ring-2 focus:ring-[#E1567A] focus:outline-none"
                                                         />
-                                                        {instructions.length > 1 && (
+                                                        {currentInstructions.length > 1 && (
                                                             <button
                                                                 type="button"
                                                                 onClick={() => handleRemoveStep(sIdx)}
@@ -498,29 +585,38 @@ export default function WeeklyRecipeAndVaultPage() {
                                             </label>
                                             <input
                                                 type="text"
-                                                value={chefNotes}
-                                                onChange={e => setChefNotes(e.target.value)}
+                                                value={currentDish.chefNotes || ''}
+                                                onChange={e => updateCurrentDish({ chefNotes: e.target.value })}
                                                 placeholder="Ex: Garder la sauce au frais, cuisson à 58°C, attention aux arêtes..."
                                                 className="w-full text-xs p-3 rounded-2xl border border-stone-300 focus:ring-2 focus:ring-[#E1567A] focus:outline-none"
                                             />
                                         </div>
 
                                         <div className="pt-3 border-t border-stone-200 flex items-center justify-between">
-                                            <button
-                                                type="button"
-                                                onClick={() => setActiveTab('vault')}
-                                                className="text-xs text-stone-500 hover:text-stone-800 flex items-center gap-1 font-medium"
-                                            >
-                                                <RotateCcw className="w-3.5 h-3.5" /> Remplacer depuis la Banque de Recettes
-                                            </button>
+                                            <div className="flex flex-col items-start gap-1">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setActiveTab('vault')}
+                                                    className="text-xs text-stone-500 hover:text-stone-800 flex items-center gap-1 font-medium"
+                                                >
+                                                    <RotateCcw className="w-3.5 h-3.5" /> Remplacer depuis la Banque de Recettes
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    onClick={handleClearCurrentDish}
+                                                    className="text-xs text-stone-400 hover:text-red-600 flex items-center gap-1 font-medium"
+                                                >
+                                                    <Trash2 className="w-3.5 h-3.5" /> Retirer ce plat du menu
+                                                </button>
+                                            </div>
 
                                             <Button
-                                                onClick={handleSaveCurrentRecipe}
-                                                disabled={isSaving}
+                                                onClick={() => saveMenu()}
+                                                disabled={isSaving || !isDirty}
                                                 className="bg-[#E1567A] hover:bg-[#c94567] text-white text-xs h-9 px-4 gap-1.5 shadow-sm font-semibold rounded-full"
                                             >
                                                 <Save className="w-3.5 h-3.5" />
-                                                {isSaving ? 'Enregistrement...' : 'Enregistrer la recette'}
+                                                {isSaving ? 'Enregistrement...' : 'Enregistrer le menu'}
                                             </Button>
                                         </div>
                                     </div>
@@ -601,7 +697,7 @@ export default function WeeklyRecipeAndVaultPage() {
                                             </td>
                                             <td className="py-3.5 px-4 text-center">
                                                 <span className="text-[11px] font-semibold bg-stone-100 text-stone-700 px-2 py-0.5 rounded-full">
-                                                    {recipe.timesUsed || 1}x
+                                                    {recipe.timesUsed || 0}x
                                                 </span>
                                             </td>
                                             <td className="py-3.5 px-4 text-right space-x-2" onClick={e => e.stopPropagation()}>

@@ -202,3 +202,34 @@ export function getWeekOffsetForDate(target: Date | string): number {
     const diffDays = Math.round((targetMonday.getTime() - currentMonday.getTime()) / (1000 * 60 * 60 * 24));
     return Math.round(diffDays / 7);
 }
+
+/**
+ * Monday "YYYY-MM-DD" of the current week in Paris.
+ */
+export function getCurrentWeekStart(): string {
+    return getWeekBounds(0).startIso;
+}
+
+/**
+ * Week bounds and label for a given Monday "YYYY-MM-DD".
+ */
+export function getWeekBoundsForStart(weekStartIso: string) {
+    return getWeekBounds(getWeekOffsetForDate(weekStartIso));
+}
+
+/**
+ * True if the string is a real calendar date "YYYY-MM-DD" that falls on a Monday.
+ */
+export function isMondayIso(value: string): boolean {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
+    const [y, m, d] = value.split('-').map(n => parseInt(n, 10));
+    const date = new Date(Date.UTC(y, m - 1, d));
+    return date.getUTCFullYear() === y && date.getUTCMonth() === m - 1 && date.getUTCDate() === d && date.getUTCDay() === 1;
+}
+
+/**
+ * Monday "YYYY-MM-DD" (Paris) of the week containing the given date.
+ */
+export function getWeekStartForDate(dateIso: string): string {
+    return getWeekBounds(getWeekOffsetForDate(dateIso)).startIso;
+}

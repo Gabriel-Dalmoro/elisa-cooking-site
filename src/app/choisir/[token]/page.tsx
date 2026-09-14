@@ -2,7 +2,6 @@
 
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
-import { WeeklyMenuData } from '@/lib/types/cooking-ops';
 import { COMMON_ALLERGIES } from '@/lib/allergies';
 import { 
     Check, 
@@ -31,6 +30,19 @@ interface PublicClient {
     dislikes: string;
 }
 
+interface PublicDish {
+    id: string;
+    name: string;
+    category: string;
+    description?: string;
+}
+
+interface PublicMenu {
+    weekStart: string;
+    weekLabel: string;
+    dishes: PublicDish[];
+}
+
 export default function ClientMenuSelectionPage() {
     const routeParams = useParams();
     const rawToken = (routeParams?.token as string) || '';
@@ -39,9 +51,14 @@ export default function ClientMenuSelectionPage() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [client, setClient] = useState<PublicClient | null>(null);
-    const [menu, setMenu] = useState<WeeklyMenuData | null>(null);
+    const [menu, setMenu] = useState<PublicMenu | null>(null);
+    // open = the client can choose | none = no menu published yet | closed = choices locked
+    const [menuState, setMenuState] = useState<'open' | 'none' | 'closed'>('none');
+    const [closedWeekLabel, setClosedWeekLabel] = useState<string | null>(null);
+    const [previousSubmissionAt, setPreviousSubmissionAt] = useState<string | null>(null);
+    const [submitError, setSubmitError] = useState<string | null>(null);
     
-    // Form state
+    // Form state (dish ids)
     const [selectedDishes, setSelectedDishes] = useState<string[]>([]);
     const [dishNotes, setDishNotes] = useState<Record<string, string>>({});
     const [generalNote, setGeneralNote] = useState<string>('');
@@ -65,15 +82,18 @@ export default function ClientMenuSelectionPage() {
                 }
                 const data = await res.json();
                 setClient(data.client);
-                setMenu(data.menu);
+                setMenuState(data.state);
+                setClosedWeekLabel(data.weekLabel || null);
+                setMenu(data.state === 'open' ? data.menu : null);
                 setAllergies(data.client.allergies || []);
                 setLockedAllergies(data.client.allergies || []);
                 setDislikes(data.client.dislikes || '');
 
-                if (data.existingSelection && data.existingSelection.selectedDishNames?.length > 0) {
-                    setSelectedDishes(data.existingSelection.selectedDishNames);
+                if (data.existingSelection && data.existingSelection.selectedDishIds?.length > 0) {
+                    setSelectedDishes(data.existingSelection.selectedDishIds);
                     setDishNotes(data.existingSelection.dishNotes || {});
                     setGeneralNote(data.existingSelection.generalNote || '');
+                    setPreviousSubmissionAt(data.existingSelection.submittedAt || null);
                 }
             } catch (err: unknown) {
                 const message = err instanceof Error ? err.message : 'Erreur de chargement';
@@ -87,24 +107,28 @@ export default function ClientMenuSelectionPage() {
         }
     }, [token]);
 
-    const targetCount = client?.defaultDishCount || 4;
+    // The client's formula, capped by the number of dishes on this week's menu
+    const targetCount = Math.min(client?.defaultDishCount || 4, menu?.dishes.length || client?.defaultDishCount || 4);
 
-    const toggleDish = (dishName: string) => {
+    const toggleDish = (dishId: string) => {
+        setSubmitError(null);
         setSelectedDishes(prev => {
-            if (prev.includes(dishName)) {
-                return prev.filter(d => d !== dishName);
-            } else {
-                return [...prev, dishName];
+            if (prev.includes(dishId)) {
+                return prev.filter(d => d !== dishId);
             }
+            // Can't pick more dishes than the formula
+            return prev.length >= targetCount ? prev : [...prev, dishId];
         });
     };
 
-    const handleNoteChange = (dishName: string, note: string) => {
+    const handleNoteChange = (dishId: string, note: string) => {
         setDishNotes(prev => ({
             ...prev,
-            [dishName]: note
+            [dishId]: note
         }));
     };
+
+    const dishName = (dishId: string) => menu?.dishes.find(d => d.id === dishId)?.name || '';
 
     const toggleAllergyTag = (tag: string) => {
         if (lockedAllergies.includes(tag)) return;
@@ -114,15 +138,17 @@ export default function ClientMenuSelectionPage() {
     };
 
     const handleSubmit = async () => {
-        if (!client) return;
+        if (!client || !menu) return;
         try {
             setIsSubmitting(true);
+            setSubmitError(null);
             const res = await fetch('/api/cooking-ops/client', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     token,
-                    selectedDishNames: selectedDishes,
+                    weekStart: menu.weekStart,
+                    selectedDishIds: selectedDishes,
                     dishNotes,
                     generalNote,
                     updatedAllergies: allergies,
@@ -130,15 +156,22 @@ export default function ClientMenuSelectionPage() {
                 })
             });
 
+            const data = await res.json().catch(() => ({}));
+            if (res.status === 409) {
+                // Elisa closed the menu while the client was choosing
+                setClosedWeekLabel(menu.weekLabel);
+                setMenuState('closed');
+                return;
+            }
             if (!res.ok) {
-                throw new Error('Erreur lors de l’enregistrement');
+                throw new Error(data.error || 'Erreur lors de l’enregistrement. Réessayez ou contactez Elisa sur WhatsApp.');
             }
 
+            setLockedAllergies(allergies);
             setIsSubmittedSuccess(true);
             window.scrollTo({ top: 0, behavior: 'smooth' });
         } catch (err: unknown) {
-            const message = err instanceof Error ? err.message : 'Erreur lors de l’enregistrement';
-            alert(message);
+            setSubmitError(err instanceof Error ? err.message : 'Erreur lors de l’enregistrement');
         } finally {
             setIsSubmitting(false);
         }
@@ -170,7 +203,7 @@ export default function ClientMenuSelectionPage() {
         );
     }
 
-    if (error || !client || !menu) {
+    if (error || !client) {
         return (
             <div className="min-h-screen bg-[#faf8f5] flex items-center justify-center p-4">
                 <Card className="max-w-md w-full p-8 text-center bg-white shadow-lg border-stone-200">
@@ -178,6 +211,28 @@ export default function ClientMenuSelectionPage() {
                     <h1 className="text-xl font-bold text-stone-900 mb-2">Lien introuvable</h1>
                     <p className="text-stone-600 text-sm mb-6">
                         {error || 'Ce lien d’accès n’est plus actif ou comporte une erreur. Contactez directement Elisa sur WhatsApp.'}
+                    </p>
+                </Card>
+            </div>
+        );
+    }
+
+    if (menuState !== 'open' || !menu) {
+        return (
+            <div className="min-h-screen bg-[#faf8f5] flex items-center justify-center p-4">
+                <Card className="max-w-md w-full p-8 text-center bg-white shadow-lg border-stone-200 rounded-3xl">
+                    {menuState === 'closed' ? (
+                        <Lock className="w-12 h-12 text-stone-400 mx-auto mb-4" />
+                    ) : (
+                        <Utensils className="w-12 h-12 text-[#E1567A] mx-auto mb-4" />
+                    )}
+                    <h1 className="text-xl font-serif font-bold text-stone-900 mb-2">
+                        Bonjour {client.firstName} 👋
+                    </h1>
+                    <p className="text-stone-600 text-sm">
+                        {menuState === 'closed'
+                            ? `Les choix pour la ${closedWeekLabel ? closedWeekLabel.toLowerCase() : 'semaine'} sont clôturés. Pour toute modification, contactez Elisa directement sur WhatsApp.`
+                            : 'Le menu de la semaine n’est pas encore disponible. Elisa vous enverra ce lien dès qu’il sera prêt.'}
                     </p>
                 </Card>
             </div>
@@ -196,7 +251,7 @@ export default function ClientMenuSelectionPage() {
                             Choix confirmés avec succès !
                         </h1>
                         <p className="text-stone-600 text-sm mb-6">
-                            Merci <strong>{client.firstName}</strong>, Elisa a bien reçu votre sélection de <strong>{selectedDishes.length} plats</strong> pour cette semaine.
+                            Merci <strong>{client.firstName}</strong>, Elisa a bien reçu votre sélection de <strong>{selectedDishes.length} plats</strong> pour la {menu.weekLabel.toLowerCase()}.
                         </p>
 
                         <div className="bg-stone-50 rounded-2xl p-5 text-left border border-stone-200 mb-6 space-y-3">
@@ -204,14 +259,14 @@ export default function ClientMenuSelectionPage() {
                                 Récapitulatif de vos plats :
                             </h3>
                             <ul className="space-y-2">
-                                {selectedDishes.map((dish, i) => (
-                                    <li key={i} className="flex items-start text-sm text-stone-800 font-medium">
+                                {selectedDishes.map((dishId) => (
+                                    <li key={dishId} className="flex items-start text-sm text-stone-800 font-medium">
                                         <span className="text-amber-600 mr-2 font-bold">✓</span>
                                         <span>
-                                            {dish}
-                                            {dishNotes[dish] && (
+                                            {dishName(dishId)}
+                                            {dishNotes[dishId] && (
                                                 <span className="block text-xs text-stone-500 font-normal italic mt-0.5">
-                                                    Note : &quot;{dishNotes[dish]}&quot;
+                                                    Note : &quot;{dishNotes[dishId]}&quot;
                                                 </span>
                                             )}
                                         </span>
@@ -282,8 +337,13 @@ export default function ClientMenuSelectionPage() {
                                 Bonjour {client.firstName} 👋
                             </h1>
                             <p className="text-xs sm:text-sm text-stone-600 mt-1.5">
-                                Choisissez vos <strong>{targetCount} plats</strong> parmi les 8 recettes fraîches de la semaine.
+                                Choisissez vos <strong>{targetCount} plats</strong> parmi les {menu.dishes.length} recettes fraîches de la semaine.
                             </p>
+                            {previousSubmissionAt && (
+                                <p className="text-xs text-emerald-800 bg-emerald-50 border border-emerald-200 rounded-xl px-3 py-2 mt-3 inline-block">
+                                    ✓ Choix envoyés le {new Date(previousSubmissionAt).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', timeZone: 'Europe/Paris' })}. Vous pouvez encore les modifier.
+                                </p>
+                            )}
                         </div>
 
 
@@ -384,7 +444,7 @@ export default function ClientMenuSelectionPage() {
                 <div className="flex items-center justify-between pt-2 px-1">
                     <h2 className="text-base sm:text-lg font-serif font-bold text-stone-900 flex items-center gap-2">
                         <Utensils className="w-5 h-5 text-amber-600" />
-                        Les 8 Recettes de la semaine
+                        Les {menu.dishes.length} Recettes de la semaine
                     </h2>
                     <span className="text-xs text-stone-500 font-medium">
                         Cochez vos plats favoris
@@ -393,12 +453,12 @@ export default function ClientMenuSelectionPage() {
 
                 {/* 8 Dishes Grid */}
                 <div className="grid grid-cols-1 gap-3.5">
-                    {menu.recipes.map((dish, idx) => {
-                        const isSelected = selectedDishes.includes(dish.name);
+                    {menu.dishes.map((dish, idx) => {
+                        const isSelected = selectedDishes.includes(dish.id);
                         return (
                             <div
                                 key={dish.id || idx}
-                                onClick={() => toggleDish(dish.name)}
+                                onClick={() => toggleDish(dish.id)}
                                 className={`group cursor-pointer relative rounded-2xl border transition-all duration-200 overflow-hidden ${
                                     isSelected
                                         ? 'bg-amber-50/50 border-amber-500 ring-2 ring-amber-500/20 shadow-sm'
@@ -446,8 +506,8 @@ export default function ClientMenuSelectionPage() {
                                                 </div>
                                                 <input
                                                     type="text"
-                                                    value={dishNotes[dish.name] || ''}
-                                                    onChange={(e) => handleNoteChange(dish.name, e.target.value)}
+                                                    value={dishNotes[dish.id] || ''}
+                                                    onChange={(e) => handleNoteChange(dish.id, e.target.value)}
                                                     placeholder="Ex: sans oignons, sauce à part, bien cuit..."
                                                     className="w-full text-xs p-2 rounded-xl bg-white border border-amber-300 focus:outline-none focus:ring-2 focus:ring-amber-500 text-stone-800"
                                                 />
@@ -478,6 +538,12 @@ export default function ClientMenuSelectionPage() {
 
             {/* Sticky Bottom Bar */}
             <div className="fixed bottom-0 inset-x-0 bg-white/95 backdrop-blur-md border-t border-stone-200 shadow-2xl p-4 z-40">
+                {submitError && (
+                    <div className="max-w-3xl mx-auto mb-3 text-xs text-red-700 bg-red-50 border border-red-200 rounded-xl p-2.5 font-medium flex items-center gap-2">
+                        <AlertTriangle className="w-4 h-4 shrink-0" />
+                        {submitError}
+                    </div>
+                )}
                 <div className="max-w-3xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3">
                     <div className="flex items-center justify-between w-full sm:w-auto gap-4">
                         <div>
@@ -501,7 +567,7 @@ export default function ClientMenuSelectionPage() {
 
                     <Button
                         size="lg"
-                        disabled={selectedDishes.length === 0 || isSubmitting}
+                        disabled={selectedDishes.length !== targetCount || isSubmitting}
                         onClick={handleSubmit}
                         className={`w-full sm:w-auto px-8 font-semibold shadow-md transition-all rounded-full ${
                             selectedDishes.length === targetCount

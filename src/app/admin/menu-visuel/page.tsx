@@ -31,10 +31,13 @@ export default function InstagramMenuGeneratorPage() {
     const loadMenu = async () => {
         try {
             setLoading(true);
-            const res = await fetch('/api/cooking-ops/admin');
+            // Same week as the menu editor (?offset=, default: next week)
+            const param = new URLSearchParams(window.location.search).get('offset');
+            const offset = param !== null && !isNaN(parseInt(param, 10)) ? parseInt(param, 10) : 1;
+            const res = await fetch(`/api/cooking-ops/admin/menu?offset=${offset}`);
             if (!res.ok) throw new Error('Erreur de chargement');
             const data = await res.json();
-            setMenu(data.weekMenu);
+            setMenu(data.menu);
         } catch (e) {
             console.error('Error loading menu for flyer:', e);
         } finally {

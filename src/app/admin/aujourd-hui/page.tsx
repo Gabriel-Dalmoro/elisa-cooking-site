@@ -33,7 +33,6 @@ export default function TodayOperationsPage() {
     const [selectedDate, setSelectedDate] = useState<Date>(() => new Date());
     const [loading, setLoading] = useState(true);
     const [allSessions, setAllSessions] = useState<SlotSessionStatus[]>([]);
-    const [clients, setClients] = useState<ClientProfile[]>([]);
     const [copiedText, setCopiedText] = useState<string | null>(null);
 
     const isoSelectedDate = useMemo(() => {
@@ -58,21 +57,12 @@ export default function TodayOperationsPage() {
     const loadData = useCallback(async () => {
         try {
             setLoading(true);
-            // 1. Auto-sync with Google Calendar for the selected date's week
+            // Sync the selected date's week with Google Calendar. If Google is unreachable the
+            // server still returns the last stored sessions, so the day stays readable.
             const syncRes = await fetch(`/api/cooking-ops/calendar-sync?offset=${currentWeekOffset}`);
-            if (syncRes.ok) {
-                const syncData = await syncRes.json();
-                if (syncData.slotStatuses) {
-                    setAllSessions(syncData.slotStatuses);
-                }
-            }
-
-            // 2. Fetch clients (sessions come from the sync above: this second request can land on
-            //    a different server instance whose in-memory session list is empty)
-            const res = await fetch(`/api/cooking-ops/admin?offset=${currentWeekOffset}`);
-            if (res.ok) {
-                const data = await res.json();
-                setClients(data.clients || []);
+            const syncData = await syncRes.json().catch(() => ({}));
+            if (syncData.slotStatuses) {
+                setAllSessions(syncData.slotStatuses);
             }
         } catch (e) {
             console.error('Error loading today operations:', e);
@@ -90,8 +80,8 @@ export default function TodayOperationsPage() {
         return allSessions.filter(s => s.session.dateIso === isoSelectedDate);
     }, [allSessions, isoSelectedDate]);
 
-    const morningSession = todaySessions.find(s => s.session.timeSlot === 'Matin');
-    const afternoonSession = todaySessions.find(s => s.session.timeSlot === 'Après-midi');
+    const morningSessions = todaySessions.filter(s => s.session.timeSlot === 'Matin');
+    const afternoonSessions = todaySessions.filter(s => s.session.timeSlot === 'Après-midi');
 
     // Date Stepper Handlers
     const goToPreviousDay = () => {
@@ -366,7 +356,7 @@ export default function TodayOperationsPage() {
                         Aucune fiche client ne correspond à cet événement Google Calendar. Créez la fiche depuis le Planning Hebdo.
                     </div>
                 ) : (
-                    <Link href={`/admin/cuisine/${client.id}`} className="block w-full">
+                    <Link href={`/admin/cuisine/${session.id}`} className="block w-full">
                         <Button
                             className="w-full bg-[#E1567A] hover:bg-[#c94567] text-white text-sm h-12 rounded-2xl shadow-md font-bold gap-2 cursor-pointer"
                         >
@@ -468,7 +458,9 @@ export default function TodayOperationsPage() {
                                 <Sun className="w-3.5 h-3.5 text-amber-500" />
                                 1. Matinée (09:00 - 12:00)
                             </h4>
-                            {renderSessionCard(morningSession, 'Matin')}
+                            {morningSessions.length === 0
+                                ? renderSessionCard(undefined, 'Matin')
+                                : morningSessions.map(s => <div key={s.session.id}>{renderSessionCard(s, 'Matin')}</div>)}
                         </div>
 
                         {/* Afternoon Slot */}
@@ -477,7 +469,9 @@ export default function TodayOperationsPage() {
                                 <Moon className="w-3.5 h-3.5 text-indigo-500" />
                                 2. Après-midi (14:00 - 17:00)
                             </h4>
-                            {renderSessionCard(afternoonSession, 'Après-midi')}
+                            {afternoonSessions.length === 0
+                                ? renderSessionCard(undefined, 'Après-midi')
+                                : afternoonSessions.map(s => <div key={s.session.id}>{renderSessionCard(s, 'Après-midi')}</div>)}
                         </div>
                     </div>
                 )}

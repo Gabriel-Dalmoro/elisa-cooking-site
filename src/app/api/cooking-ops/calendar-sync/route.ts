@@ -1,13 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import {
-    upsertBookingSession,
-    clearSessionsForDateRange,
-    getSessionsForWeek,
-    getActiveWeeklyMenu
-} from '@/lib/cookingOpsStore';
-import { listClients } from '@/lib/db/clients';
-import { getUpcomingCalendarBookings, matchEventToClient } from '@/lib/googleCalendar';
-import { getWeekBounds } from '@/lib/dateUtils';
+import { loadWeekOverview, syncWeekFromCalendar } from '@/lib/cookingOps';
 import { requireOwner } from '@/lib/auth';
 
 export async function GET(request: NextRequest) {
@@ -20,65 +12,16 @@ export async function GET(request: NextRequest) {
         let offsetWeeks = 0;
         if (offsetParam === 'next') {
             offsetWeeks = 1;
-        } else if (offsetParam === 'current') {
-            offsetWeeks = 0;
-        } else if (offsetParam !== null && offsetParam !== undefined) {
+        } else if (offsetParam !== null && offsetParam !== 'current') {
             const parsed = parseInt(offsetParam, 10);
             offsetWeeks = isNaN(parsed) ? 0 : parsed;
         }
 
-        const { daysWithDates, weekLabel } = getWeekBounds(offsetWeeks);
-        const startIso = daysWithDates[0].isoDate;
-        const endIso = daysWithDates[daysWithDates.length - 1].isoDate;
+        const sync = await syncWeekFromCalendar(offsetWeeks);
+        const overview = await loadWeekOverview(offsetWeeks);
 
-        const clients = await listClients();
-        const { matches, validBookingsCount, ignoredBlocksCount } = await getUpcomingCalendarBookings(clients, offsetWeeks);
-
-        // Clear existing sessions strictly for this week's date range to prevent stale data
-        clearSessionsForDateRange(startIso, endIso);
-
-        let matchedCount = 0;
-        let unmatchedCount = 0;
-
-        for (const match of matches) {
-            const targetClient = match.matchedClient || (match.extractedName ? matchEventToClient(match.extractedName, clients) : null);
-
-            // Unmatched events are shown with the name from the calendar, but no client record is created.
-            // Elisa creates the client herself from the planning if it is a real booking.
-            if (targetClient) {
-                matchedCount++;
-            } else {
-                unmatchedCount++;
-            }
-
-            upsertBookingSession({
-                clientId: targetClient?.id || '',
-                clientName: targetClient?.name || match.extractedName || `Client (${match.formattedSlot})`,
-                dateIso: match.dateIso,
-                dayName: match.dayLabel,
-                timeSlot: match.timeSlot,
-                dishCount: match.extractedQuota || targetClient?.defaultDishCount || 4,
-                personCount: match.extractedPeopleCount || targetClient?.personCount || 2,
-                gcalEventId: match.gcalEventId,
-                notes: match.eventTitle
-            });
-        }
-
-        const weekMenu = await getActiveWeeklyMenu();
-        const slotStatuses = getSessionsForWeek(startIso, endIso, clients);
-
-        return NextResponse.json({
-            success: true,
-            weekLabel,
-            startIso,
-            endIso,
-            validBookingsCount,
-            ignoredBlocksCount,
-            matchedCount,
-            unmatchedCount,
-            slotStatuses,
-            weekMenu
-        });
+        // If Google failed, still return the last stored sessions so the planning stays usable
+        return NextResponse.json({ success: sync.ok, ...sync, ...overview }, { status: sync.ok ? 200 : 502 });
     } catch (error: unknown) {
         const message = error instanceof Error ? error.message : 'Erreur';
         return NextResponse.json({ success: false, error: message }, { status: 500 });

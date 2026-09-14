@@ -1,13 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
-import {
-    upsertBookingSession,
-    getSessionsForWeek,
-    getActiveWeeklyMenu,
-    getRecipeVault
-} from '@/lib/cookingOpsStore';
+import { loadWeekOverview } from '@/lib/cookingOps';
 import { listClients, getClientById, createClient, updateClient, deleteClient, ClientInput } from '@/lib/db/clients';
+import { upsertSession } from '@/lib/db/sessions';
 import { createGoogleCalendarEvent } from '@/lib/googleCalendar';
-import { getWeekBounds } from '@/lib/dateUtils';
+import { getParisUtcOffset } from '@/lib/dateUtils';
 import { requireOwner } from '@/lib/auth';
 
 function errorMessage(error: unknown, fallback: string): string {
@@ -39,25 +35,7 @@ export async function GET(req: NextRequest) {
         const { searchParams } = new URL(req.url);
         const offsetParam = searchParams.get('offset');
         const offsetWeeks = offsetParam ? parseInt(offsetParam, 10) || 0 : 0;
-
-        const { daysWithDates, weekLabel } = getWeekBounds(offsetWeeks);
-        const startIso = daysWithDates[0].isoDate;
-        const endIso = daysWithDates[daysWithDates.length - 1].isoDate;
-
-        const weekMenu = await getActiveWeeklyMenu();
-        const clients = await listClients();
-        const slotStatuses = getSessionsForWeek(startIso, endIso, clients);
-        const vaultRecipes = getRecipeVault();
-
-        return NextResponse.json({
-            weekMenu,
-            weekLabel,
-            startIso,
-            endIso,
-            slotStatuses,
-            clients,
-            vaultRecipes
-        });
+        return NextResponse.json(await loadWeekOverview(offsetWeeks));
     } catch (error) {
         console.error('Error fetching admin cooking overview:', error);
         return NextResponse.json({ error: errorMessage(error, 'Erreur serveur') }, { status: 500 });
@@ -97,8 +75,13 @@ export async function POST(req: NextRequest) {
         let gcalEventId: string | undefined = body.gcalEventId;
         let gcalSyncResult: { success: boolean; error?: string } = { success: true };
 
-        // Booking a specific date & slot → create the Google Calendar event
+        // Booking a specific date & slot → create the Google Calendar event, then store the session.
+        // Google Calendar is the source of truth: if the event can't be created, no session is stored.
         if (body.bookingDateIso && body.timeSlot) {
+            if (!/^\d{4}-\d{2}-\d{2}$/.test(String(body.bookingDateIso)) || !['Matin', 'Après-midi'].includes(body.timeSlot)) {
+                return NextResponse.json({ error: 'Créneau invalide' }, { status: 400 });
+            }
+
             if (!gcalEventId) {
                 const gcalRes = await createGoogleCalendarEvent({
                     clientName: savedClient.name,
@@ -116,17 +99,23 @@ export async function POST(req: NextRequest) {
                 }
             }
 
-            upsertBookingSession({
-                clientId: savedClient.id,
-                clientName: savedClient.name,
-                dateIso: body.bookingDateIso,
-                dayName: body.dayName || 'Lundi',
-                timeSlot: body.timeSlot,
-                dishCount: savedClient.defaultDishCount,
-                personCount: savedClient.personCount,
-                gcalEventId,
-                notes: body.notes
-            });
+            if (gcalEventId) {
+                // Same hours as the Google Calendar event (09:00–12:00 / 14:00–17:00, Paris)
+                const offset = getParisUtcOffset(body.bookingDateIso);
+                const [startHour, endHour] = body.timeSlot === 'Matin' ? ['09:00', '12:00'] : ['14:00', '17:00'];
+                await upsertSession({
+                    gcalEventId,
+                    clientId: savedClient.id,
+                    calendarTitle: savedClient.name,
+                    displayName: savedClient.name,
+                    dateIso: body.bookingDateIso,
+                    timeSlot: body.timeSlot,
+                    startsAt: `${body.bookingDateIso}T${startHour}:00${offset}`,
+                    endsAt: `${body.bookingDateIso}T${endHour}:00${offset}`,
+                    dishCount: savedClient.defaultDishCount,
+                    personCount: savedClient.personCount
+                });
+            }
         }
 
         return NextResponse.json({
