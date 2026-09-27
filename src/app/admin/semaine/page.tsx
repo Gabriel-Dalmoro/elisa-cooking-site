@@ -30,7 +30,10 @@ import {
     ChevronLeft,
     ChevronRight,
     MapPin,
-    X
+    X,
+    Mail,
+    Share2,
+    RotateCcw
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -57,6 +60,9 @@ export default function WeeklyOpsAdminDashboard() {
     const { confirm, confirmDialog } = useConfirm();
     const { showToast, toastElement } = useToast();
     const [deletingSessionId, setDeletingSessionId] = useState<string | null>(null);
+    // Booking whose details (choices, link sending) are open
+    const [detailSessionId, setDetailSessionId] = useState<string | null>(null);
+    const [isResettingSelection, setIsResettingSelection] = useState(false);
 
     // New Client Dialog State
     const [isAddClientOpen, setIsAddClientOpen] = useState(false);
@@ -147,11 +153,67 @@ export default function WeeklyOpsAdminDashboard() {
         setTimeout(() => setCopiedToken(null), 2500);
     };
 
+    const getClientLink = (client: ClientProfile) =>
+        `${typeof window !== 'undefined' ? window.location.origin : ''}/choisir/${client.token}`;
+
+    const getLinkMessage = (client: ClientProfile) =>
+        `Bonjour ${client.name.split(' ')[0]} ! ✨ Voici le menu de la semaine pour choisir vos ${client.defaultDishCount} plats : ${getClientLink(client)}`;
+
     const getWhatsAppUrl = (client: ClientProfile) => {
-        const url = `${typeof window !== 'undefined' ? window.location.origin : ''}/choisir/${client.token}`;
-        const message = `Bonjour ${client.name.split(' ')[0]} ! ✨ Voici le menu de la semaine pour choisir vos ${client.defaultDishCount} plats : ${url}`;
         const cleanPhone = client.phone.replace(/[^0-9]/g, '');
-        return `https://wa.me/${cleanPhone}?text=${encodeURIComponent(message)}`;
+        return `https://wa.me/${cleanPhone}?text=${encodeURIComponent(getLinkMessage(client))}`;
+    };
+
+    const getEmailUrl = (client: ClientProfile) =>
+        `mailto:${client.email}?subject=${encodeURIComponent('Votre menu de la semaine — Elisa Batch Cooking')}&body=${encodeURIComponent(getLinkMessage(client))}`;
+
+    const getSmsUrl = (client: ClientProfile) =>
+        `sms:${client.phone.replace(/[^0-9+]/g, '')}?&body=${encodeURIComponent(getLinkMessage(client))}`;
+
+    const copyLinkMessage = (client: ClientProfile) => {
+        navigator.clipboard.writeText(getLinkMessage(client));
+        showToast(`Message avec le lien de ${client.name} copié !`, 'check');
+    };
+
+    // Phone share sheet (SMS, Messenger, email...) where the browser supports it
+    const canShare = typeof navigator !== 'undefined' && typeof navigator.share === 'function';
+    const shareClientLink = async (client: ClientProfile) => {
+        try {
+            await navigator.share({ title: 'Menu de la semaine', text: getLinkMessage(client) });
+        } catch {
+            // cancelled by the user
+        }
+    };
+
+    // Clicking anywhere on a booking card (except its buttons) opens its details
+    const openDetailsFromCard = (e: React.MouseEvent, sessionId: string) => {
+        if ((e.target as HTMLElement).closest('button, a, input, select, textarea')) return;
+        setDetailSessionId(sessionId);
+    };
+
+    const detailStatus = detailSessionId ? slotStatuses.find(s => s.session.id === detailSessionId) || null : null;
+
+    const handleResetSelection = async (status: SlotSessionStatus) => {
+        if (!(await confirm({
+            title: `Permettre à ${status.client.name} de refaire ses choix ?`,
+            description: 'Ses choix actuels pour cette semaine seront effacés. Son lien lui permettra de choisir à nouveau (pensez à le prévenir).',
+            confirmLabel: 'Effacer ses choix',
+            tone: 'danger'
+        }))) return;
+        try {
+            setIsResettingSelection(true);
+            const res = await fetch(`/api/cooking-ops/admin/selection?clientId=${encodeURIComponent(status.client.id)}&weekStart=${weekInfo.startIso}`, { method: 'DELETE' });
+            const data = await res.json().catch(() => ({}));
+            if (!res.ok) throw new Error(data.error || 'Impossible d’effacer les choix');
+            setSlotStatuses(prev => prev.map(s => s.client.id === status.client.id
+                ? { ...s, selection: null, isSubmitted: false, selectedCount: 0 }
+                : s));
+            showToast(`Choix de ${status.client.name} effacés : son lien est de nouveau ouvert`, 'check');
+        } catch (err) {
+            showToast(err instanceof Error ? err.message : 'Impossible d’effacer les choix', 'error');
+        } finally {
+            setIsResettingSelection(false);
+        }
     };
 
     const openEditClient = (client: ClientProfile) => {
@@ -516,7 +578,8 @@ export default function WeeklyOpsAdminDashboard() {
                                             return (
                                                 <div 
                                                     key={session.id}
-                                                    className="bg-white rounded-3xl p-4 border border-rose-200 shadow-xs hover:shadow-md transition-all relative group ring-1 ring-[#E1567A]/20 min-h-[220px] flex flex-col justify-between"
+                                                    onClick={e => !isUnmatchedClient && openDetailsFromCard(e, session.id)}
+                                                    className={`bg-white rounded-3xl p-4 border border-rose-200 shadow-xs hover:shadow-md transition-all relative group ring-1 ring-[#E1567A]/20 min-h-[220px] flex flex-col justify-between ${isUnmatchedClient ? '' : 'cursor-pointer'}`}
                                                 >
                                                     <div className="space-y-2.5">
                                                         {/* Slot Header */}
@@ -583,7 +646,7 @@ export default function WeeklyOpsAdminDashboard() {
                                                             {isSubmitted ? (
                                                                 <Badge className="bg-emerald-100 text-emerald-800 border-emerald-300 text-[10px] font-bold gap-1 rounded-full w-full justify-center py-0.5">
                                                                     <CheckCircle2 className="w-3 h-3 text-emerald-600" />
-                                                                    Choix validés ({selectedCount}/{session.dishCount})
+                                                                    Choix validés ({selectedCount}/{session.dishCount}) · voir
                                                                 </Badge>
                                                             ) : (
                                                                 <Badge variant="outline" className="bg-amber-50 text-amber-800 border-amber-300 text-[10px] font-medium gap-1 rounded-full w-full justify-center py-0.5">
@@ -624,6 +687,18 @@ export default function WeeklyOpsAdminDashboard() {
                                                     {/* Quick Action Buttons */}
                                                     {!isUnmatchedClient && (
                                                     <div className="pt-2 border-t border-stone-100 grid grid-cols-2 gap-1.5 text-xs mt-2">
+                                                        {/* Manual sending: copy the link (for clients not on WhatsApp) */}
+                                                        <Button 
+                                                            size="sm" 
+                                                            variant="outline"
+                                                            onClick={() => copyClientLink(client.token, client.name)}
+                                                            className="w-full text-stone-700 border-stone-200 text-[11px] h-7 px-1 rounded-xl font-semibold gap-1 cursor-pointer hover:bg-stone-100"
+                                                            title="Copier le lien de choix des plats"
+                                                        >
+                                                            {copiedToken === client.token ? <Check className="w-3 h-3 text-emerald-600" /> : <Copy className="w-3 h-3 text-stone-500" />}
+                                                            Lien
+                                                        </Button>
+
                                                         {client.phone ? (
                                                             <a
                                                                 href={getWhatsAppUrl(client)}
@@ -640,19 +715,30 @@ export default function WeeklyOpsAdminDashboard() {
                                                                     WhatsApp
                                                                 </Button>
                                                             </a>
+                                                        ) : client.email ? (
+                                                            <a href={getEmailUrl(client)} className="w-full">
+                                                                <Button 
+                                                                    size="sm" 
+                                                                    variant="outline"
+                                                                    className="w-full text-stone-700 border-stone-200 hover:bg-stone-100 text-[11px] h-7 px-1 rounded-xl font-semibold gap-1"
+                                                                >
+                                                                    <Mail className="w-3 h-3 text-stone-500" />
+                                                                    Email
+                                                                </Button>
+                                                            </a>
                                                         ) : (
                                                             <Button 
                                                                 size="sm" 
                                                                 variant="outline"
-                                                                onClick={() => copyClientLink(client.token, client.name)}
+                                                                onClick={() => setDetailSessionId(session.id)}
                                                                 className="w-full text-stone-700 border-stone-200 text-[11px] h-7 px-1 rounded-xl font-semibold gap-1 cursor-pointer hover:bg-stone-100"
                                                             >
-                                                                <Copy className="w-3 h-3 text-stone-500" />
-                                                                Lien
+                                                                <Share2 className="w-3 h-3 text-stone-500" />
+                                                                Envoyer
                                                             </Button>
                                                         )}
 
-                                                        <Link href={`/admin/cuisine/${session.id}`} className="w-full">
+                                                        <Link href={`/admin/cuisine/${session.id}`} className="w-full col-span-2">
                                                             <Button
                                                                 size="sm"
                                                                 className="w-full bg-[#E1567A] hover:bg-[#c94567] text-white text-[11px] h-7 px-1 shadow-xs font-bold rounded-xl gap-1"
@@ -707,7 +793,8 @@ export default function WeeklyOpsAdminDashboard() {
                                 return (
                                     <div 
                                         key={session.id}
-                                        className="bg-white rounded-3xl border border-stone-200 p-5 sm:p-6 shadow-xs hover:border-stone-300 transition-all"
+                                        onClick={e => !isUnmatchedClient && openDetailsFromCard(e, session.id)}
+                                        className={`bg-white rounded-3xl border border-stone-200 p-5 sm:p-6 shadow-xs hover:border-stone-300 transition-all ${isUnmatchedClient ? '' : 'cursor-pointer'}`}
                                     >
                                         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
                                             {/* Client Identity & Booking Slot */}
@@ -792,9 +879,9 @@ export default function WeeklyOpsAdminDashboard() {
                                                     )}
                                                 </div>
 
-                                                {selection && selection.selectedDishNames.length > 0 && (
+                                                {selection && (selection.selectedDishNames.length > 0 || selection.customDish) && (
                                                     <p className="text-[11px] text-stone-600">
-                                                        <span className="font-semibold">Choix :</span> {selection.selectedDishNames.join(' • ')}
+                                                        <span className="font-semibold">Choix :</span> {[...selection.selectedDishNames, ...(selection.customDish ? [`Sur mesure : ${selection.customDish}`] : [])].join(' • ')}
                                                     </p>
                                                 )}
 
@@ -919,6 +1006,157 @@ export default function WeeklyOpsAdminDashboard() {
 
             {confirmDialog}
             {toastElement}
+
+            {/* Booking details: what the client chose + ways to send their link */}
+            <Dialog open={!!detailStatus} onOpenChange={open => !open && setDetailSessionId(null)}>
+                <DialogContent className="sm:max-w-lg bg-white rounded-3xl p-6 max-h-[90vh] overflow-y-auto">
+                    {detailStatus && (() => {
+                        const { client, session, selection } = detailStatus;
+                        const chosen = selection
+                            ? selection.selectedDishIds.map((id, i) => ({
+                                id,
+                                name: weekMenu?.recipes.find(d => d.id === id)?.name || selection.selectedDishNames[i] || id,
+                                note: selection.dishNotes[id] || ''
+                            }))
+                            : [];
+                        const total = chosen.length + (selection?.customDish ? 1 : 0);
+                        return (
+                            <>
+                                <DialogHeader>
+                                    <DialogTitle className="font-serif text-xl font-bold text-left">
+                                        {session.clientName || client.name}
+                                    </DialogTitle>
+                                    <p className="text-xs text-stone-500 text-left">
+                                        {session.dayName} {session.dateIso.split('-').reverse().join('/')} · {session.timeSlot} · {session.dishCount} plats · {session.personCount || client.personCount} pers.
+                                    </p>
+                                </DialogHeader>
+
+                                <div className="space-y-4 py-2 text-xs">
+                                    {/* Choices */}
+                                    {selection ? (
+                                        <div className="space-y-2">
+                                            <div className="flex items-center justify-between">
+                                                <h4 className="font-bold uppercase tracking-wider text-stone-600 text-[11px]">
+                                                    Plats choisis ({total}/{session.dishCount})
+                                                </h4>
+                                                <span className="text-[11px] text-stone-400">
+                                                    Envoyés le {new Date(selection.submittedAt).toLocaleString('fr-FR', { timeZone: 'Europe/Paris', day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' })}
+                                                </span>
+                                            </div>
+                                            <ol className="bg-stone-50 border border-stone-200 rounded-2xl p-4 space-y-2">
+                                                {chosen.map((dish, i) => (
+                                                    <li key={dish.id} className="text-sm text-stone-800">
+                                                        <span className="text-[#E1567A] font-bold mr-1.5">{i + 1}.</span>
+                                                        <span className="font-semibold">{dish.name}</span>
+                                                        {dish.note && <span className="block text-xs text-stone-500 italic ml-5">« {dish.note} »</span>}
+                                                    </li>
+                                                ))}
+                                                {selection.customDish && (
+                                                    <li className="text-sm text-stone-800 bg-rose-50 border border-dashed border-[#E1567A]/50 rounded-xl p-2.5">
+                                                        <span className="block text-[10px] uppercase tracking-wider text-[#E1567A] font-bold">{chosen.length + 1}. Plat sur mesure</span>
+                                                        <span className="font-semibold whitespace-pre-wrap">{selection.customDish}</span>
+                                                    </li>
+                                                )}
+                                            </ol>
+                                            {selection.generalNote && (
+                                                <div className="bg-amber-50 border border-amber-200 rounded-2xl p-3 text-amber-900">
+                                                    <strong>Message :</strong> {selection.generalNote}
+                                                </div>
+                                            )}
+                                            {selection.allergiesAdded.length > 0 && (
+                                                <div className="text-white bg-red-600 rounded-xl p-2 font-bold">
+                                                    ⚠️ Allergie ajoutée par le client : {selection.allergiesAdded.join(', ')}
+                                                </div>
+                                            )}
+                                        </div>
+                                    ) : (
+                                        <div className="bg-amber-50 border border-amber-200 rounded-2xl p-3 text-amber-900 flex items-center gap-2">
+                                            <Clock className="w-4 h-4 text-amber-600 shrink-0" />
+                                            Pas encore de choix pour cette semaine.
+                                        </div>
+                                    )}
+
+                                    {(client.allergies.length > 0 || client.dislikes) && (
+                                        <div className="flex flex-wrap items-center gap-1.5">
+                                            {client.allergies.map(al => (
+                                                <span key={al} className="text-[11px] bg-red-50 text-red-700 border border-red-200 px-2 py-0.5 rounded-full font-semibold">⚠️ {al}</span>
+                                            ))}
+                                            {client.dislikes && <span className="text-[11px] text-stone-500 italic">({client.dislikes})</span>}
+                                        </div>
+                                    )}
+
+                                    {/* Send the link manually */}
+                                    <div className="pt-3 border-t border-stone-200 space-y-2">
+                                        <h4 className="font-bold uppercase tracking-wider text-stone-600 text-[11px]">
+                                            Envoyer le lien de choix des plats
+                                        </h4>
+                                        <div className="flex flex-wrap gap-2">
+                                            <Button size="sm" variant="outline" onClick={() => copyClientLink(client.token, client.name)} className="rounded-full text-xs h-8 gap-1.5 border-stone-300">
+                                                {copiedToken === client.token ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
+                                                Copier le lien
+                                            </Button>
+                                            <Button size="sm" variant="outline" onClick={() => copyLinkMessage(client)} className="rounded-full text-xs h-8 gap-1.5 border-stone-300">
+                                                <Copy className="w-3.5 h-3.5" />
+                                                Copier le message
+                                            </Button>
+                                            {client.email && (
+                                                <a href={getEmailUrl(client)}>
+                                                    <Button size="sm" variant="outline" className="rounded-full text-xs h-8 gap-1.5 border-stone-300">
+                                                        <Mail className="w-3.5 h-3.5" /> Email
+                                                    </Button>
+                                                </a>
+                                            )}
+                                            {client.phone && (
+                                                <a href={getSmsUrl(client)}>
+                                                    <Button size="sm" variant="outline" className="rounded-full text-xs h-8 gap-1.5 border-stone-300">
+                                                        <MessageCircle className="w-3.5 h-3.5" /> SMS
+                                                    </Button>
+                                                </a>
+                                            )}
+                                            {client.phone && (
+                                                <a href={getWhatsAppUrl(client)} target="_blank" rel="noopener noreferrer">
+                                                    <Button size="sm" variant="outline" className="rounded-full text-xs h-8 gap-1.5 text-emerald-700 border-emerald-300 hover:bg-emerald-50">
+                                                        <MessageCircle className="w-3.5 h-3.5 text-emerald-600" /> WhatsApp
+                                                    </Button>
+                                                </a>
+                                            )}
+                                            {canShare && (
+                                                <Button size="sm" variant="outline" onClick={() => shareClientLink(client)} className="rounded-full text-xs h-8 gap-1.5 border-stone-300">
+                                                    <Share2 className="w-3.5 h-3.5" /> Partager…
+                                                </Button>
+                                            )}
+                                        </div>
+                                    </div>
+
+                                    {/* Actions */}
+                                    <div className="pt-3 border-t border-stone-200 flex flex-wrap items-center justify-between gap-2">
+                                        <div className="flex flex-wrap gap-2">
+                                            <Link href={`/admin/cuisine/${session.id}`}>
+                                                <Button size="sm" className="bg-[#E1567A] hover:bg-[#c94567] text-white rounded-full text-xs h-8 gap-1.5 font-bold">
+                                                    <ChefHat className="w-3.5 h-3.5" /> Fiche cuisine
+                                                </Button>
+                                            </Link>
+                                            <Button size="sm" variant="outline" onClick={() => { setDetailSessionId(null); openEditClient(client); }} className="rounded-full text-xs h-8 gap-1.5 border-stone-300">
+                                                <Edit2 className="w-3.5 h-3.5" /> Modifier la fiche
+                                            </Button>
+                                        </div>
+                                        {selection && (
+                                            <button
+                                                type="button"
+                                                onClick={() => handleResetSelection(detailStatus)}
+                                                disabled={isResettingSelection}
+                                                className="text-[11px] text-stone-500 hover:text-red-600 flex items-center gap-1 font-medium"
+                                            >
+                                                <RotateCcw className="w-3.5 h-3.5" /> Laisser le client refaire ses choix
+                                            </button>
+                                        )}
+                                    </div>
+                                </div>
+                            </>
+                        );
+                    })()}
+                </DialogContent>
+            </Dialog>
 
             {/* Client Add & Edit Modal */}
             <Dialog open={isAddClientOpen} onOpenChange={setIsAddClientOpen}>

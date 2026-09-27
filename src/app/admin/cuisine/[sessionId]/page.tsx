@@ -308,35 +308,40 @@ export default function ChefCookingModePage({ params }: { params: Promise<{ sess
                                     </div>
                                 )}
 
-                                <div className="space-y-2">
-                                    {dish.instructions && dish.instructions.length > 0 ? (
-                                        dish.instructions.map((step, sIdx) => {
-                                            const stepKey = `${dish.id}_${sIdx}`;
-                                            const isDone = !!completedSteps[stepKey];
-                                            return (
-                                                <div
-                                                    key={sIdx}
-                                                    onClick={() => toggleStep(stepKey)}
-                                                    className={`flex items-start gap-3 p-3 rounded-2xl border transition-all cursor-pointer select-none ${
-                                                        isDone
-                                                            ? 'bg-emerald-50/60 border-emerald-300 text-stone-400 line-through'
-                                                            : 'bg-stone-50/50 border-stone-200 text-stone-800'
-                                                    }`}
-                                                >
-                                                    <div className="pt-0.5 shrink-0">
-                                                        {isDone ? <CheckSquare className="w-4 h-4 text-emerald-600" /> : <Square className="w-4 h-4 text-stone-400" />}
-                                                    </div>
-                                                    <span className="text-sm leading-relaxed font-medium">{step}</span>
-                                                </div>
-                                            );
-                                        })
-                                    ) : (
-                                        <p className="text-xs text-stone-400 italic">Aucune étape enregistrée pour ce plat.</p>
-                                    )}
-                                </div>
+                                {dish.instructions && dish.instructions.some(t => t.trim()) ? (() => {
+                                    // One recipe text per dish: tap it to mark the dish as done
+                                    const doneKey = `${dish.id}_0`;
+                                    const isDone = !!completedSteps[doneKey];
+                                    return (
+                                        <div
+                                            onClick={() => toggleStep(doneKey)}
+                                            className={`flex items-start gap-3 p-4 rounded-2xl border transition-all cursor-pointer select-none ${
+                                                isDone
+                                                    ? 'bg-emerald-50/60 border-emerald-300 text-stone-400'
+                                                    : 'bg-stone-50/50 border-stone-200 text-stone-800'
+                                            }`}
+                                        >
+                                            <div className="pt-0.5 shrink-0">
+                                                {isDone ? <CheckSquare className="w-4 h-4 text-emerald-600" /> : <Square className="w-4 h-4 text-stone-400" />}
+                                            </div>
+                                            <p className="text-sm leading-relaxed font-medium whitespace-pre-wrap">{dish.instructions.join('\n')}</p>
+                                        </div>
+                                    );
+                                })() : (
+                                    <p className="text-xs text-stone-400 italic">Aucune recette enregistrée pour ce plat.</p>
+                                )}
                             </div>
                         );
                     })}
+
+                    {selection?.customDish && (
+                        <div className="bg-white rounded-3xl border-2 border-dashed border-[#E1567A]/40 p-5 sm:p-6 shadow-sm space-y-3">
+                            <Badge variant="outline" className="bg-rose-50 text-[#E1567A] border-[#E1567A]/30 text-[11px] font-bold rounded-full">
+                                Plat #{dishes.length + 1} • Demande sur mesure
+                            </Badge>
+                            <p className="text-base font-serif font-bold text-stone-900 whitespace-pre-wrap">{selection.customDish}</p>
+                        </div>
+                    )}
                 </div>
             </main>
         </div>

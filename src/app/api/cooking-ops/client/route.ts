@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getClientByToken, updateClient } from '@/lib/db/clients';
 import { getClientFacingMenu } from '@/lib/db/menus';
 import { getSelection, upsertSelection } from '@/lib/db/selections';
+import { sendSelectionEmail } from '@/lib/selectionEmail';
 import { ClientProfile, WeeklyDish } from '@/lib/types/cooking-ops';
 
 /**
@@ -22,8 +23,9 @@ function toPublicDish(dish: WeeklyDish) {
     return { id: dish.id, name: dish.name, category: dish.category, description: dish.description || '' };
 }
 
-const NOT_FOUND = { error: 'Ce lien n’est pas valide. Contactez Elisa sur WhatsApp.' };
-const CLOSED = { error: 'Les choix pour cette semaine sont clôturés. Contactez Elisa sur WhatsApp.' };
+const NOT_FOUND = { error: 'Ce lien n’est pas valide. Contactez Elisa.' };
+const CLOSED = { error: 'Les choix pour cette semaine sont clôturés. Contactez Elisa.' };
+const ALREADY_SUBMITTED = { error: 'Vous avez déjà envoyé vos choix pour cette semaine. Pour toute modification, contactez Elisa.', alreadySubmitted: true };
 
 export async function GET(req: NextRequest) {
     try {
@@ -54,7 +56,12 @@ export async function GET(req: NextRequest) {
             existingSelection: existing
                 ? {
                     selectedDishIds: existing.selectedDishIds,
+                    // Names as shown to the client (snapshot kept if a dish was later removed from the menu)
+                    selectedDishNames: existing.selectedDishIds.map((id, i) =>
+                        facing.menu.recipes.find(d => d.id === id)?.name || existing.selectedDishNames[i] || ''
+                    ),
                     dishNotes: existing.dishNotes,
+                    customDish: existing.customDish || '',
                     generalNote: existing.generalNote,
                     submittedAt: existing.submittedAt
                 }
@@ -69,7 +76,7 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
     try {
         const body = await req.json();
-        const { token, weekStart, selectedDishIds, dishNotes, generalNote, updatedAllergies, updatedDislikes } = body;
+        const { token, weekStart, selectedDishIds, dishNotes, customDish, generalNote, updatedAllergies, updatedDislikes } = body;
 
         if (typeof token !== 'string' || typeof weekStart !== 'string' || !Array.isArray(selectedDishIds)) {
             return NextResponse.json({ error: 'Données invalides' }, { status: 400 });
@@ -87,11 +94,24 @@ export async function POST(req: NextRequest) {
         }
         const menu = facing.menu;
 
+        // Choices are final once sent: changes go through Elisa
+        const existing = await getSelection(client.id, weekStart);
+        if (existing) {
+            return NextResponse.json(ALREADY_SUBMITTED, { status: 409 });
+        }
+
+        // Exactly the formula: either all dishes from the menu, or all but one plus ONE custom dish
         const menuIds = new Set(menu.recipes.map(d => d.id));
         const ids = Array.from(new Set(selectedDishIds.filter((d: unknown): d is string => typeof d === 'string' && menuIds.has(d))));
-        const maxCount = Math.min(client.defaultDishCount, menu.recipes.length);
-        if (ids.length === 0 || ids.length > maxCount) {
-            return NextResponse.json({ error: `Choisissez jusqu’à ${maxCount} plats.` }, { status: 400 });
+        const custom = typeof customDish === 'string' ? customDish.trim().slice(0, 500) : '';
+        const targetCount = Math.min(client.defaultDishCount, menu.recipes.length);
+        const expectedFromMenu = custom ? targetCount - 1 : targetCount;
+        if (ids.length !== expectedFromMenu || ids.length + (custom ? 1 : 0) === 0) {
+            return NextResponse.json({
+                error: custom
+                    ? `Avec un plat sur mesure, choisissez ${expectedFromMenu} plat(s) du menu.`
+                    : `Choisissez ${targetCount} plats (ou ${targetCount - 1} + un plat sur mesure).`
+            }, { status: 400 });
         }
 
         const cleanNotes: Record<string, string> = {};
@@ -118,19 +138,24 @@ export async function POST(req: NextRequest) {
             });
         }
 
-        // Keep earlier "added by the client" flags if the client re-submits
-        const existing = await getSelection(client.id, weekStart);
-        const allergiesAdded = Array.from(new Set([...(existing?.allergiesAdded || []), ...addedAllergies]));
-
-        await upsertSelection({
+        const selection = await upsertSelection({
             clientId: client.id,
             weekStart,
             selectedDishIds: ids,
             selectedDishNames: ids.map(id => menu.recipes.find(d => d.id === id)?.name || ''),
             dishNotes: cleanNotes,
+            customDish: custom,
             generalNote: typeof generalNote === 'string' ? generalNote.trim().slice(0, 2000) : '',
             allergiesAtSubmission: allergies,
-            allergiesAdded
+            allergiesAdded: addedAllergies
+        });
+
+        // Tell Elisa (never blocks or fails the client's submission)
+        await sendSelectionEmail({
+            client: { ...client, allergies, ...(dislikesChanged ? { dislikes: String(updatedDislikes).slice(0, 500) } : {}) },
+            selection,
+            menu,
+            baseUrl: req.nextUrl.origin
         });
 
         return NextResponse.json({ success: true, message: 'Vos choix ont été enregistrés avec succès !' });

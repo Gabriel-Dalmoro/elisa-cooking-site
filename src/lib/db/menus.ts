@@ -140,3 +140,21 @@ export async function getClientFacingMenu(): Promise<ClientFacingMenu> {
     if (menus.length > 0) return { state: 'closed', menu: menus[0] };
     return { state: 'none' };
 }
+
+/**
+ * What the public /menu page shows: this week's menu once Elisa has published it
+ * (open or closed). Before that, the nearest upcoming published menu. Drafts are never shown.
+ */
+export async function getPublicWeekMenu(): Promise<WeeklyMenuData | null> {
+    const currentWeek = getCurrentWeekStart();
+    const { data, error } = await getSupabaseAdmin()
+        .from('weekly_menus')
+        .select('*')
+        .in('status', ['open', 'closed'])
+        .gte('week_start', currentWeek)
+        .order('week_start', { ascending: true })
+        .limit(1);
+    if (error) throw new Error(`Lecture du menu impossible : ${error.message}`);
+    const menu = (data as MenuRow[]).map(rowToMenu)[0];
+    return menu && menu.recipes.length > 0 ? menu : null;
+}
