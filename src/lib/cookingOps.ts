@@ -39,7 +39,8 @@ export function buildSlotStatuses(
             return { session, client: placeholderClient(session), isUnmatchedClient: true, selection: null, isSubmitted: false, selectedCount: 0 };
         }
         const selection = selectionByClient.get(client.id) || null;
-        const selectedCount = selection ? selection.selectedDishIds.length : 0;
+        // A custom dish the client wrote counts as one of their dishes
+        const selectedCount = selection ? selection.selectedDishIds.length + (selection.customDish ? 1 : 0) : 0;
         return { session, client, selection, isSubmitted: selectedCount > 0, selectedCount };
     });
 }

@@ -1,14 +1,36 @@
-import { getWeeklyMenu } from '@/lib/googleSheets';
+import { getPublicWeekMenu } from '@/lib/db/menus';
+import { WeeklyDish, WeeklyMenuData } from '@/lib/types/cooking-ops';
 import { ChefHat, Calendar, Utensils, ArrowRight } from 'lucide-react';
 import Link from 'next/link';
 import { RecipeCard } from '@/components/menu/RecipeCard';
 import { SweetMenu } from '@/components/menu/SweetMenu';
 
-// Revalidation period: 1 hour
-export const revalidate = 3600;
+// Refreshed every 5 minutes: a menu Elisa publishes in the admin shows up here on its own
+export const revalidate = 300;
+
+async function loadMenu(): Promise<WeeklyMenuData | null> {
+    try {
+        return await getPublicWeekMenu();
+    } catch (error) {
+        console.error('Error loading public menu:', error);
+        return null;
+    }
+}
+
+// Dishes grouped by category, in the order Elisa placed them on the menu
+function groupByCategory(dishes: WeeklyDish[]): { category: string; dishes: WeeklyDish[] }[] {
+    const groups: { category: string; dishes: WeeklyDish[] }[] = [];
+    for (const dish of dishes) {
+        const category = dish.category || 'Autres';
+        const group = groups.find(g => g.category.toLowerCase() === category.toLowerCase());
+        if (group) group.dishes.push(dish);
+        else groups.push({ category, dishes: [dish] });
+    }
+    return groups;
+}
 
 export default async function MenuPage() {
-    const menu = await getWeeklyMenu();
+    const menu = await loadMenu();
 
     if (!menu) {
         return (
@@ -49,10 +71,29 @@ export default async function MenuPage() {
                     </p>
                 </header>
 
-                {/* Recipes Grid */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                    {menu.recipes.map((recipe, index) => (
-                        <RecipeCard key={index} recipe={recipe} index={index} />
+                {/* Recipes, grouped by category */}
+                <div className="space-y-12">
+                    {groupByCategory(menu.recipes).map(group => (
+                        <section key={group.category}>
+                            <div className="flex items-center gap-4 mb-6">
+                                <h2 className="text-xs font-black uppercase tracking-[0.25em] text-stone-500 shrink-0">
+                                    {group.category}
+                                </h2>
+                                <div className="h-px bg-stone-200 flex-1" />
+                                <span className="text-[10px] font-bold text-stone-400 shrink-0">
+                                    {group.dishes.length} plat{group.dishes.length > 1 ? 's' : ''}
+                                </span>
+                            </div>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                                {group.dishes.map((dish, index) => (
+                                    <RecipeCard
+                                        key={dish.id}
+                                        recipe={{ name: dish.name, type: dish.category, description: dish.description }}
+                                        index={index}
+                                    />
+                                ))}
+                            </div>
+                        </section>
                     ))}
                 </div>
 

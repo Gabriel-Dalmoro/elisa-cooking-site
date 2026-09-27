@@ -15,7 +15,8 @@ import {
     Fish, 
     Flame,
     ArrowRight,
-    Lock
+    Lock,
+    PenLine
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -43,6 +44,14 @@ interface PublicMenu {
     dishes: PublicDish[];
 }
 
+// What the client sent: shown after sending, and every time the link is opened again
+interface SentRecap {
+    dishes: { name: string; note: string }[];
+    customDish: string;
+    submittedAt: string | null;
+    justSent: boolean;
+}
+
 export default function ClientMenuSelectionPage() {
     const routeParams = useParams();
     const rawToken = (routeParams?.token as string) || '';
@@ -55,20 +64,23 @@ export default function ClientMenuSelectionPage() {
     // open = the client can choose | none = no menu published yet | closed = choices locked
     const [menuState, setMenuState] = useState<'open' | 'none' | 'closed'>('none');
     const [closedWeekLabel, setClosedWeekLabel] = useState<string | null>(null);
-    const [previousSubmissionAt, setPreviousSubmissionAt] = useState<string | null>(null);
+    const [sentRecap, setSentRecap] = useState<SentRecap | null>(null);
     const [submitError, setSubmitError] = useState<string | null>(null);
     
     // Form state (dish ids)
     const [selectedDishes, setSelectedDishes] = useState<string[]>([]);
     const [dishNotes, setDishNotes] = useState<Record<string, string>>({});
     const [generalNote, setGeneralNote] = useState<string>('');
+    // Instead of one menu dish, the client may write ONE dish of their own
+    const [wantsCustomDish, setWantsCustomDish] = useState(false);
+    const [customDish, setCustomDish] = useState('');
     const [allergies, setAllergies] = useState<string[]>([]);
     // Allergies already on file can't be removed from the client link (only Elisa can)
     const [lockedAllergies, setLockedAllergies] = useState<string[]>([]);
     const [dislikes, setDislikes] = useState<string>('');
     
     const [isSubmitting, setIsSubmitting] = useState(false);
-    const [isSubmittedSuccess, setIsSubmittedSuccess] = useState(false);
+    const [isConfirmOpen, setIsConfirmOpen] = useState(false);
     const [isAllergyModalOpen, setIsAllergyModalOpen] = useState(false);
 
     useEffect(() => {
@@ -89,11 +101,16 @@ export default function ClientMenuSelectionPage() {
                 setLockedAllergies(data.client.allergies || []);
                 setDislikes(data.client.dislikes || '');
 
-                if (data.existingSelection && data.existingSelection.selectedDishIds?.length > 0) {
-                    setSelectedDishes(data.existingSelection.selectedDishIds);
-                    setDishNotes(data.existingSelection.dishNotes || {});
-                    setGeneralNote(data.existingSelection.generalNote || '');
-                    setPreviousSubmissionAt(data.existingSelection.submittedAt || null);
+                const existing = data.existingSelection;
+                if (existing) {
+                    const ids: string[] = existing.selectedDishIds || [];
+                    const names: string[] = existing.selectedDishNames || [];
+                    setSentRecap({
+                        dishes: ids.map((id, i) => ({ name: names[i] || '', note: existing.dishNotes?.[id] || '' })),
+                        customDish: existing.customDish || '',
+                        submittedAt: existing.submittedAt || null,
+                        justSent: false
+                    });
                 }
             } catch (err: unknown) {
                 const message = err instanceof Error ? err.message : 'Erreur de chargement';
@@ -109,6 +126,12 @@ export default function ClientMenuSelectionPage() {
 
     // The client's formula, capped by the number of dishes on this week's menu
     const targetCount = Math.min(client?.defaultDishCount || 4, menu?.dishes.length || client?.defaultDishCount || 4);
+    // A custom dish takes the place of one menu dish
+    const menuDishTarget = wantsCustomDish ? targetCount - 1 : targetCount;
+    const customDishFilled = wantsCustomDish && customDish.trim().length > 0;
+    const totalChosen = selectedDishes.length + (customDishFilled ? 1 : 0);
+    const canSubmit = selectedDishes.length === menuDishTarget && (!wantsCustomDish || customDishFilled);
+    const canAddCustomDish = selectedDishes.length < targetCount;
 
     const toggleDish = (dishId: string) => {
         setSubmitError(null);
@@ -116,9 +139,19 @@ export default function ClientMenuSelectionPage() {
             if (prev.includes(dishId)) {
                 return prev.filter(d => d !== dishId);
             }
-            // Can't pick more dishes than the formula
-            return prev.length >= targetCount ? prev : [...prev, dishId];
+            // Can't pick more dishes than the formula (minus one if a custom dish is requested)
+            return prev.length >= menuDishTarget ? prev : [...prev, dishId];
         });
+    };
+
+    const toggleCustomDish = () => {
+        setSubmitError(null);
+        if (wantsCustomDish) {
+            setWantsCustomDish(false);
+            return;
+        }
+        if (!canAddCustomDish) return;
+        setWantsCustomDish(true);
     };
 
     const handleNoteChange = (dishId: string, note: string) => {
@@ -138,8 +171,9 @@ export default function ClientMenuSelectionPage() {
     };
 
     const handleSubmit = async () => {
-        if (!client || !menu) return;
+        if (!client || !menu || !canSubmit) return;
         try {
+            setIsConfirmOpen(false);
             setIsSubmitting(true);
             setSubmitError(null);
             const res = await fetch('/api/cooking-ops/client', {
@@ -150,6 +184,7 @@ export default function ClientMenuSelectionPage() {
                     weekStart: menu.weekStart,
                     selectedDishIds: selectedDishes,
                     dishNotes,
+                    customDish: wantsCustomDish ? customDish : '',
                     generalNote,
                     updatedAllergies: allergies,
                     updatedDislikes: dislikes
@@ -157,6 +192,11 @@ export default function ClientMenuSelectionPage() {
             });
 
             const data = await res.json().catch(() => ({}));
+            if (res.status === 409 && data.alreadySubmitted) {
+                // Choices were already sent (e.g. from another phone): reload to show them
+                window.location.reload();
+                return;
+            }
             if (res.status === 409) {
                 // Elisa closed the menu while the client was choosing
                 setClosedWeekLabel(menu.weekLabel);
@@ -164,11 +204,16 @@ export default function ClientMenuSelectionPage() {
                 return;
             }
             if (!res.ok) {
-                throw new Error(data.error || 'Erreur lors de l’enregistrement. Réessayez ou contactez Elisa sur WhatsApp.');
+                throw new Error(data.error || 'Erreur lors de l’enregistrement. Réessayez ou contactez Elisa.');
             }
 
             setLockedAllergies(allergies);
-            setIsSubmittedSuccess(true);
+            setSentRecap({
+                dishes: selectedDishes.map(id => ({ name: dishName(id), note: dishNotes[id]?.trim() || '' })),
+                customDish: wantsCustomDish ? customDish.trim() : '',
+                submittedAt: new Date().toISOString(),
+                justSent: true
+            });
             window.scrollTo({ top: 0, behavior: 'smooth' });
         } catch (err: unknown) {
             setSubmitError(err instanceof Error ? err.message : 'Erreur lors de l’enregistrement');
@@ -210,7 +255,7 @@ export default function ClientMenuSelectionPage() {
                     <AlertTriangle className="w-12 h-12 text-amber-500 mx-auto mb-4" />
                     <h1 className="text-xl font-bold text-stone-900 mb-2">Lien introuvable</h1>
                     <p className="text-stone-600 text-sm mb-6">
-                        {error || 'Ce lien d’accès n’est plus actif ou comporte une erreur. Contactez directement Elisa sur WhatsApp.'}
+                        {error || 'Ce lien d’accès n’est plus actif ou comporte une erreur. Contactez directement Elisa.'}
                     </p>
                 </Card>
             </div>
@@ -231,7 +276,7 @@ export default function ClientMenuSelectionPage() {
                     </h1>
                     <p className="text-stone-600 text-sm">
                         {menuState === 'closed'
-                            ? `Les choix pour la ${closedWeekLabel ? closedWeekLabel.toLowerCase() : 'semaine'} sont clôturés. Pour toute modification, contactez Elisa directement sur WhatsApp.`
+                            ? `Les choix pour la ${closedWeekLabel ? closedWeekLabel.toLowerCase() : 'semaine'} sont clôturés. Pour toute modification, contactez Elisa directement.`
                             : 'Le menu de la semaine n’est pas encore disponible. Elisa vous enverra ce lien dès qu’il sera prêt.'}
                     </p>
                 </Card>
@@ -239,7 +284,8 @@ export default function ClientMenuSelectionPage() {
         );
     }
 
-    if (isSubmittedSuccess) {
+    if (sentRecap) {
+        const sentTotal = sentRecap.dishes.length + (sentRecap.customDish ? 1 : 0);
         return (
             <div className="min-h-screen bg-[#faf8f5] py-12 px-4">
                 <div className="max-w-xl mx-auto">
@@ -248,52 +294,63 @@ export default function ClientMenuSelectionPage() {
                             <CheckCircle2 className="w-10 h-10" />
                         </div>
                         <h1 className="text-2xl font-serif font-bold text-stone-900 mb-2">
-                            Choix confirmés avec succès !
+                            {sentRecap.justSent ? 'Choix confirmés avec succès !' : 'Votre sélection est déjà faite'}
                         </h1>
                         <p className="text-stone-600 text-sm mb-6">
-                            Merci <strong>{client.firstName}</strong>, Elisa a bien reçu votre sélection de <strong>{selectedDishes.length} plats</strong> pour la {menu.weekLabel.toLowerCase()}.
+                            {sentRecap.justSent ? (
+                                <>Merci <strong>{client.firstName}</strong>, Elisa a bien reçu votre sélection de <strong>{sentTotal} plats</strong> pour la {menu.weekLabel.toLowerCase()}.</>
+                            ) : (
+                                <>Bonjour <strong>{client.firstName}</strong>, vous avez déjà choisi vos <strong>{sentTotal} plats</strong> pour la {menu.weekLabel.toLowerCase()}
+                                {sentRecap.submittedAt && <> (le {new Date(sentRecap.submittedAt).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', timeZone: 'Europe/Paris' })})</>}.</>
+                            )}
                         </p>
 
                         <div className="bg-stone-50 rounded-2xl p-5 text-left border border-stone-200 mb-6 space-y-3">
                             <h3 className="text-xs font-bold uppercase tracking-wider text-stone-500">
-                                Récapitulatif de vos plats :
+                                Récapitulatif de vos {sentTotal} plats :
                             </h3>
                             <ul className="space-y-2">
-                                {selectedDishes.map((dishId) => (
-                                    <li key={dishId} className="flex items-start text-sm text-stone-800 font-medium">
+                                {sentRecap.dishes.map((dish, i) => (
+                                    <li key={i} className="flex items-start text-sm text-stone-800 font-medium">
                                         <span className="text-amber-600 mr-2 font-bold">✓</span>
                                         <span>
-                                            {dishName(dishId)}
-                                            {dishNotes[dishId] && (
+                                            {dish.name}
+                                            {dish.note && (
                                                 <span className="block text-xs text-stone-500 font-normal italic mt-0.5">
-                                                    Note : &quot;{dishNotes[dishId]}&quot;
+                                                    Note : &quot;{dish.note}&quot;
                                                 </span>
                                             )}
                                         </span>
                                     </li>
                                 ))}
+                                {sentRecap.customDish && (
+                                    <li className="flex items-start text-sm text-stone-800 font-medium">
+                                        <span className="text-[#E1567A] mr-2 font-bold">✎</span>
+                                        <span>
+                                            <span className="block text-[11px] uppercase tracking-wider text-[#E1567A] font-bold">Plat sur mesure</span>
+                                            <span className="whitespace-pre-wrap">{sentRecap.customDish}</span>
+                                        </span>
+                                    </li>
+                                )}
                             </ul>
-                            {allergies.length > 0 && (
+                            {sentRecap.justSent && allergies.length > 0 && (
                                 <div className="pt-3 border-t border-stone-200 text-xs text-stone-600">
                                     <strong>Régime mémorisé :</strong> {allergies.join(', ')} {dislikes ? `(${dislikes})` : ''}
                                 </div>
                             )}
                         </div>
 
-                        <Button 
-                            variant="outline" 
-                            onClick={() => setIsSubmittedSuccess(false)}
-                            className="border-stone-300 hover:bg-stone-100 rounded-full text-xs font-semibold"
-                        >
-                            Modifier ma sélection
-                        </Button>
+                        <p className="text-xs text-stone-500 flex items-center justify-center gap-1.5">
+                            <Lock className="w-3.5 h-3.5" />
+                            Vos choix sont enregistrés. Pour toute modification, contactez Elisa.
+                        </p>
                     </Card>
                 </div>
             </div>
         );
     }
 
-    const countDifference = targetCount - selectedDishes.length;
+    const countDifference = menuDishTarget - selectedDishes.length;
 
     return (
         <div className="min-h-screen bg-[#faf8f5] text-stone-800 pb-36 font-sans">
@@ -337,13 +394,9 @@ export default function ClientMenuSelectionPage() {
                                 Bonjour {client.firstName} 👋
                             </h1>
                             <p className="text-xs sm:text-sm text-stone-600 mt-1.5">
-                                Choisissez vos <strong>{targetCount} plats</strong> parmi les {menu.dishes.length} recettes fraîches de la semaine. Vous pouvez en choisir moins et préciser une demande particulière dans le message.
+                                Choisissez vos <strong>{targetCount} plats</strong> parmi les {menu.dishes.length} recettes fraîches de la semaine.
+                                {targetCount > 0 && <> Envie d&apos;autre chose ? Vous pouvez remplacer <strong>un</strong> des plats par un plat sur mesure (en bas de la liste).</>}
                             </p>
-                            {previousSubmissionAt && (
-                                <p className="text-xs text-emerald-800 bg-emerald-50 border border-emerald-200 rounded-xl px-3 py-2 mt-3 inline-block">
-                                    ✓ Choix envoyés le {new Date(previousSubmissionAt).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', timeZone: 'Europe/Paris' })}. Vous pouvez encore les modifier.
-                                </p>
-                            )}
                         </div>
 
 
@@ -520,6 +573,51 @@ export default function ClientMenuSelectionPage() {
                     })}
                 </div>
 
+                {/* Custom Dish (one maximum, replaces one menu dish) */}
+                <div
+                    className={`rounded-2xl border transition-all duration-200 overflow-hidden ${
+                        wantsCustomDish
+                            ? 'bg-rose-50/40 border-[#E1567A] ring-2 ring-[#E1567A]/15 shadow-sm'
+                            : 'bg-white border-dashed border-stone-300'
+                    }`}
+                >
+                    <button
+                        type="button"
+                        onClick={toggleCustomDish}
+                        disabled={!wantsCustomDish && !canAddCustomDish}
+                        className="w-full p-4 sm:p-5 flex items-start gap-3.5 text-left cursor-pointer disabled:cursor-not-allowed"
+                    >
+                        <div className={`mt-0.5 w-6 h-6 rounded-lg flex items-center justify-center border transition-colors shrink-0 ${
+                            wantsCustomDish ? 'bg-[#E1567A] border-[#E1567A] text-white' : 'border-stone-300 bg-stone-50'
+                        }`}>
+                            {wantsCustomDish ? <Check className="w-4 h-4 stroke-[3]" /> : <PenLine className="w-3.5 h-3.5 text-stone-400" />}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                            <h3 className="font-serif font-bold text-stone-900 text-base leading-snug">
+                                Demander un plat sur mesure
+                            </h3>
+                            <p className="text-xs text-stone-600 mt-1 leading-relaxed">
+                                {!wantsCustomDish && !canAddCustomDish
+                                    ? `Retirez un plat de votre sélection pour pouvoir demander un plat sur mesure.`
+                                    : `Un seul plat sur mesure possible : il remplace un des ${targetCount} plats de votre formule.`}
+                            </p>
+                        </div>
+                    </button>
+                    {wantsCustomDish && (
+                        <div className="px-4 sm:px-5 pb-4 sm:pb-5">
+                            <textarea
+                                rows={2}
+                                value={customDish}
+                                onChange={(e) => setCustomDish(e.target.value)}
+                                maxLength={500}
+                                autoFocus
+                                placeholder="Ex: Un gratin dauphinois comme la dernière fois, un poulet basquaise..."
+                                className="w-full text-sm p-3 rounded-xl bg-white border border-[#E1567A]/40 focus:outline-none focus:ring-2 focus:ring-[#E1567A] text-stone-800"
+                            />
+                        </div>
+                    )}
+                </div>
+
                 {/* General Note Box */}
                 <div className="bg-white rounded-3xl p-5 border border-stone-200 shadow-sm space-y-2">
                     <label className="text-xs font-bold uppercase tracking-wider text-stone-600 flex items-center gap-1.5">
@@ -538,9 +636,11 @@ export default function ClientMenuSelectionPage() {
 
             {/* Sticky Bottom Bar */}
             <div className="fixed bottom-0 inset-x-0 bg-white/95 backdrop-blur-md border-t border-stone-200 shadow-2xl p-4 z-40">
-                {selectedDishes.length > 0 && countDifference > 0 && (
+                {(selectedDishes.length > 0 || wantsCustomDish) && !canSubmit && (
                     <div className="max-w-3xl mx-auto mb-3 text-xs text-amber-900 bg-amber-50 border border-amber-200 rounded-xl p-2.5 font-medium">
-                        Vous avez choisi {selectedDishes.length} plat{selectedDishes.length > 1 ? 's' : ''} sur {targetCount}. C&apos;est possible : précisez votre demande dans le message pour Elisa ci-dessus.
+                        {countDifference > 0
+                            ? `Choisissez encore ${countDifference} plat${countDifference > 1 ? 's' : ''} du menu${wantsCustomDish ? ' (en plus de votre plat sur mesure)' : ''}.`
+                            : 'Décrivez votre plat sur mesure, ou décochez-le.'}
                     </div>
                 )}
 
@@ -557,8 +657,8 @@ export default function ClientMenuSelectionPage() {
                                 Votre formule : {targetCount} plats
                             </div>
                             <div className="text-base font-serif font-bold text-stone-900 flex items-center gap-2">
-                                <span>{selectedDishes.length} / {targetCount} sélectionnés</span>
-                                {selectedDishes.length === targetCount && (
+                                <span>{totalChosen} / {targetCount} sélectionnés</span>
+                                {canSubmit && (
                                     <span className="text-xs font-sans font-semibold text-emerald-600 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full">
                                         Parfait !
                                     </span>
@@ -567,16 +667,16 @@ export default function ClientMenuSelectionPage() {
                         </div>
 
                         <div className="sm:hidden text-xs text-stone-500 font-medium">
-                            {countDifference > 0 ? `Encore ${countDifference} plat(s)` : 'Quota atteint'}
+                            {canSubmit ? 'Quota atteint' : countDifference > 0 ? `Encore ${countDifference} plat(s)` : 'Plat sur mesure à décrire'}
                         </div>
                     </div>
 
                     <Button
                         size="lg"
-                        disabled={selectedDishes.length === 0 || isSubmitting}
-                        onClick={handleSubmit}
+                        disabled={!canSubmit || isSubmitting}
+                        onClick={() => setIsConfirmOpen(true)}
                         className={`w-full sm:w-auto px-8 font-semibold shadow-md transition-all rounded-full ${
-                            selectedDishes.length === targetCount
+                            canSubmit
                                 ? 'bg-amber-600 hover:bg-amber-700 text-white'
                                 : 'bg-stone-900 hover:bg-stone-800 text-white'
                         }`}
@@ -591,6 +691,37 @@ export default function ClientMenuSelectionPage() {
                     </Button>
                 </div>
             </div>
+
+            {/* Choices are final once sent: ask once before sending */}
+            <Dialog open={isConfirmOpen} onOpenChange={setIsConfirmOpen}>
+                <DialogContent className="sm:max-w-md bg-white rounded-3xl">
+                    <DialogHeader>
+                        <DialogTitle className="font-serif text-lg">Envoyer vos {targetCount} plats à Elisa ?</DialogTitle>
+                    </DialogHeader>
+                    <div className="space-y-4 py-1 text-sm text-stone-700">
+                        <ul className="space-y-1.5 bg-stone-50 border border-stone-200 rounded-2xl p-4">
+                            {selectedDishes.map(id => (
+                                <li key={id} className="flex items-start gap-2"><span className="text-amber-600 font-bold">✓</span>{dishName(id)}</li>
+                            ))}
+                            {customDishFilled && (
+                                <li className="flex items-start gap-2"><span className="text-[#E1567A] font-bold">✎</span><span><strong>Sur mesure :</strong> {customDish.trim()}</span></li>
+                            )}
+                        </ul>
+                        <p className="text-xs text-stone-500 flex items-start gap-1.5">
+                            <Lock className="w-3.5 h-3.5 shrink-0 mt-0.5" />
+                            Une fois envoyés, vos choix ne pourront plus être modifiés depuis ce lien. Pour tout changement, il faudra contacter Elisa.
+                        </p>
+                        <div className="flex gap-2 justify-end">
+                            <Button variant="outline" onClick={() => setIsConfirmOpen(false)} className="rounded-full text-xs">
+                                Revenir
+                            </Button>
+                            <Button onClick={handleSubmit} disabled={isSubmitting} className="bg-amber-600 hover:bg-amber-700 text-white rounded-full text-xs font-semibold">
+                                Confirmer et envoyer
+                            </Button>
+                        </div>
+                    </div>
+                </DialogContent>
+            </Dialog>
         </div>
     );
 }

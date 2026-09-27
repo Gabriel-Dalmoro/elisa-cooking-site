@@ -90,7 +90,7 @@ export default function WeeklyRecipeAndVaultPage() {
     const [vaultSort, setVaultSort] = useState<VaultSort>('recent');
     const [deletingRecipeId, setDeletingRecipeId] = useState<string | null>(null);
 
-    const { confirm, alert, confirmDialog } = useConfirm();
+    const { confirm, confirmDialog } = useConfirm();
     const { showToast, toastElement } = useToast();
     
     // Vault Recipe Detail Modal
@@ -158,7 +158,8 @@ export default function WeeklyRecipeAndVaultPage() {
     };
 
     const currentDish = menu?.recipes?.[selectedDishIndex];
-    const currentInstructions = currentDish?.instructions && currentDish.instructions.length > 0 ? currentDish.instructions : [''];
+    // The recipe is one free text (older recipes saved as separate steps are shown joined, one per line)
+    const currentRecipeText = (currentDish?.instructions || []).join('\n');
     const updateCurrentDish = (patch: Partial<WeeklyDish>) => updateDish(selectedDishIndex, patch);
 
     const selectDish = (index: number) => {
@@ -171,40 +172,7 @@ export default function WeeklyRecipeAndVaultPage() {
 
     const handleDishCategoryChange = (index: number, newCategory: DishCategory) => updateDish(index, { category: newCategory });
 
-    // AI 1-Click Importer state
-    const [isAiModalOpen, setIsAiModalOpen] = useState(false);
-    const [aiPasteText, setAiPasteText] = useState('');
-
-    const handleImportAiSteps = () => {
-        if (!aiPasteText.trim()) return;
-
-        const rawLines = aiPasteText.split('\n').map(l => l.trim()).filter(l => l.length > 0);
-        const parsedSteps = rawLines
-            .map(line => {
-                return line
-                    .replace(/^(\d+[\.\)\-:]|\b(Étape|Etape|Step)\s*\d+[\.\)\-:]|\*+|\-+|\•)\s*/i, '')
-                    .trim();
-            })
-            .filter(line => line.length > 3 && !/^(Ingrédients|Ingredients|Préparation|Preparation|Instructions|Étapes|Etapes)[\s:]*$/i.test(line));
-
-        if (parsedSteps.length > 0) {
-            updateCurrentDish({ instructions: parsedSteps });
-            setAiPasteText('');
-            setIsAiModalOpen(false);
-        } else {
-            alert({ title: 'Aucune étape détectée', description: 'Vérifiez le texte collé : chaque étape doit être sur sa propre ligne.' });
-        }
-    };
-
-    const handleAddStep = () => updateCurrentDish({ instructions: [...currentInstructions, ''] });
-
-    const handleRemoveStep = (index: number) => updateCurrentDish({ instructions: currentInstructions.filter((_, i) => i !== index) });
-
-    const handleStepChange = (index: number, val: string) => {
-        const next = [...currentInstructions];
-        next[index] = val;
-        updateCurrentDish({ instructions: next });
-    };
+    const handleRecipeTextChange = (text: string) => updateCurrentDish({ instructions: text ? [text] : [] });
 
     const handleClearCurrentDish = async () => {
         if (currentDish?.name && !(await confirm({
@@ -548,7 +516,7 @@ export default function WeeklyRecipeAndVaultPage() {
                                                 />
 
                                                 <div className="flex items-center justify-between pt-2 text-[10px] text-stone-400">
-                                                    <span>{dish.instructions?.length || 0} étapes de cuisson</span>
+                                                    <span>{dish.instructions?.some(t => t.trim()) ? 'Recette rédigée' : 'Recette à rédiger'}</span>
                                                     <span className="text-[#E1567A] font-semibold flex items-center gap-0.5">
                                                         Éditer la recette <ArrowRight className="w-3 h-3" />
                                                     </span>
@@ -597,57 +565,21 @@ export default function WeeklyRecipeAndVaultPage() {
                                             </Button>
                                         </div>
 
-                                        {/* Instructions Step-by-Step Editor */}
-                                        <div className="space-y-3">
-                                            <div className="flex flex-wrap items-center justify-between gap-2">
-                                                <label className="text-xs font-bold text-stone-700 uppercase tracking-wider block">
-                                                    Étapes de préparation & cuisson ({currentInstructions.filter(st => st.trim()).length})
-                                                </label>
-                                                <div className="flex items-center gap-2">
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => setIsAiModalOpen(true)}
-                                                        className="text-xs text-amber-800 bg-amber-50 hover:bg-amber-100 border border-amber-200 px-3 py-1 rounded-full font-bold flex items-center gap-1.5 transition-colors shadow-2xs cursor-pointer"
-                                                    >
-                                                        <Sparkles className="w-3.5 h-3.5 text-amber-600" />
-                                                        ✨ Coller ChatGPT / Gemini
-                                                    </button>
-                                                    <button
-                                                        type="button"
-                                                        onClick={handleAddStep}
-                                                        className="text-xs text-[#E1567A] hover:underline font-semibold flex items-center gap-1"
-                                                    >
-                                                        <Plus className="w-3.5 h-3.5" /> Ajouter
-                                                    </button>
-                                                </div>
-                                            </div>
-
-                                            <div className="space-y-2.5">
-                                                {currentInstructions.map((step, sIdx) => (
-                                                    <div key={sIdx} className="flex items-start gap-2">
-                                                        <span className="text-xs font-bold text-[#E1567A] bg-rose-50 border border-rose-200 w-6 h-6 rounded-lg flex items-center justify-center shrink-0 mt-2">
-                                                            {sIdx + 1}
-                                                        </span>
-                                                        <textarea
-                                                            rows={2}
-                                                            value={step}
-                                                            onChange={e => handleStepChange(sIdx, e.target.value)}
-                                                            placeholder={`Détaillez l'étape ${sIdx + 1}...`}
-                                                            className="flex-1 text-xs p-2.5 rounded-2xl border border-stone-300 focus:ring-2 focus:ring-[#E1567A] focus:outline-none"
-                                                        />
-                                                        {currentInstructions.length > 1 && (
-                                                            <button
-                                                                type="button"
-                                                                onClick={() => handleRemoveStep(sIdx)}
-                                                                className="text-stone-400 hover:text-red-500 p-2 shrink-0 mt-1"
-                                                                title="Supprimer cette étape"
-                                                            >
-                                                                <Trash2 className="w-4 h-4" />
-                                                            </button>
-                                                        )}
-                                                    </div>
-                                                ))}
-                                            </div>
+                                        {/* Recipe: one free text box (paste from ChatGPT / Gemini as is) */}
+                                        <div className="space-y-2">
+                                            <label className="text-xs font-bold text-stone-700 uppercase tracking-wider block">
+                                                Recette (préparation & cuisson)
+                                            </label>
+                                            <p className="text-[11px] text-stone-500">
+                                                Écrivez ou collez la recette complète ici (ChatGPT, Gemini…). Le texte est gardé tel quel.
+                                            </p>
+                                            <textarea
+                                                rows={16}
+                                                value={currentRecipeText}
+                                                onChange={e => handleRecipeTextChange(e.target.value)}
+                                                placeholder={`Ingrédients, préparation, cuisson…`}
+                                                className="w-full text-sm leading-relaxed p-4 rounded-2xl border border-stone-300 focus:ring-2 focus:ring-[#E1567A] focus:outline-none min-h-[320px]"
+                                            />
                                         </div>
 
                                         {/* Chef Internal Notes */}
@@ -856,15 +788,13 @@ export default function WeeklyRecipeAndVaultPage() {
                         {/* Instructions */}
                         <div className="space-y-2">
                             <h4 className="font-bold uppercase tracking-wider text-stone-600 text-[11px]">
-                                Étapes de préparation enregistrées :
+                                Recette enregistrée :
                             </h4>
                             <div className="space-y-1.5 bg-stone-50 p-4 rounded-2xl border border-stone-200">
-                                {inspectedVaultRecipe?.instructions && inspectedVaultRecipe.instructions.length > 0 ? (
-                                    inspectedVaultRecipe.instructions.map((step, sIdx) => (
-                                        <p key={sIdx} className="text-stone-700 leading-relaxed">
-                                            {step}
-                                        </p>
-                                    ))
+                                {inspectedVaultRecipe?.instructions && inspectedVaultRecipe.instructions.some(t => t.trim()) ? (
+                                    <p className="text-stone-700 leading-relaxed whitespace-pre-wrap max-h-80 overflow-y-auto">
+                                        {inspectedVaultRecipe.instructions.join('\n')}
+                                    </p>
                                 ) : (
                                     <p className="text-stone-400 italic">Aucune consigne spécifique détaillée.</p>
                                 )}
@@ -896,45 +826,6 @@ export default function WeeklyRecipeAndVaultPage() {
             {confirmDialog}
             {toastElement}
 
-            {/* AI 1-Click Steps Import Modal */}
-            <Dialog open={isAiModalOpen} onOpenChange={setIsAiModalOpen}>
-                <DialogContent className="sm:max-w-xl bg-white rounded-3xl p-6">
-                    <DialogHeader>
-                        <DialogTitle className="font-serif text-xl font-bold flex items-center gap-2">
-                            <Sparkles className="w-5 h-5 text-amber-600" />
-                            Coller la réponse ChatGPT / Gemini
-                        </DialogTitle>
-                    </DialogHeader>
-                    <div className="space-y-3 py-2 text-xs">
-                        <p className="text-stone-600 leading-relaxed">
-                            Collez directement le texte brut ou la liste des étapes fournie par votre IA pour <strong>{menu?.recipes?.[selectedDishIndex]?.name || 'ce plat'}</strong>. Le système nettoiera et numérotera automatiquement chaque étape.
-                        </p>
-                        <textarea
-                            rows={10}
-                            value={aiPasteText}
-                            onChange={e => setAiPasteText(e.target.value)}
-                            placeholder={`Exemple :\n1. Cuire le rôti de veau à 58°C à cœur au four doux...\n2. Mixer le thon égoutté avec la mayonnaise, câpres et citron pour la sauce...\n3. Trancher finement et dresser avec les herbes...`}
-                            className="w-full text-xs p-3.5 rounded-2xl border border-stone-300 focus:ring-2 focus:ring-[#E1567A] focus:outline-none font-mono"
-                        />
-                        <div className="flex items-center justify-end gap-2 pt-2">
-                            <Button
-                                variant="outline"
-                                onClick={() => setIsAiModalOpen(false)}
-                                className="rounded-full text-xs h-9 px-4 border-stone-300"
-                            >
-                                Annuler
-                            </Button>
-                            <Button
-                                onClick={handleImportAiSteps}
-                                className="bg-[#E1567A] hover:bg-[#c94567] text-white rounded-full text-xs h-9 px-5 font-bold shadow-xs gap-1.5"
-                            >
-                                <Check className="w-3.5 h-3.5" />
-                                Importer & Numéroter les étapes
-                            </Button>
-                        </div>
-                    </div>
-                </DialogContent>
-            </Dialog>
         </div>
     );
 }

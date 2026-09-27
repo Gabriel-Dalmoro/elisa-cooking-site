@@ -11,6 +11,7 @@ interface RecipeCardProps {
     recipe: {
         name: string;
         type: string;
+        description?: string;
     };
     index: number;
 }
@@ -61,7 +62,7 @@ export function RecipeCard({ recipe, index }: RecipeCardProps) {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: index * 0.1 }}
             whileHover={{ y: -8, transition: { duration: 0.2 } }}
-            className="group relative bg-white border border-stone-100/80 rounded-[2rem] p-8 shadow-sm hover:shadow-2xl hover:shadow-brand-rose/5 transition-all duration-500 overflow-hidden flex flex-col min-h-[320px]"
+            className="group relative bg-white border border-stone-100/80 rounded-[2rem] p-8 shadow-sm hover:shadow-2xl hover:shadow-brand-rose/5 transition-all duration-500 overflow-hidden flex flex-col min-h-[240px]"
         >
             <div className="flex items-center justify-between mb-6">
                 <div className="h-14 w-14 rounded-2xl bg-brand-rose/5 flex items-center justify-center text-brand-rose group-hover:bg-brand-rose group-hover:text-white transition-all duration-500 shadow-sm">
@@ -76,6 +77,12 @@ export function RecipeCard({ recipe, index }: RecipeCardProps) {
             <h3 className="text-base font-bold text-stone-900 leading-snug mb-4 group-hover:text-brand-rose transition-colors line-clamp-4">
                 {recipe.name}
             </h3>
+
+            {recipe.description && (
+                <p className="text-xs text-stone-500 leading-relaxed mb-4 line-clamp-4">
+                    {recipe.description}
+                </p>
+            )}
 
             <div className="mt-auto flex items-center gap-4 pt-6 border-t border-stone-50">
                 <div className="inline-flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest text-stone-400">
