@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getSession, setSessionIgnored, deleteSession } from '@/lib/db/sessions';
 import { deleteGoogleCalendarEvent } from '@/lib/googleCalendar';
 import { getClientById } from '@/lib/db/clients';
-import { getSelection } from '@/lib/db/selections';
+import { getSelection, setRecipeOverride, CUSTOM_DISH_RECIPE_ID } from '@/lib/db/selections';
 import { getMenu } from '@/lib/db/menus';
 import { getWeekStartForDate } from '@/lib/dateUtils';
 import { requireOwner } from '@/lib/auth';
@@ -48,6 +48,8 @@ export async function GET(_req: NextRequest, { params }: Params) {
 
 /**
  * PATCH { ignored: boolean } → hide a calendar event that isn't a cooking session (kept hidden across syncs)
+ * PATCH { dishId, recipe } → Elisa's recipe for one dish, adapted for THIS client only
+ *   (the week's menu and the recipe bank stay unchanged; an empty recipe goes back to the menu one)
  */
 export async function PATCH(req: NextRequest, { params }: Params) {
     const denied = await requireOwner();
@@ -55,7 +57,26 @@ export async function PATCH(req: NextRequest, { params }: Params) {
 
     try {
         const { id } = await params;
-        const { ignored } = await req.json();
+        const body = await req.json();
+
+        if (typeof body.dishId === 'string' && typeof body.recipe === 'string') {
+            const session = await getSession(id);
+            if (!session?.clientId) {
+                return NextResponse.json({ error: 'Aucune fiche client liée à cette séance' }, { status: 404 });
+            }
+            const weekStart = getWeekStartForDate(session.dateIso);
+            const selection = await getSelection(session.clientId, weekStart);
+            const isChosen = body.dishId === CUSTOM_DISH_RECIPE_ID
+                ? Boolean(selection?.customDish)
+                : Boolean(selection?.selectedDishIds.includes(body.dishId));
+            if (!isChosen) {
+                return NextResponse.json({ error: 'Ce plat ne fait pas partie des choix du client' }, { status: 400 });
+            }
+            const updated = await setRecipeOverride(session.clientId, weekStart, body.dishId, body.recipe.slice(0, 20000));
+            return NextResponse.json({ success: true, selection: updated });
+        }
+
+        const { ignored } = body;
         if (typeof ignored !== 'boolean') {
             return NextResponse.json({ error: 'Données invalides' }, { status: 400 });
         }

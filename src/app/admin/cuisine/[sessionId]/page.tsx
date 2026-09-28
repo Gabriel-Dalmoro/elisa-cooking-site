@@ -12,11 +12,13 @@ import {
     Info,
     ChefHat,
     Key,
-    Clock
+    Clock,
+    Pencil
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import AdminPageHeader from '@/components/admin/AdminPageHeader';
+import { useToast } from '@/components/admin/useToast';
 import { BookingSession, ClientProfile, ClientSelection, WeeklyDish } from '@/lib/types/cooking-ops';
 
 interface KitchenSheet {
@@ -27,6 +29,9 @@ interface KitchenSheet {
     missingDishNames: string[];
     weekLabel: string;
 }
+
+// Recipe-override key for the client's custom dish (mirrors CUSTOM_DISH_RECIPE_ID in lib/db/selections)
+const CUSTOM_DISH_RECIPE_ID = '__custom__';
 
 // Minimal typing for the Screen Wake Lock API
 interface WakeLockSentinelLike {
@@ -49,6 +54,10 @@ export default function ChefCookingModePage({ params }: { params: Promise<{ sess
     const [wakeLockWanted, setWakeLockWanted] = useState(false);
     const [wakeLockActive, setWakeLockActive] = useState(false);
     const wakeLockRef = useRef<WakeLockSentinelLike | null>(null);
+    // Recipe being edited for this client only: dish id + draft text
+    const [editing, setEditing] = useState<{ dishId: string; text: string } | null>(null);
+    const [savingRecipe, setSavingRecipe] = useState(false);
+    const { showToast, toastElement } = useToast();
 
     const stepsStorageKey = `cuisine:${sessionId}:steps`;
 
@@ -119,6 +128,28 @@ export default function ChefCookingModePage({ params }: { params: Promise<{ sess
         }
     };
 
+    // Saves the recipe for this client only (the week's menu and the recipe bank are untouched).
+    // An empty text goes back to the menu recipe.
+    const saveRecipe = async (dishId: string, recipe: string) => {
+        setSavingRecipe(true);
+        try {
+            const res = await fetch(`/api/cooking-ops/session/${encodeURIComponent(sessionId)}`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ dishId, recipe })
+            });
+            const data = await res.json().catch(() => ({}));
+            if (!res.ok) throw new Error(data.error || 'Enregistrement impossible');
+            setSheet(prev => (prev ? { ...prev, selection: data.selection } : prev));
+            setEditing(null);
+            showToast(recipe.trim() ? 'Recette enregistrée pour ce client' : 'Recette du menu rétablie', 'check');
+        } catch (e) {
+            showToast(e instanceof Error ? e.message : 'Enregistrement impossible', 'error');
+        } finally {
+            setSavingRecipe(false);
+        }
+    };
+
     const toggleStep = (stepKey: string) => {
         setCompletedSteps(prev => {
             const next = { ...prev, [stepKey]: !prev[stepKey] };
@@ -161,6 +192,97 @@ export default function ChefCookingModePage({ params }: { params: Promise<{ sess
     const displayName = client?.name || session.clientName;
     const arrival = formatParisTime(session.startsAt);
     const allergiesAdded = selection?.allergiesAdded || [];
+    const overrides = selection?.recipeOverrides || {};
+
+    // Recipe text of one dish, with its edit button. `menuRecipe` is the week's menu version (empty for the custom dish).
+    const renderRecipe = (dishId: string, menuRecipe: string) => {
+        const override = overrides[dishId];
+        const recipe = override ?? menuRecipe;
+
+        if (editing?.dishId === dishId) {
+            return (
+                <div className="space-y-2">
+                    <textarea
+                        value={editing.text}
+                        onChange={e => setEditing({ dishId, text: e.target.value })}
+                        rows={10}
+                        autoFocus
+                        placeholder="Ingrédients, étapes, adaptations pour ce client..."
+                        className="w-full text-sm leading-relaxed p-3 rounded-2xl border border-stone-300 focus:outline-none focus:ring-2 focus:ring-[#E1567A]/40"
+                    />
+                    <p className="text-[11px] text-stone-500">
+                        Modifie la recette pour {displayName} uniquement. Le menu de la semaine et la banque de recettes ne changent pas.
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                        <Button
+                            size="sm"
+                            disabled={savingRecipe}
+                            onClick={() => saveRecipe(dishId, editing.text)}
+                            className="bg-[#E1567A] hover:bg-[#c94567] text-white rounded-full text-xs"
+                        >
+                            {savingRecipe ? 'Enregistrement...' : 'Enregistrer'}
+                        </Button>
+                        <Button size="sm" variant="outline" disabled={savingRecipe} onClick={() => setEditing(null)} className="rounded-full text-xs border-stone-300">
+                            Annuler
+                        </Button>
+                        {override !== undefined && menuRecipe && (
+                            <Button size="sm" variant="ghost" disabled={savingRecipe} onClick={() => saveRecipe(dishId, '')} className="rounded-full text-xs text-stone-500">
+                                Revenir à la recette du menu
+                            </Button>
+                        )}
+                    </div>
+                </div>
+            );
+        }
+
+        const editButton = (
+            <button
+                type="button"
+                onClick={() => setEditing({ dishId, text: recipe })}
+                className="inline-flex items-center gap-1 text-xs font-semibold text-stone-500 hover:text-[#E1567A] px-2 py-1 rounded-full hover:bg-rose-50 transition-colors"
+            >
+                <Pencil className="w-3 h-3" /> {recipe.trim() ? 'Modifier' : 'Ajouter la recette'}
+            </button>
+        );
+
+        if (!recipe.trim()) {
+            return (
+                <div className="flex items-center justify-between gap-2">
+                    <p className="text-xs text-stone-400 italic">Aucune recette enregistrée pour ce plat.</p>
+                    {editButton}
+                </div>
+            );
+        }
+
+        // One recipe text per dish: tap it to mark the dish as done
+        const doneKey = `${dishId}_0`;
+        const isDone = !!completedSteps[doneKey];
+        return (
+            <div className="space-y-2">
+                <div className="flex items-center justify-between gap-2">
+                    {override !== undefined ? (
+                        <span className="text-[11px] font-bold text-amber-800 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full">
+                            Recette adaptée pour {displayName}
+                        </span>
+                    ) : <span />}
+                    {editButton}
+                </div>
+                <div
+                    onClick={() => toggleStep(doneKey)}
+                    className={`flex items-start gap-3 p-4 rounded-2xl border transition-all cursor-pointer select-none ${
+                        isDone
+                            ? 'bg-emerald-50/60 border-emerald-300 text-stone-400'
+                            : 'bg-stone-50/50 border-stone-200 text-stone-800'
+                    }`}
+                >
+                    <div className="pt-0.5 shrink-0">
+                        {isDone ? <CheckSquare className="w-4 h-4 text-emerald-600" /> : <Square className="w-4 h-4 text-stone-400" />}
+                    </div>
+                    <p className="text-sm leading-relaxed font-medium whitespace-pre-wrap">{recipe}</p>
+                </div>
+            </div>
+        );
+    };
 
     return (
         <div className="min-h-screen bg-[#FAFAF9] text-stone-800 pb-36 font-sans">
@@ -308,28 +430,7 @@ export default function ChefCookingModePage({ params }: { params: Promise<{ sess
                                     </div>
                                 )}
 
-                                {dish.instructions && dish.instructions.some(t => t.trim()) ? (() => {
-                                    // One recipe text per dish: tap it to mark the dish as done
-                                    const doneKey = `${dish.id}_0`;
-                                    const isDone = !!completedSteps[doneKey];
-                                    return (
-                                        <div
-                                            onClick={() => toggleStep(doneKey)}
-                                            className={`flex items-start gap-3 p-4 rounded-2xl border transition-all cursor-pointer select-none ${
-                                                isDone
-                                                    ? 'bg-emerald-50/60 border-emerald-300 text-stone-400'
-                                                    : 'bg-stone-50/50 border-stone-200 text-stone-800'
-                                            }`}
-                                        >
-                                            <div className="pt-0.5 shrink-0">
-                                                {isDone ? <CheckSquare className="w-4 h-4 text-emerald-600" /> : <Square className="w-4 h-4 text-stone-400" />}
-                                            </div>
-                                            <p className="text-sm leading-relaxed font-medium whitespace-pre-wrap">{dish.instructions.join('\n')}</p>
-                                        </div>
-                                    );
-                                })() : (
-                                    <p className="text-xs text-stone-400 italic">Aucune recette enregistrée pour ce plat.</p>
-                                )}
+                                {renderRecipe(dish.id, (dish.instructions || []).join('\n'))}
                             </div>
                         );
                     })}
@@ -340,10 +441,12 @@ export default function ChefCookingModePage({ params }: { params: Promise<{ sess
                                 Plat #{dishes.length + 1} • Demande sur mesure
                             </Badge>
                             <p className="text-base font-serif font-bold text-stone-900 whitespace-pre-wrap">{selection.customDish}</p>
+                            {renderRecipe(CUSTOM_DISH_RECIPE_ID, '')}
                         </div>
                     )}
                 </div>
             </main>
+            {toastElement}
         </div>
     );
 }
