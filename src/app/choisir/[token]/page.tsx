@@ -335,7 +335,7 @@ export default function ClientMenuSelectionPage() {
                             </ul>
                             {sentRecap.justSent && allergies.length > 0 && (
                                 <div className="pt-3 border-t border-stone-200 text-xs text-stone-600">
-                                    <strong>Régime mémorisé :</strong> {allergies.join(', ')} {dislikes ? `(${dislikes})` : ''}
+                                    <strong>Allergies & aliments à éviter :</strong> {allergies.join(', ')} {dislikes ? `(${dislikes})` : ''}
                                 </div>
                             )}
                         </div>
@@ -404,7 +404,7 @@ export default function ClientMenuSelectionPage() {
                         <div className="bg-stone-50 border border-stone-200 rounded-2xl p-3 sm:max-w-xs text-left">
                             <div className="flex items-center justify-between mb-1.5">
                                 <span className="text-[11px] font-bold text-stone-500 uppercase tracking-wider flex items-center gap-1">
-                                    <Lock className="w-3 h-3 text-stone-400" /> Vos préférences mémorisées
+                                    <AlertTriangle className="w-3 h-3 text-stone-400" /> Allergies & aliments à éviter
                                 </span>
                                 <Dialog open={isAllergyModalOpen} onOpenChange={setIsAllergyModalOpen}>
                                     <DialogTrigger asChild>
@@ -420,7 +420,7 @@ export default function ClientMenuSelectionPage() {
                                         </DialogHeader>
                                         <div className="space-y-4 py-2">
                                             <p className="text-xs text-stone-600">
-                                                Sélectionnez vos restrictions. Elles seront automatiquement mémorisées pour toutes vos prochaines séances.
+                                                Indiquez vos allergies et ce que vous ne mangez pas. Elisa en tiendra compte pour cette séance et toutes les suivantes.
                                             </p>
                                             {lockedAllergies.length > 0 && (
                                                 <p className="text-[11px] text-stone-500 flex items-center gap-1">
@@ -466,7 +466,7 @@ export default function ClientMenuSelectionPage() {
                                                 className="w-full bg-amber-600 hover:bg-amber-700 text-white mt-2 rounded-xl"
                                                 onClick={() => setIsAllergyModalOpen(false)}
                                             >
-                                                Enregistrer mes préférences
+                                                Valider
                                             </Button>
                                         </div>
                                     </DialogContent>
@@ -482,7 +482,7 @@ export default function ClientMenuSelectionPage() {
                                     ))}
                                 </div>
                             ) : (
-                                <span className="text-xs text-stone-400 italic">Aucune restriction enregistrée</span>
+                                <span className="text-xs text-stone-400 italic">Aucune allergie signalée</span>
                             )}
                             {dislikes && (
                                 <p className="text-[11px] text-stone-500 mt-1 italic line-clamp-1">

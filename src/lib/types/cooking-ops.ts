@@ -66,6 +66,7 @@ export interface ClientSelection {
     selectedDishNames: string[]; // Snapshot at submission (kept if a dish is later removed)
     dishNotes: Record<string, string>; // Keyed by dish id
     customDish?: string; // The one dish the client wrote themselves (replaces one menu dish)
+    recipeOverrides: Record<string, string>; // Elisa's recipe adapted for this client only, keyed by dish id ('__custom__' = custom dish). Staff only.
     generalNote?: string;
     submittedAt: string;
     allergiesAtSubmission: string[];

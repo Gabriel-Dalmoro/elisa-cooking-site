@@ -22,9 +22,11 @@ import { Textarea } from "@/components/ui/textarea";
 import TimeSavingsVisualizer, { TimeSavingsBreakdown } from "@/components/simulator/TimeSavingsVisualizer";
 import CountUp from "@/components/ui/CountUp";
 import { SiteConfig } from "@/lib/googleSheets";
+import type { LeadMenuFields } from "@/lib/leadMenu";
 
 interface SimulatorFormProps {
     promoConfig: SiteConfig | null;
+    leadMenu?: LeadMenuFields | null; // The week's menu, sent with the lead so n8n can put it in the email
 }
 
 const formatPrice = (price: number) => {
@@ -56,7 +58,7 @@ const PriceDisplay = ({ amount, className = "", currencyClassName = "", large = 
     );
 };
 
-export function SimulatorForm({ promoConfig }: SimulatorFormProps) {
+export function SimulatorForm({ promoConfig, leadMenu }: SimulatorFormProps) {
     const [step, setStep] = useState(0);
     const [tierId, setTierId] = useState("six");
     const [people, setPeople] = useState(4);
@@ -236,7 +238,11 @@ export function SimulatorForm({ promoConfig }: SimulatorFormProps) {
                 is_gift_card: appliedGiftCard !== null,
                 gift_card_code: appliedGiftCard ? appliedGiftCard.code : "",
                 gift_card_giver: appliedGiftCard ? appliedGiftCard.giver : "",
-                gift_card_recipient: appliedGiftCard ? appliedGiftCard.recipient : ""
+                gift_card_recipient: appliedGiftCard ? appliedGiftCard.recipient : "",
+                // The week's menu from the admin (empty when no menu is published)
+                weekly_menu_label: leadMenu?.weekly_menu_label || "",
+                weekly_menu_text: leadMenu?.weekly_menu_text || "",
+                weekly_menu_html: leadMenu?.weekly_menu_html || ""
             };
 
             const currentParams = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : new URLSearchParams();
