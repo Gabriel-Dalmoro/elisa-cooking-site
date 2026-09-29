@@ -27,6 +27,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import AdminPageHeader from '@/components/admin/AdminPageHeader';
 import { useConfirm } from '@/components/admin/useConfirm';
 import { useToast } from '@/components/admin/useToast';
+import RecipeBoxes from '@/components/admin/RecipeBoxes';
+import { splitRecipe } from '@/lib/grocery/parse';
 import { WeeklyDish, WeeklyMenuData, VaultRecipe, DishCategory, MenuStatus } from '@/lib/types/cooking-ops';
 
 const CATEGORIES: DishCategory[] = ['Viande', 'Végétarien', 'Poisson', 'Végan'];
@@ -55,7 +57,7 @@ function newDishId(): string {
     return `dish_${random}`;
 }
 
-const emptyDish = (): WeeklyDish => ({ id: newDishId(), name: '', category: 'Viande', instructions: [], chefNotes: '' });
+const emptyDish = (): WeeklyDish => ({ id: newDishId(), name: '', category: 'Viande', ingredients: '', instructions: [], chefNotes: '' });
 
 // The editor always shows 8 slots; empty slots are dropped when saving
 function padToSlots(dishes: WeeklyDish[]): WeeklyDish[] {
@@ -172,7 +174,8 @@ export default function WeeklyRecipeAndVaultPage() {
 
     const handleDishCategoryChange = (index: number, newCategory: DishCategory) => updateDish(index, { category: newCategory });
 
-    const handleRecipeTextChange = (text: string) => updateCurrentDish({ instructions: text ? [text] : [] });
+    const handleRecipeChange = ({ ingredients, steps }: { ingredients: string; steps: string }) =>
+        updateCurrentDish({ ingredients, instructions: steps ? [steps] : [] });
 
     const handleClearCurrentDish = async () => {
         if (currentDish?.name && !(await confirm({
@@ -277,6 +280,7 @@ export default function WeeklyRecipeAndVaultPage() {
             id: newDishId(),
             name: vaultRecipe.name,
             category: vaultRecipe.category,
+            ingredients: vaultRecipe.ingredients || '',
             instructions: vaultRecipe.instructions || [],
             chefNotes: vaultRecipe.chefNotes || ''
         });
@@ -516,7 +520,15 @@ export default function WeeklyRecipeAndVaultPage() {
                                                 />
 
                                                 <div className="flex items-center justify-between pt-2 text-[10px] text-stone-400">
-                                                    <span>{dish.instructions?.some(t => t.trim()) ? 'Recette rédigée' : 'Recette à rédiger'}</span>
+                                                    <span>
+                                                        {dish.instructions?.some(t => t.trim()) || dish.ingredients?.trim() ? 'Recette rédigée' : 'Recette à rédiger'}
+                                                        {dish.name.trim() && !dish.ingredients?.trim() && (
+                                                            // Without an ingredient list the grocery list can't include this dish
+                                                            splitRecipe((dish.instructions || []).join('\n')).found
+                                                                ? <span className="text-stone-500"> · ingrédients à séparer</span>
+                                                                : <span className="text-amber-700 font-semibold"> · ingrédients manquants</span>
+                                                        )}
+                                                    </span>
                                                     <span className="text-[#E1567A] font-semibold flex items-center gap-0.5">
                                                         Éditer la recette <ArrowRight className="w-3 h-3" />
                                                     </span>
@@ -565,22 +577,13 @@ export default function WeeklyRecipeAndVaultPage() {
                                             </Button>
                                         </div>
 
-                                        {/* Recipe: one free text box (paste from ChatGPT / Gemini as is) */}
-                                        <div className="space-y-2">
-                                            <label className="text-xs font-bold text-stone-700 uppercase tracking-wider block">
-                                                Recette (préparation & cuisson)
-                                            </label>
-                                            <p className="text-[11px] text-stone-500">
-                                                Écrivez ou collez la recette complète ici (ChatGPT, Gemini…). Le texte est gardé tel quel.
-                                            </p>
-                                            <textarea
-                                                rows={16}
-                                                value={currentRecipeText}
-                                                onChange={e => handleRecipeTextChange(e.target.value)}
-                                                placeholder={`Ingrédients, préparation, cuisson…`}
-                                                className="w-full text-sm leading-relaxed p-4 rounded-2xl border border-stone-300 focus:ring-2 focus:ring-[#E1567A] focus:outline-none min-h-[320px]"
-                                            />
-                                        </div>
+                                        {/* Recipe: ingredients (read by the grocery list) + preparation, pasted as is */}
+                                        <RecipeBoxes
+                                            ingredients={currentDish.ingredients || ''}
+                                            steps={currentRecipeText}
+                                            onChange={handleRecipeChange}
+                                            stepsRows={14}
+                                        />
 
                                         {/* Chef Internal Notes */}
                                         <div className="pt-2">
@@ -782,6 +785,16 @@ export default function WeeklyRecipeAndVaultPage() {
                         {inspectedVaultRecipe?.chefNotes && (
                             <div className="bg-amber-50 text-amber-900 p-3 rounded-2xl border border-amber-200 italic">
                                 <span className="font-semibold not-italic">Astuce chef :</span> {inspectedVaultRecipe.chefNotes}
+                            </div>
+                        )}
+
+                        {/* Ingredients */}
+                        {inspectedVaultRecipe?.ingredients?.trim() && (
+                            <div className="space-y-2">
+                                <h4 className="font-bold uppercase tracking-wider text-stone-600 text-[11px]">Ingrédients :</h4>
+                                <p className="text-stone-700 leading-relaxed whitespace-pre-wrap max-h-60 overflow-y-auto bg-stone-50 p-4 rounded-2xl border border-stone-200">
+                                    {inspectedVaultRecipe.ingredients}
+                                </p>
                             </div>
                         )}
 

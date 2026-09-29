@@ -43,6 +43,7 @@ export interface WeeklyDish {
     name: string;
     category: DishCategory;
     description?: string;
+    ingredients?: string; // Ingredient list only (one per line): read by the grocery list
     instructions?: string[];
     chefNotes?: string;
     tags?: string[];
@@ -67,6 +68,7 @@ export interface ClientSelection {
     dishNotes: Record<string, string>; // Keyed by dish id
     customDish?: string; // The one dish the client wrote themselves (replaces one menu dish)
     recipeOverrides: Record<string, string>; // Elisa's recipe adapted for this client only, keyed by dish id ('__custom__' = custom dish). Staff only.
+    ingredientOverrides: Record<string, string>; // Same, for the ingredient list (feeds this client's grocery list). Staff only.
     generalNote?: string;
     submittedAt: string;
     allergiesAtSubmission: string[];
@@ -86,6 +88,7 @@ export interface VaultRecipe {
     id: string;
     name: string;
     category: DishCategory;
+    ingredients?: string;
     instructions: string[];
     chefNotes?: string;
     timesUsed?: number;
