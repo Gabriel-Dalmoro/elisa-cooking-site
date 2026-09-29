@@ -45,3 +45,6 @@ next-env.d.ts
 src/app/instagram-promo/
 
 OCTOBER_HANDOFF.md
+
+# Local planning notes (kept out of the repo)
+proposals/recipe-scaling.md
