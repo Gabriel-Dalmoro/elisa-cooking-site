@@ -49,6 +49,7 @@ export function sanitizeDishes(input: unknown): WeeklyDish[] {
             name,
             category: typeof d.category === 'string' && d.category.trim() ? d.category.trim() : 'Végétarien',
             description: typeof d.description === 'string' ? d.description.trim() : undefined,
+            ingredients: typeof d.ingredients === 'string' ? d.ingredients.trim().slice(0, 20000) : '',
             instructions: Array.isArray(d.instructions)
                 ? d.instructions.filter((s): s is string => typeof s === 'string').map(s => s.trim()).filter(Boolean)
                 : [],

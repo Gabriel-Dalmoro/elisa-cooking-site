@@ -56,6 +56,7 @@ CREATE TABLE IF NOT EXISTS public.recipe_vault (
     id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
     name TEXT NOT NULL,
     category TEXT NOT NULL,
+    ingredients TEXT,                                  -- migration 005
     instructions JSONB DEFAULT '[]'::jsonb,
     chef_notes TEXT,
     times_used INTEGER DEFAULT 0,

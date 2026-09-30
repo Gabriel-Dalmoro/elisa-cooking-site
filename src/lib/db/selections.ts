@@ -22,21 +22,29 @@ interface SelectionRow {
 const CUSTOM_DISH_KEY = '__custom_dish__';
 // Same for Elisa's recipes adapted for this one client (dish id → recipe text). Never sent to the client.
 const RECIPE_OVERRIDES_KEY = '__recipe_overrides__';
+// And their ingredient lists (dish id → ingredient text), read by the client's grocery list
+const INGREDIENT_OVERRIDES_KEY = '__ingredient_overrides__';
 // Key used in the recipe overrides for the client's custom dish (it has no menu dish id)
 export const CUSTOM_DISH_RECIPE_ID = '__custom__';
 
 const asStringArray = (v: unknown): string[] => (Array.isArray(v) ? v.filter((x): x is string => typeof x === 'string') : []);
 
+function asStringRecord(v: unknown): Record<string, string> {
+    const out: Record<string, string> = {};
+    if (v && typeof v === 'object') {
+        for (const [id, text] of Object.entries(v)) if (typeof text === 'string') out[id] = text;
+    }
+    return out;
+}
+
 function rowToSelection(row: SelectionRow): ClientSelection {
     const notes = row.dish_notes && typeof row.dish_notes === 'object' ? { ...(row.dish_notes as Record<string, unknown>) } : {};
     const customDish = typeof notes[CUSTOM_DISH_KEY] === 'string' ? notes[CUSTOM_DISH_KEY] : '';
-    const rawOverrides = notes[RECIPE_OVERRIDES_KEY];
-    const recipeOverrides: Record<string, string> = {};
-    if (rawOverrides && typeof rawOverrides === 'object') {
-        for (const [id, text] of Object.entries(rawOverrides)) if (typeof text === 'string') recipeOverrides[id] = text;
-    }
+    const recipeOverrides = asStringRecord(notes[RECIPE_OVERRIDES_KEY]);
+    const ingredientOverrides = asStringRecord(notes[INGREDIENT_OVERRIDES_KEY]);
     delete notes[CUSTOM_DISH_KEY];
     delete notes[RECIPE_OVERRIDES_KEY];
+    delete notes[INGREDIENT_OVERRIDES_KEY];
     const dishNotes: Record<string, string> = {};
     for (const [id, note] of Object.entries(notes)) if (typeof note === 'string') dishNotes[id] = note;
     return {
@@ -48,6 +56,7 @@ function rowToSelection(row: SelectionRow): ClientSelection {
         dishNotes,
         customDish,
         recipeOverrides,
+        ingredientOverrides,
         generalNote: row.general_note || '',
         submittedAt: row.submitted_at,
         allergiesAtSubmission: asStringArray(row.allergies_at_submission),
@@ -123,10 +132,17 @@ export async function upsertSelection(input: {
 }
 
 /**
- * Saves Elisa's recipe for one dish, for this client only (the menu and the recipe bank are untouched).
- * An empty text removes the adaptation, so the sheet falls back to the menu recipe.
+ * Saves Elisa's recipe for one dish, for this client only (the menu and the recipe bank are untouched):
+ * the steps and, when given, the ingredient list. Both empty removes the adaptation,
+ * so the sheet falls back to the menu recipe.
  */
-export async function setRecipeOverride(clientId: string, weekStart: string, dishId: string, recipe: string): Promise<ClientSelection> {
+export async function setRecipeOverride(
+    clientId: string,
+    weekStart: string,
+    dishId: string,
+    recipe: string,
+    ingredients?: string
+): Promise<ClientSelection> {
     const supabase = getSupabaseAdmin();
     const { data: row, error: readError } = await supabase
         .from('client_selections')
@@ -138,11 +154,18 @@ export async function setRecipeOverride(clientId: string, weekStart: string, dis
     if (!row) throw new Error('Ce client n’a pas encore envoyé ses choix pour cette semaine.');
 
     const notes = row.dish_notes && typeof row.dish_notes === 'object' ? { ...(row.dish_notes as Record<string, unknown>) } : {};
-    const current = notes[RECIPE_OVERRIDES_KEY];
-    const overrides: Record<string, unknown> = current && typeof current === 'object' ? { ...(current as Record<string, unknown>) } : {};
-    if (recipe.trim()) overrides[dishId] = recipe.trim();
-    else delete overrides[dishId];
+    const overrides = asStringRecord(notes[RECIPE_OVERRIDES_KEY]);
+    const ingredientOverrides = asStringRecord(notes[INGREDIENT_OVERRIDES_KEY]);
+    const reset = !recipe.trim() && !ingredients?.trim();
+    if (reset) {
+        delete overrides[dishId];
+        delete ingredientOverrides[dishId];
+    } else {
+        overrides[dishId] = recipe.trim();
+        if (ingredients !== undefined) ingredientOverrides[dishId] = ingredients.trim();
+    }
     notes[RECIPE_OVERRIDES_KEY] = overrides;
+    notes[INGREDIENT_OVERRIDES_KEY] = ingredientOverrides;
 
     const { data, error } = await supabase
         .from('client_selections')

@@ -9,6 +9,7 @@ interface VaultRow {
     id: string;
     name: string;
     category: string;
+    ingredients?: string | null; // added by migration 005
     instructions: unknown;
     chef_notes: string | null;
     times_used: number | null;
@@ -21,6 +22,7 @@ function rowToRecipe(row: VaultRow): VaultRecipe {
         id: row.id,
         name: row.name,
         category: row.category,
+        ingredients: row.ingredients || '',
         instructions: Array.isArray(row.instructions) ? (row.instructions as string[]) : [],
         chefNotes: row.chef_notes || '',
         timesUsed: row.times_used || 0,
@@ -30,6 +32,11 @@ function rowToRecipe(row: VaultRow): VaultRecipe {
 }
 
 const nameKey = (name: string) => name.trim().toLowerCase();
+
+// Migration 005 adds recipe_vault.ingredients. Until it has been run, saves leave that field out
+// instead of failing (the week's menu still keeps each dish's ingredients).
+const isMissingIngredientsColumn = (e: { code?: string; message?: string } | null) =>
+    Boolean(e && (e.code === 'PGRST204' || e.code === '42703') && /ingredients/.test(e.message || ''));
 
 export async function listVault(): Promise<VaultRecipe[]> {
     const { data, error } = await getSupabaseAdmin()
@@ -58,20 +65,28 @@ export async function saveDishesToVault(dishes: WeeklyDish[]): Promise<void> {
         const existingId = idByName.get(nameKey(dish.name));
         const instructions = (dish.instructions || []).filter(s => s.trim().length > 0);
         const chefNotes = (dish.chefNotes || '').trim();
+        const ingredients = (dish.ingredients || '').trim();
 
         if (existingId) {
             const update: Record<string, unknown> = { category: dish.category, updated_at: new Date().toISOString() };
             if (instructions.length > 0) update.instructions = instructions;
             if (chefNotes) update.chef_notes = chefNotes;
-            const { error: updateError } = await supabase.from('recipe_vault').update(update).eq('id', existingId);
+            if (ingredients) update.ingredients = ingredients;
+            let { error: updateError } = await supabase.from('recipe_vault').update(update).eq('id', existingId);
+            if (isMissingIngredientsColumn(updateError)) {
+                delete update.ingredients;
+                ({ error: updateError } = await supabase.from('recipe_vault').update(update).eq('id', existingId));
+            }
             if (updateError) throw new Error(`Mise à jour de la recette impossible : ${updateError.message}`);
         } else {
-            const { data: inserted, error: insertError } = await supabase
-                .from('recipe_vault')
-                .insert({ name: dish.name.trim(), category: dish.category, instructions, chef_notes: chefNotes || null, times_used: 0 })
-                .select('id')
-                .single();
-            if (insertError) throw new Error(`Ajout de la recette impossible : ${insertError.message}`);
+            const row: Record<string, unknown> = { name: dish.name.trim(), category: dish.category, instructions, chef_notes: chefNotes || null, times_used: 0 };
+            if (ingredients) row.ingredients = ingredients;
+            let { data: inserted, error: insertError } = await supabase.from('recipe_vault').insert(row).select('id').single();
+            if (isMissingIngredientsColumn(insertError)) {
+                delete row.ingredients;
+                ({ data: inserted, error: insertError } = await supabase.from('recipe_vault').insert(row).select('id').single());
+            }
+            if (insertError || !inserted) throw new Error(`Ajout de la recette impossible : ${insertError?.message}`);
             idByName.set(nameKey(dish.name), inserted.id);
         }
     }
