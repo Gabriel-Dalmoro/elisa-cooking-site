@@ -34,7 +34,8 @@ import AdminPageHeader from '@/components/admin/AdminPageHeader';
 import { useConfirm } from '@/components/admin/useConfirm';
 import { useToast } from '@/components/admin/useToast';
 import { ClientProfile } from '@/lib/types/cooking-ops';
-import { COMMON_ALLERGIES } from '@/lib/allergies';
+import { allergyOptions } from '@/lib/allergies';
+import CustomAllergyInput from '@/components/CustomAllergyInput';
 
 interface ParsedCsvClient {
     name: string;
@@ -50,6 +51,10 @@ interface ParsedCsvClient {
     privateNotes: string;
 }
 
+type SortOrder = 'recent' | 'az' | 'za';
+const SORT_STORAGE_KEY = 'clients:sort';
+const SORT_LABELS: Record<SortOrder, string> = { recent: 'Récents', az: 'A → Z', za: 'Z → A' };
+
 // Template example rows start with this, and rows starting with it are never imported
 const EXAMPLE_ROW_PREFIX = 'EXEMPLE';
 
@@ -59,6 +64,7 @@ export default function ClientDirectoryPage() {
     const [searchQuery, setSearchQuery] = useState('');
     const [allergyFilter, setAllergyFilter] = useState<string>('all');
     const [viewMode, setViewMode] = useState<'cards' | 'table'>('cards');
+    const [sortOrder, setSortOrder] = useState<SortOrder>('recent');
     const [copiedToken, setCopiedToken] = useState<string | null>(null);
 
     const { confirm, confirmDialog } = useConfirm();
@@ -108,7 +114,23 @@ export default function ClientDirectoryPage() {
 
     useEffect(() => {
         loadClients();
+        // Remember Elisa's sort choice on this device
+        try {
+            const saved = localStorage.getItem(SORT_STORAGE_KEY);
+            if (saved === 'recent' || saved === 'az' || saved === 'za') setSortOrder(saved);
+        } catch {
+            // Storage unavailable: default order
+        }
     }, []);
+
+    const changeSortOrder = (order: SortOrder) => {
+        setSortOrder(order);
+        try {
+            localStorage.setItem(SORT_STORAGE_KEY, order);
+        } catch {
+            // ignore
+        }
+    };
 
     const copyClientLink = (token: string, clientName?: string) => {
         const url = `${window.location.origin}/choisir/${token}`;
@@ -400,10 +422,11 @@ export default function ClientDirectoryPage() {
 
     // Filtered clients list
     const filteredClients = useMemo(() => {
-        return clients.filter(client => {
+        const matching = clients.filter(client => {
             const matchesSearch = 
                 client.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
                 (client.phone && client.phone.includes(searchQuery)) ||
+                (client.email && client.email.toLowerCase().includes(searchQuery.toLowerCase())) ||
                 (client.allergies && client.allergies.some(a => a.toLowerCase().includes(searchQuery.toLowerCase()))) ||
                 (client.dislikes && client.dislikes.toLowerCase().includes(searchQuery.toLowerCase()));
 
@@ -418,7 +441,11 @@ export default function ClientDirectoryPage() {
 
             return true;
         });
-    }, [clients, searchQuery, allergyFilter]);
+        // 'recent' keeps the server order (newest first)
+        if (sortOrder === 'recent') return matching;
+        const sorted = [...matching].sort((a, b) => a.name.localeCompare(b.name, 'fr', { sensitivity: 'base' }));
+        return sortOrder === 'za' ? sorted.reverse() : sorted;
+    }, [clients, searchQuery, allergyFilter, sortOrder]);
 
     const totalClients = clients.length;
     const clientsWithAllergies = clients.filter(c => c.allergies && c.allergies.length > 0).length;
@@ -500,7 +527,7 @@ export default function ClientDirectoryPage() {
                         <Search className="w-4 h-4 text-stone-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
                         <input
                             type="text"
-                            placeholder="Rechercher par nom, tél, allergie..."
+                            placeholder="Rechercher par nom, tél, email, allergie..."
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
                             className="w-full pl-9 pr-4 py-2 text-xs rounded-2xl border border-stone-200 bg-stone-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#E1567A]"
@@ -526,6 +553,21 @@ export default function ClientDirectoryPage() {
                             >
                                 ⚠️ Allergies ({clientsWithAllergies})
                             </button>
+                        </div>
+
+                        {/* Sort order */}
+                        <div className="flex items-center gap-1 bg-stone-100 p-1 rounded-2xl border border-stone-200 text-xs" title="Trier les clients">
+                            {(Object.keys(SORT_LABELS) as SortOrder[]).map(order => (
+                                <button
+                                    key={order}
+                                    onClick={() => changeSortOrder(order)}
+                                    className={`px-2.5 py-1.5 rounded-xl font-semibold transition-all cursor-pointer whitespace-nowrap ${
+                                        sortOrder === order ? 'bg-white text-stone-900 shadow-xs' : 'text-stone-500 hover:text-stone-800'
+                                    }`}
+                                >
+                                    {SORT_LABELS[order]}
+                                </button>
+                            ))}
                         </div>
 
                         {/* View Mode Toggle (Cards vs Compact Table) */}
@@ -598,7 +640,7 @@ export default function ClientDirectoryPage() {
                                         <th className="py-3.5 px-4">Client</th>
                                         <th className="py-3.5 px-3">Formule & Foyer</th>
                                         <th className="py-3.5 px-3">Allergies & Aversions</th>
-                                        <th className="py-3.5 px-3">Téléphone</th>
+                                        <th className="py-3.5 px-3">Téléphone & Email</th>
                                         <th className="py-3.5 px-3">Adresse & Codes</th>
                                         <th className="py-3.5 px-4 text-right">Actions</th>
                                     </tr>
@@ -653,7 +695,19 @@ export default function ClientDirectoryPage() {
                                                         <span>{client.phone}</span>
                                                     </div>
                                                 ) : (
-                                                    <span className="text-[11px] text-amber-700 italic">Non renseigné</span>
+                                                    <span className="text-[11px] text-amber-700 italic">Tél. non renseigné</span>
+                                                )}
+                                                {client.email ? (
+                                                    <a
+                                                        href={`mailto:${client.email}`}
+                                                        className="flex items-center gap-1.5 text-stone-700 hover:text-[#E1567A] mt-1"
+                                                        title={client.email}
+                                                    >
+                                                        <Mail className="w-3.5 h-3.5 text-sky-600 shrink-0" />
+                                                        <span>{client.email}</span>
+                                                    </a>
+                                                ) : (
+                                                    <span className="block text-[11px] text-stone-400 italic mt-1">Email non renseigné</span>
                                                 )}
                                             </td>
 
@@ -812,6 +866,18 @@ export default function ClientDirectoryPage() {
                                                 <div className="text-[11px] text-amber-700 flex items-center gap-1.5">
                                                     <AlertCircle className="w-3.5 h-3.5 text-amber-500" />
                                                     <span>Numéro de téléphone manquant</span>
+                                                </div>
+                                            )}
+
+                                            {client.email ? (
+                                                <a href={`mailto:${client.email}`} className="flex items-center gap-2 hover:text-[#E1567A]">
+                                                    <Mail className="w-3.5 h-3.5 text-sky-600 shrink-0" />
+                                                    <span className="break-all">{client.email}</span>
+                                                </a>
+                                            ) : (
+                                                <div className="text-[11px] text-stone-400 flex items-center gap-1.5">
+                                                    <Mail className="w-3.5 h-3.5 text-stone-300" />
+                                                    <span>Email non renseigné</span>
                                                 </div>
                                             )}
 
@@ -1118,7 +1184,7 @@ export default function ClientDirectoryPage() {
                         <div>
                             <label className="font-semibold block text-stone-700 mb-1">Allergies Médicales & Régimes</label>
                             <div className="flex flex-wrap gap-1.5 pt-1">
-                                {COMMON_ALLERGIES.map(tag => {
+                                {allergyOptions(formAllergies).map(tag => {
                                     const active = formAllergies.includes(tag);
                                     return (
                                         <button
@@ -1134,6 +1200,10 @@ export default function ClientDirectoryPage() {
                                     );
                                 })}
                             </div>
+                            <CustomAllergyInput
+                                existing={formAllergies}
+                                onAdd={tag => setFormAllergies(prev => [...prev, tag])}
+                            />
                         </div>
 
                         <div>

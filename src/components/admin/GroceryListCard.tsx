@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
-import { CheckSquare, ChevronDown, Copy, ShoppingCart, Square } from 'lucide-react';
+import React, { useEffect, useMemo, useState } from 'react';
+import { CheckSquare, ChevronDown, Copy, Save, ShoppingCart, Square } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { GroceryList, groceryListToText } from '@/lib/grocery/list';
 import { UNSORTED } from '@/lib/grocery/parse';
@@ -9,45 +9,55 @@ import { UNSORTED } from '@/lib/grocery/parse';
 interface Props {
     list: GroceryList;
     title: string; // used in the copied text: « Liste de courses — Dupont »
-    storageKey: string; // ticks are kept on this phone (localStorage)
+    savedChecked: string[]; // ticks saved on the server for this client's week
+    onSave: (checkedKeys: string[]) => Promise<boolean>;
     onCopied: (ok: boolean) => void;
 }
+
+const sameKeys = (a: string[], b: string[]) => a.length === b.length && a.every(k => b.includes(k));
 
 /**
  * One client's grocery list: sections in supermarket order, exact totals for their number of people,
  * where each amount comes from, allergy / preference alerts, and tick boxes for the shop.
+ * Ticks are saved with the "Enregistrer" button, so they are still there on any device
+ * (e.g. butter the client already has, ticked before going shopping).
  */
-export default function GroceryListCard({ list, title, storageKey, onCopied }: Props) {
+export default function GroceryListCard({ list, title, savedChecked, onSave, onCopied }: Props) {
     const [open, setOpen] = useState(false);
-    const [checked, setChecked] = useState<Record<string, boolean>>({});
+    const [checked, setChecked] = useState<string[]>(savedChecked);
+    const [saving, setSaving] = useState(false);
 
+    // Follow the saved ticks when they really change (not when another save on the page refreshes the sheet)
+    const [lastSaved, setLastSaved] = useState(savedChecked);
+    if (!sameKeys(lastSaved, savedChecked)) {
+        setLastSaved(savedChecked);
+        setChecked(savedChecked);
+    }
+
+    const isDirty = useMemo(() => !sameKeys(checked, savedChecked), [checked, savedChecked]);
+
+    // Warn before leaving the page with ticks that are not saved yet
     useEffect(() => {
-        try {
-            const saved = localStorage.getItem(storageKey);
-            if (saved) setChecked(JSON.parse(saved));
-        } catch {
-            // Storage unavailable (private mode): ticks just won't persist
-        }
-    }, [storageKey]);
+        if (!isDirty) return;
+        const warn = (e: BeforeUnloadEvent) => {
+            e.preventDefault();
+        };
+        window.addEventListener('beforeunload', warn);
+        return () => window.removeEventListener('beforeunload', warn);
+    }, [isDirty]);
 
     const toggle = (key: string) => {
-        setChecked(prev => {
-            const next = { ...prev, [key]: !prev[key] };
-            try {
-                localStorage.setItem(storageKey, JSON.stringify(next));
-            } catch {
-                // ignore
-            }
-            return next;
-        });
+        setChecked(prev => (prev.includes(key) ? prev.filter(k => k !== key) : [...prev, key]));
     };
 
-    const clearTicks = () => {
-        setChecked({});
+    const clearTicks = () => setChecked([]);
+
+    const save = async () => {
+        setSaving(true);
         try {
-            localStorage.removeItem(storageKey);
-        } catch {
-            // ignore
+            await onSave(checked);
+        } finally {
+            setSaving(false);
         }
     };
 
@@ -62,7 +72,7 @@ export default function GroceryListCard({ list, title, storageKey, onCopied }: P
 
     const allItems = list.sections.flatMap(s => s.items);
     const itemCount = allItems.length;
-    const tickedCount = allItems.filter(i => checked[i.key]).length;
+    const tickedCount = allItems.filter(i => checked.includes(i.key)).length;
     const alertCount = allItems.filter(i => i.warnings.length > 0).length;
     const otherBases = list.dishes.filter(d => d.servings !== list.persons);
 
@@ -85,6 +95,9 @@ export default function GroceryListCard({ list, title, storageKey, onCopied }: P
                             {itemCount} article{itemCount > 1 ? 's' : ''} · pour {list.persons} personne{list.persons > 1 ? 's' : ''}
                             {tickedCount > 0 && ` · ${tickedCount} coché${tickedCount > 1 ? 's' : ''}`}
                         </p>
+                        {isDirty && (
+                            <p className="text-[11px] font-bold text-amber-700">Cases modifiées — pensez à enregistrer</p>
+                        )}
                         <div className="flex flex-wrap gap-1.5 mt-1">
                             {alertCount > 0 && (
                                 <span className="text-[10px] font-bold bg-red-50 text-red-700 border border-red-200 rounded-full px-2 py-0.5">
@@ -123,7 +136,20 @@ export default function GroceryListCard({ list, title, storageKey, onCopied }: P
                         </p>
                     )}
 
+                    <p className="text-[11px] text-stone-500">
+                        Cochez ce qui est acheté ou ce que le client a déjà (ex : beurre), puis « Enregistrer » :
+                        les cases restent cochées la prochaine fois, sur tous vos appareils.
+                    </p>
+
                     <div className="flex flex-wrap gap-2">
+                        <Button
+                            size="sm"
+                            onClick={save}
+                            disabled={!isDirty || saving}
+                            className="bg-stone-900 hover:bg-stone-800 text-white rounded-full text-xs gap-1.5"
+                        >
+                            <Save className="w-3.5 h-3.5" /> {saving ? 'Enregistrement…' : isDirty ? 'Enregistrer' : 'Enregistré'}
+                        </Button>
                         <Button size="sm" onClick={copy} className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-full text-xs gap-1.5">
                             <Copy className="w-3.5 h-3.5" /> Copier la liste
                         </Button>
@@ -145,7 +171,7 @@ export default function GroceryListCard({ list, title, storageKey, onCopied }: P
                             </h4>
                             <ul className="divide-y divide-stone-100 rounded-2xl border border-stone-200">
                                 {section.items.map(item => {
-                                    const isChecked = !!checked[item.key];
+                                    const isChecked = checked.includes(item.key);
                                     return (
                                         <li key={item.key}>
                                             <button

@@ -2,7 +2,8 @@
 
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
-import { COMMON_ALLERGIES } from '@/lib/allergies';
+import { allergyOptions } from '@/lib/allergies';
+import CustomAllergyInput from '@/components/CustomAllergyInput';
 import { 
     Check, 
     Sparkles, 
@@ -428,7 +429,7 @@ export default function ClientMenuSelectionPage() {
                                                 </p>
                                             )}
                                             <div className="flex flex-wrap gap-2">
-                                                {Array.from(new Set([...lockedAllergies, ...COMMON_ALLERGIES])).map((item) => {
+                                                {allergyOptions(lockedAllergies, allergies).map((item) => {
                                                     const isChecked = allergies.includes(item);
                                                     const isLocked = lockedAllergies.includes(item);
                                                     return (
@@ -448,6 +449,12 @@ export default function ClientMenuSelectionPage() {
                                                     );
                                                 })}
                                             </div>
+                                            <CustomAllergyInput
+                                                existing={allergies}
+                                                onAdd={tag => setAllergies(prev => [...prev, tag])}
+                                                focusRingClass="focus:ring-amber-500"
+                                                buttonClass="bg-amber-600 hover:bg-amber-700"
+                                            />
 
                                             <div className="pt-2">
                                                 <label className="text-xs font-semibold text-stone-700 block mb-1">
