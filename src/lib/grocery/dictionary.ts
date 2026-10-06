@@ -291,6 +291,10 @@ export const ALLERGY_TAGS: Record<string, IngredientTag[]> = {
     'Végétarien': ['viande', 'porc', 'poisson', 'crustaces'],
     'Végan': ['viande', 'porc', 'poisson', 'crustaces', 'lactose', 'oeuf', 'miel'],
     'Faible en sel': ['sel'],
+    // Not in the button list, but often typed by hand with « Autre »
+    'Halal': ['porc'],
+    'Kasher': ['porc', 'crustaces'],
+    'Casher': ['porc', 'crustaces'],
     // Pregnancy is about cooking, not ingredients: shown in the allergy banner, not flagged per item
     'Femme enceinte (bien cuit)': []
 };

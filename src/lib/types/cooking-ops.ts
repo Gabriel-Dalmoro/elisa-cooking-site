@@ -69,6 +69,7 @@ export interface ClientSelection {
     customDish?: string; // The one dish the client wrote themselves (replaces one menu dish)
     recipeOverrides: Record<string, string>; // Elisa's recipe adapted for this client only, keyed by dish id ('__custom__' = custom dish). Staff only.
     ingredientOverrides: Record<string, string>; // Same, for the ingredient list (feeds this client's grocery list). Staff only.
+    groceryChecked: string[]; // Grocery list items ticked off and saved by Elisa (item keys). Staff only.
     generalNote?: string;
     submittedAt: string;
     allergiesAtSubmission: string[];

@@ -3,7 +3,7 @@
 import React, { useState, useMemo } from "react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowLeft, ArrowRight, Briefcase, Car, Check, Clock, Cookie, Flame, Info, Lightbulb, ListTodo, PackageOpen, Search, Utensils } from "lucide-react";
+import { ArrowLeft, ArrowRight, Briefcase, Car, Check, Clock, Flame, Info, Lightbulb, ListTodo, PackageOpen, Search, Utensils } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { PRICING_CONFIG, usePricingCalculation, getGroceryUnitCost } from "@/components/simulator/usePricingLogic";
 import { AddressAutocomplete } from "@/components/booking/AddressAutocomplete";
@@ -77,7 +77,6 @@ export function SimulatorForm({ promoConfig, leadMenu }: SimulatorFormProps) {
     const [isSubmitSuccess, setIsSubmitSuccess] = useState(false);
     const [isEligible, setIsEligible] = useState(true);
     const [addressDetails, setAddressDetails] = useState<{ address: string; distance: number | null; coords: [number, number] } | null>(null);
-    const [hasSweetAddon, setHasSweetAddon] = useState(false);
 
     // Form states
     const [formData, setFormData] = useState({
@@ -218,7 +217,6 @@ export function SimulatorForm({ promoConfig, leadMenu }: SimulatorFormProps) {
                 is_subscribed: appliedGiftCard ? false : isSubscribed,
                 frequency_label: frequencyLabel,
                 engagement_type: engagementLabel,
-                has_sweet_addon: hasSweetAddon ? "Oui" : "Non",
                 total_price: appliedGiftCard ? "0€ (Cadeau)" : `${formatPrice(calculation.finalPocketCost)}€`,
                 billed_total: appliedGiftCard ? "0€ (Cadeau)" : `${formatPrice(calculation.amountToPayElisa)}€`,
                 grocery_min: `${formatPrice(calculation.groceryRange.min)}€`,
@@ -270,7 +268,6 @@ export function SimulatorForm({ promoConfig, leadMenu }: SimulatorFormProps) {
                 setFormData({ name: "", email: "", phone: "", message: "", ingredientConsent: false, termsConsent: false });
                 setAddressDetails(null);
                 setIsEligible(true);
-                setHasSweetAddon(false);
             } else {
                 alert("Une erreur est survenue lors de l'envoi de votre demande.");
             }
@@ -430,54 +427,14 @@ export function SimulatorForm({ promoConfig, leadMenu }: SimulatorFormProps) {
                                                 </div>
                                             )}
 
-                                            {/* Sweet Add-on Option */}
-                                            <motion.div
-                                                initial={{ opacity: 0, y: 10 }}
-                                                animate={{ opacity: 1, y: 0 }}
-                                                transition={{ delay: 0.3 }}
-                                                className="flex justify-center"
-                                            >
-                                                <button
-                                                    onClick={() => setHasSweetAddon(!hasSweetAddon)}
-                                                    className={cn(
-                                                        "group flex items-center gap-4 px-6 py-4 rounded-2xl border-2 transition-all duration-300",
-                                                        hasSweetAddon
-                                                            ? "bg-brand-gold/10 border-brand-gold shadow-md"
-                                                            : "bg-white border-stone-100 hover:border-stone-200"
-                                                    )}
-                                                >
-                                                    <div className={cn(
-                                                        "h-6 w-6 rounded-md border-2 flex items-center justify-center transition-all",
-                                                        hasSweetAddon ? "bg-brand-gold border-brand-gold text-stone-900" : "bg-transparent border-stone-200 text-transparent"
-                                                    )}>
-                                                        <Check className="h-4 w-4 stroke-[3px]" />
-                                                    </div>
-                                                    <div className="flex items-center gap-3">
-                                                        <div className={cn(
-                                                            "h-10 w-10 rounded-xl flex items-center justify-center transition-colors",
-                                                            hasSweetAddon ? "bg-brand-gold/20 text-brand-gold" : "bg-stone-50 text-stone-400 group-hover:bg-stone-100"
-                                                        )}>
-                                                            <Cookie className="h-5 w-5" />
-                                                        </div>
-                                                        <div className="text-left">
-                                                            <p className="text-sm font-bold text-stone-900">Complément sucré (optionnel)</p>
-                                                            <p className="text-[10px] text-stone-500 font-medium leading-tight">
-                                                                Pâtisseries artisanales premium signées <span className="text-brand-rose font-bold">Butter Mood</span>.<br />
-                                                                <span className="text-emerald-500 font-bold italic">Elisa en discutera avec vous (non inclus dans ce devis).</span>
-                                                            </p>
-                                                        </div>
-                                                    </div>
-                                                </button>
-                                            </motion.div>
-
-                                            <div className="flex justify-center -mt-2">
+                                            <div className="flex justify-center">
                                                 <Link
                                                     href="/menu"
                                                     target="_blank"
                                                     className="group inline-flex items-center gap-2 px-4 py-2 rounded-full bg-stone-50 border border-stone-100 text-xs md:text-sm text-stone-500 font-medium hover:bg-white hover:border-brand-rose/20 hover:text-brand-rose hover:shadow-md transition-all"
                                                 >
                                                     <span className="bg-white p-1 rounded-full shadow-sm group-hover:scale-110 transition-transform">📖</span>
-                                                    <span>Voir un exemple de menu et nos douceurs</span>
+                                                    <span>Voir un exemple de menu</span>
                                                     <ArrowRight className="h-3 w-3 opacity-0 -ml-2 group-hover:opacity-100 group-hover:ml-0 transition-all" />
                                                 </Link>
                                             </div>

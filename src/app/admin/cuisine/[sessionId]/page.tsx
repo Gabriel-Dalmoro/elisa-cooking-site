@@ -26,6 +26,8 @@ import { BookingSession, ClientProfile, ClientSelection, WeeklyDish } from '@/li
 import { effectiveRecipe, DishRecipe } from '@/lib/grocery/recipe';
 import { buildGroceryList } from '@/lib/grocery/list';
 
+const NO_TICKS: string[] = [];
+
 interface KitchenSheet {
     session: BookingSession;
     client: ClientProfile | null;
@@ -175,6 +177,25 @@ export default function ChefCookingModePage({ params }: { params: Promise<{ sess
             ]
         });
     }, [sheet, recipes, persons]);
+
+    // Saves the ticked grocery items for this client's week (still ticked next time, on any device)
+    const saveGroceryTicks = async (checkedKeys: string[]) => {
+        try {
+            const res = await fetch(`/api/cooking-ops/session/${encodeURIComponent(sessionId)}`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ groceryChecked: checkedKeys })
+            });
+            const data = await res.json().catch(() => ({}));
+            if (!res.ok) throw new Error(data.error || 'Enregistrement impossible');
+            setSheet(prev => (prev ? { ...prev, selection: data.selection } : prev));
+            showToast('Liste de courses enregistrée', 'check');
+            return true;
+        } catch (e) {
+            showToast(e instanceof Error ? e.message : 'Enregistrement impossible', 'error');
+            return false;
+        }
+    };
 
     // Saves the recipe for this client only (the week's menu and the recipe bank are untouched).
     // Both boxes empty goes back to the menu recipe.
@@ -448,7 +469,8 @@ export default function ChefCookingModePage({ params }: { params: Promise<{ sess
                     <GroceryListCard
                         list={groceryList}
                         title={`Liste de courses — ${displayName}`}
-                        storageKey={`cuisine:${sessionId}:courses`}
+                        savedChecked={selection?.groceryChecked || NO_TICKS}
+                        onSave={saveGroceryTicks}
                         onCopied={ok => showToast(ok ? 'Liste copiée — collez-la dans WhatsApp ou Notes' : 'Copie impossible sur cet appareil', ok ? 'check' : 'error')}
                     />
                 )}

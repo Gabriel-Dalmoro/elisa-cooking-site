@@ -3,7 +3,6 @@ import { WeeklyDish, WeeklyMenuData } from '@/lib/types/cooking-ops';
 import { ChefHat, Calendar, Utensils, ArrowRight } from 'lucide-react';
 import Link from 'next/link';
 import { RecipeCard } from '@/components/menu/RecipeCard';
-import { SweetMenu } from '@/components/menu/SweetMenu';
 
 // Refreshed every 5 minutes: a menu Elisa publishes in the admin shows up here on its own
 export const revalidate = 300;
@@ -96,9 +95,6 @@ export default async function MenuPage() {
                         </section>
                     ))}
                 </div>
-
-                {/* Sweet Menu Add-on */}
-                <SweetMenu />
 
                 {/* Final CTA */}
                 <div className="mt-20 text-center bg-stone-900 rounded-[2.5rem] p-10 md:p-16 relative overflow-hidden shadow-2xl">

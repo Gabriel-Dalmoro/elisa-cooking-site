@@ -24,6 +24,8 @@ const CUSTOM_DISH_KEY = '__custom_dish__';
 const RECIPE_OVERRIDES_KEY = '__recipe_overrides__';
 // And their ingredient lists (dish id → ingredient text), read by the client's grocery list
 const INGREDIENT_OVERRIDES_KEY = '__ingredient_overrides__';
+// And the grocery items Elisa ticked off (bought, or the client already has them), saved with the Save button
+const GROCERY_CHECKED_KEY = '__grocery_checked__';
 // Key used in the recipe overrides for the client's custom dish (it has no menu dish id)
 export const CUSTOM_DISH_RECIPE_ID = '__custom__';
 
@@ -42,9 +44,11 @@ function rowToSelection(row: SelectionRow): ClientSelection {
     const customDish = typeof notes[CUSTOM_DISH_KEY] === 'string' ? notes[CUSTOM_DISH_KEY] : '';
     const recipeOverrides = asStringRecord(notes[RECIPE_OVERRIDES_KEY]);
     const ingredientOverrides = asStringRecord(notes[INGREDIENT_OVERRIDES_KEY]);
+    const groceryChecked = asStringArray(notes[GROCERY_CHECKED_KEY]);
     delete notes[CUSTOM_DISH_KEY];
     delete notes[RECIPE_OVERRIDES_KEY];
     delete notes[INGREDIENT_OVERRIDES_KEY];
+    delete notes[GROCERY_CHECKED_KEY];
     const dishNotes: Record<string, string> = {};
     for (const [id, note] of Object.entries(notes)) if (typeof note === 'string') dishNotes[id] = note;
     return {
@@ -57,6 +61,7 @@ function rowToSelection(row: SelectionRow): ClientSelection {
         customDish,
         recipeOverrides,
         ingredientOverrides,
+        groceryChecked,
         generalNote: row.general_note || '',
         submittedAt: row.submitted_at,
         allergiesAtSubmission: asStringArray(row.allergies_at_submission),
@@ -175,5 +180,33 @@ export async function setRecipeOverride(
         .select('*')
         .single();
     if (error) throw new Error(`Enregistrement de la recette impossible : ${error.message}`);
+    return rowToSelection(data as SelectionRow);
+}
+
+/**
+ * Saves which grocery items are ticked off for this client's week (the keys of the list items).
+ */
+export async function setGroceryChecked(clientId: string, weekStart: string, keys: string[]): Promise<ClientSelection> {
+    const supabase = getSupabaseAdmin();
+    const { data: row, error: readError } = await supabase
+        .from('client_selections')
+        .select('dish_notes')
+        .eq('client_id', clientId)
+        .eq('week_start', weekStart)
+        .maybeSingle();
+    if (readError) throw new Error(`Lecture du choix client impossible : ${readError.message}`);
+    if (!row) throw new Error('Ce client n’a pas encore envoyé ses choix pour cette semaine.');
+
+    const notes = row.dish_notes && typeof row.dish_notes === 'object' ? { ...(row.dish_notes as Record<string, unknown>) } : {};
+    notes[GROCERY_CHECKED_KEY] = [...new Set(keys)];
+
+    const { data, error } = await supabase
+        .from('client_selections')
+        .update({ dish_notes: notes, updated_at: new Date().toISOString() })
+        .eq('client_id', clientId)
+        .eq('week_start', weekStart)
+        .select('*')
+        .single();
+    if (error) throw new Error(`Enregistrement de la liste impossible : ${error.message}`);
     return rowToSelection(data as SelectionRow);
 }

@@ -43,7 +43,8 @@ import { useConfirm } from '@/components/admin/useConfirm';
 import { useToast } from '@/components/admin/useToast';
 import { ClientProfile, SlotSessionStatus, WeeklyMenuData } from '@/lib/types/cooking-ops';
 import { getWeekBounds, WEEK_DAY_NAMES } from '@/lib/dateUtils';
-import { COMMON_ALLERGIES } from '@/lib/allergies';
+import { allergyOptions } from '@/lib/allergies';
+import CustomAllergyInput from '@/components/CustomAllergyInput';
 
 const SLOTS: ('Matin' | 'Après-midi')[] = ['Matin', 'Après-midi'];
 
@@ -1260,7 +1261,7 @@ export default function WeeklyOpsAdminDashboard() {
                         <div>
                             <label className="font-semibold block text-stone-700 mb-1">Allergies & Restrictions</label>
                             <div className="flex flex-wrap gap-1.5 pt-1">
-                                {COMMON_ALLERGIES.map(tag => {
+                                {allergyOptions(clientFormAllergies).map(tag => {
                                     const active = clientFormAllergies.includes(tag);
                                     return (
                                         <button
@@ -1276,6 +1277,10 @@ export default function WeeklyOpsAdminDashboard() {
                                     );
                                 })}
                             </div>
+                            <CustomAllergyInput
+                                existing={clientFormAllergies}
+                                onAdd={tag => setClientFormAllergies(prev => [...prev, tag])}
+                            />
                         </div>
                         <div>
                             <label className="font-semibold block text-stone-700 mb-1">Notes cuisine (Plaques, équipement...)</label>

@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getSession, setSessionIgnored, deleteSession } from '@/lib/db/sessions';
 import { deleteGoogleCalendarEvent } from '@/lib/googleCalendar';
 import { getClientById } from '@/lib/db/clients';
-import { getSelection, setRecipeOverride, CUSTOM_DISH_RECIPE_ID } from '@/lib/db/selections';
+import { getSelection, setRecipeOverride, setGroceryChecked, CUSTOM_DISH_RECIPE_ID } from '@/lib/db/selections';
 import { getMenu } from '@/lib/db/menus';
 import { getWeekStartForDate } from '@/lib/dateUtils';
 import { requireOwner } from '@/lib/auth';
@@ -50,6 +50,7 @@ export async function GET(_req: NextRequest, { params }: Params) {
  * PATCH { ignored: boolean } → hide a calendar event that isn't a cooking session (kept hidden across syncs)
  * PATCH { dishId, recipe, ingredients? } → Elisa's recipe for one dish, adapted for THIS client only
  *   (the week's menu and the recipe bank stay unchanged; both empty goes back to the menu one)
+ * PATCH { groceryChecked: string[] } → saves the ticked grocery items for this client's week
  */
 export async function PATCH(req: NextRequest, { params }: Params) {
     const denied = await requireOwner();
@@ -74,6 +75,19 @@ export async function PATCH(req: NextRequest, { params }: Params) {
             }
             const ingredients = typeof body.ingredients === 'string' ? body.ingredients.slice(0, 20000) : undefined;
             const updated = await setRecipeOverride(session.clientId, weekStart, body.dishId, body.recipe.slice(0, 20000), ingredients);
+            return NextResponse.json({ success: true, selection: updated });
+        }
+
+        if (Array.isArray(body.groceryChecked)) {
+            const session = await getSession(id);
+            if (!session?.clientId) {
+                return NextResponse.json({ error: 'Aucune fiche client liée à cette séance' }, { status: 404 });
+            }
+            const keys = body.groceryChecked
+                .filter((k: unknown): k is string => typeof k === 'string' && k.length > 0)
+                .slice(0, 1000)
+                .map((k: string) => k.slice(0, 200));
+            const updated = await setGroceryChecked(session.clientId, getWeekStartForDate(session.dateIso), keys);
             return NextResponse.json({ success: true, selection: updated });
         }
 
