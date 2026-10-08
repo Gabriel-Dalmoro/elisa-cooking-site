@@ -20,7 +20,8 @@ import {
     ExternalLink, 
     Key, 
     Clock,
-    RefreshCw
+    RefreshCw,
+    ShoppingCart
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -79,6 +80,9 @@ export default function TodayOperationsPage() {
     const todaySessions = useMemo(() => {
         return allSessions.filter(s => s.session.dateIso === isoSelectedDate);
     }, [allSessions, isoSelectedDate]);
+
+    // Clients of the day who already chose: one combined grocery list for all of them
+    const shoppableIds = todaySessions.filter(s => !s.isUnmatchedClient && s.selection).map(s => s.session.id);
 
     const morningSessions = todaySessions.filter(s => s.session.timeSlot === 'Matin');
     const afternoonSessions = todaySessions.filter(s => s.session.timeSlot === 'Après-midi');
@@ -444,6 +448,24 @@ export default function TodayOperationsPage() {
                         <ChevronRight className="w-4 h-4" />
                     </button>
                 </div>
+
+                {!loading && shoppableIds.length >= 2 && (
+                    <Link
+                        href={`/admin/courses?s=${shoppableIds.join(',')}`}
+                        className="flex items-center justify-between gap-3 bg-emerald-50 border border-emerald-200 rounded-3xl p-4 hover:border-emerald-400 transition-colors"
+                    >
+                        <span className="flex items-center gap-3">
+                            <span className="w-10 h-10 rounded-2xl bg-white border border-emerald-200 flex items-center justify-center shrink-0">
+                                <ShoppingCart className="w-5 h-5 text-emerald-700" />
+                            </span>
+                            <span>
+                                <span className="block text-sm font-bold text-stone-900">Courses groupées</span>
+                                <span className="block text-xs text-stone-600">Une seule liste pour les {shoppableIds.length} clients de ce jour</span>
+                            </span>
+                        </span>
+                        <ChevronRight className="w-5 h-5 text-emerald-700 shrink-0" />
+                    </Link>
+                )}
 
                 {/* Content Section */}
                 {loading ? (

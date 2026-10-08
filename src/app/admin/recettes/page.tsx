@@ -241,7 +241,7 @@ export default function WeeklyRecipeAndVaultPage() {
     const changeStatus = async (status: MenuStatus) => {
         if (!menu) return;
         const dialogOptions = status === 'open'
-            ? { title: 'Ouvrir le menu aux clients ?', description: `Les liens clients afficheront le menu de la ${menu.weekLabel.toLowerCase()} et les clients pourront envoyer leurs choix.`, confirmLabel: 'Ouvrir aux clients' }
+            ? { title: 'Ouvrir le menu aux clients ?', description: `Les liens clients afficheront le menu de la ${menu.weekLabel.toLowerCase()} et les clients pourront envoyer leurs choix. Si un autre menu est encore ouvert, chaque client choisira la semaine sur son lien (le même lien).`, confirmLabel: 'Ouvrir aux clients' }
             : status === 'closed'
                 ? { title: 'Clôturer les choix ?', description: 'Les clients ne pourront plus envoyer ni modifier leur sélection.', confirmLabel: 'Clôturer', tone: 'danger' as const }
                 : { title: 'Repasser en brouillon ?', description: 'Les liens clients n’afficheront plus ce menu.', confirmLabel: 'Repasser en brouillon', tone: 'danger' as const };
