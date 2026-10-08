@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
+import { headers } from 'next/headers';
 import { createSupabaseServerClient } from './supabase/server';
 import { getSupabaseAdmin } from './supabase/admin';
+import { isPreviewWithoutLogin, PREVIEW_STAFF } from './previewAccess';
 
 export type StaffRole = 'owner' | 'assistant';
 
@@ -10,7 +12,8 @@ export type StaffRole = 'owner' | 'assistant';
 export async function getCurrentStaff(): Promise<{ userId: string; role: StaffRole; displayName: string | null } | null> {
     const supabase = await createSupabaseServerClient();
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return null;
+    // Preview deployments (not main): acts as Elisa when nobody is logged in. Production never does.
+    if (!user) return isPreviewWithoutLogin((await headers()).get('host')) ? PREVIEW_STAFF : null;
 
     const { data: staff, error } = await getSupabaseAdmin()
         .from('staff')
