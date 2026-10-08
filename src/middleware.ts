@@ -1,5 +1,6 @@
 import { createServerClient } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
+import { isPreviewWithoutLogin } from '@/lib/previewAccess';
 
 // Public endpoints inside protected prefixes
 const PUBLIC_PATHS = ['/admin/login', '/api/cooking-ops/client'];
@@ -22,6 +23,11 @@ function failClosed(request: NextRequest, reason: string) {
 export async function middleware(request: NextRequest) {
     const { pathname } = request.nextUrl;
     if (PUBLIC_PATHS.some(p => pathname === p || pathname.startsWith(`${p}/`))) {
+        return NextResponse.next({ request });
+    }
+
+    // Preview deployments (not main): no login needed. Production always checks.
+    if (isPreviewWithoutLogin(request.headers.get('host'))) {
         return NextResponse.next({ request });
     }
 
