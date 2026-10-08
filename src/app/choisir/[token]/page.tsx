@@ -17,7 +17,8 @@ import {
     Flame,
     ArrowRight,
     Lock,
-    PenLine
+    PenLine,
+    CalendarDays
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -45,6 +46,20 @@ interface PublicMenu {
     dishes: PublicDish[];
 }
 
+interface ExistingSelection {
+    selectedDishIds: string[];
+    selectedDishNames: string[];
+    dishNotes?: Record<string, string>;
+    customDish?: string;
+    submittedAt?: string;
+}
+
+// One open week. Usually one, but two when Elisa opens next week's menu early.
+interface PublicWeek extends PublicMenu {
+    when: string; // "Cette semaine" / "Semaine prochaine"
+    existingSelection: ExistingSelection | null;
+}
+
 // What the client sent: shown after sending, and every time the link is opened again
 interface SentRecap {
     dishes: { name: string; note: string }[];
@@ -61,11 +76,13 @@ export default function ClientMenuSelectionPage() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [client, setClient] = useState<PublicClient | null>(null);
-    const [menu, setMenu] = useState<PublicMenu | null>(null);
+    const [weeks, setWeeks] = useState<PublicWeek[]>([]);
+    const [activeWeekStart, setActiveWeekStart] = useState<string | null>(null);
     // open = the client can choose | none = no menu published yet | closed = choices locked
     const [menuState, setMenuState] = useState<'open' | 'none' | 'closed'>('none');
     const [closedWeekLabel, setClosedWeekLabel] = useState<string | null>(null);
-    const [sentRecap, setSentRecap] = useState<SentRecap | null>(null);
+    // What was sent, per week (weekStart → recap)
+    const [sentByWeek, setSentByWeek] = useState<Record<string, SentRecap>>({});
     const [submitError, setSubmitError] = useState<string | null>(null);
     
     // Form state (dish ids)
@@ -97,22 +114,29 @@ export default function ClientMenuSelectionPage() {
                 setClient(data.client);
                 setMenuState(data.state);
                 setClosedWeekLabel(data.weekLabel || null);
-                setMenu(data.state === 'open' ? data.menu : null);
+                const openWeeks: PublicWeek[] = data.state === 'open' ? data.weeks || [] : [];
+                setWeeks(openWeeks);
                 setAllergies(data.client.allergies || []);
                 setLockedAllergies(data.client.allergies || []);
                 setDislikes(data.client.dislikes || '');
 
-                const existing = data.existingSelection;
-                if (existing) {
-                    const ids: string[] = existing.selectedDishIds || [];
-                    const names: string[] = existing.selectedDishNames || [];
-                    setSentRecap({
+                const sent: Record<string, SentRecap> = {};
+                for (const week of openWeeks) {
+                    const existing = week.existingSelection;
+                    if (!existing) continue;
+                    const ids = existing.selectedDishIds || [];
+                    const names = existing.selectedDishNames || [];
+                    sent[week.weekStart] = {
                         dishes: ids.map((id, i) => ({ name: names[i] || '', note: existing.dishNotes?.[id] || '' })),
                         customDish: existing.customDish || '',
                         submittedAt: existing.submittedAt || null,
                         justSent: false
-                    });
+                    };
                 }
+                setSentByWeek(sent);
+                // Start on the first week still to choose (usually the current one)
+                const firstToChoose = openWeeks.find(w => !sent[w.weekStart]) || openWeeks[0];
+                setActiveWeekStart(firstToChoose ? firstToChoose.weekStart : null);
             } catch (err: unknown) {
                 const message = err instanceof Error ? err.message : 'Erreur de chargement';
                 setError(message);
@@ -124,6 +148,23 @@ export default function ClientMenuSelectionPage() {
             loadData();
         }
     }, [token]);
+
+    const menu: PublicWeek | null = weeks.find(w => w.weekStart === activeWeekStart) || null;
+    const sentRecap: SentRecap | null = menu ? sentByWeek[menu.weekStart] || null : null;
+    const hasSeveralWeeks = weeks.length > 1;
+
+    // Switching week starts a fresh selection (each week is chosen and sent on its own)
+    const switchWeek = (weekStart: string) => {
+        if (weekStart === activeWeekStart) return;
+        setActiveWeekStart(weekStart);
+        setSelectedDishes([]);
+        setDishNotes({});
+        setGeneralNote('');
+        setWantsCustomDish(false);
+        setCustomDish('');
+        setSubmitError(null);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    };
 
     // The client's formula, capped by the number of dishes on this week's menu
     const targetCount = Math.min(client?.defaultDishCount || 4, menu?.dishes.length || client?.defaultDishCount || 4);
@@ -199,7 +240,11 @@ export default function ClientMenuSelectionPage() {
                 return;
             }
             if (res.status === 409) {
-                // Elisa closed the menu while the client was choosing
+                // Elisa closed this week's menu while the client was choosing
+                if (hasSeveralWeeks) {
+                    window.location.reload();
+                    return;
+                }
                 setClosedWeekLabel(menu.weekLabel);
                 setMenuState('closed');
                 return;
@@ -209,12 +254,15 @@ export default function ClientMenuSelectionPage() {
             }
 
             setLockedAllergies(allergies);
-            setSentRecap({
-                dishes: selectedDishes.map(id => ({ name: dishName(id), note: dishNotes[id]?.trim() || '' })),
-                customDish: wantsCustomDish ? customDish.trim() : '',
-                submittedAt: new Date().toISOString(),
-                justSent: true
-            });
+            setSentByWeek(prev => ({
+                ...prev,
+                [menu.weekStart]: {
+                    dishes: selectedDishes.map(id => ({ name: dishName(id), note: dishNotes[id]?.trim() || '' })),
+                    customDish: wantsCustomDish ? customDish.trim() : '',
+                    submittedAt: new Date().toISOString(),
+                    justSent: true
+                }
+            }));
             window.scrollTo({ top: 0, behavior: 'smooth' });
         } catch (err: unknown) {
             setSubmitError(err instanceof Error ? err.message : 'Erreur lors de l’enregistrement');
@@ -285,11 +333,63 @@ export default function ClientMenuSelectionPage() {
         );
     }
 
+    // Shown only when two weeks are open: which week am I choosing for?
+    const weekPicker = hasSeveralWeeks ? (
+        <div className="bg-white rounded-3xl p-4 sm:p-5 border-2 border-[#E1567A]/40 shadow-sm space-y-3 text-left">
+            <div className="flex items-center gap-2">
+                <CalendarDays className="w-5 h-5 text-[#E1567A] shrink-0" />
+                <p className="text-sm font-bold text-stone-900">
+                    {weeks.length} menus sont ouverts. Pour quelle semaine choisissez-vous ?
+                </p>
+            </div>
+            <div className={`grid gap-2.5 ${weeks.length === 2 ? 'grid-cols-1 sm:grid-cols-2' : 'grid-cols-1'}`}>
+                {weeks.map(week => {
+                    const isActive = week.weekStart === activeWeekStart;
+                    const isSent = Boolean(sentByWeek[week.weekStart]);
+                    return (
+                        <button
+                            key={week.weekStart}
+                            type="button"
+                            onClick={() => switchWeek(week.weekStart)}
+                            aria-pressed={isActive}
+                            className={`rounded-2xl border-2 p-3.5 text-left transition-all cursor-pointer ${
+                                isActive
+                                    ? 'border-[#E1567A] bg-rose-50 ring-2 ring-[#E1567A]/20'
+                                    : 'border-stone-200 bg-stone-50 hover:border-stone-300'
+                            }`}
+                        >
+                            <span className="flex items-center justify-between gap-2">
+                                <span className={`text-[11px] font-black uppercase tracking-wider ${isActive ? 'text-[#E1567A]' : 'text-stone-500'}`}>
+                                    {week.when}
+                                </span>
+                                {isSent ? (
+                                    <span className="text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-full px-2 py-0.5">
+                                        ✓ Choix envoyés
+                                    </span>
+                                ) : (
+                                    <span className="text-[10px] font-bold bg-amber-50 text-amber-800 border border-amber-200 rounded-full px-2 py-0.5">
+                                        À choisir
+                                    </span>
+                                )}
+                            </span>
+                            <span className="block font-serif font-bold text-stone-900 text-base mt-1">{week.weekLabel}</span>
+                            {isActive && <span className="block text-[11px] text-[#E1567A] font-semibold mt-0.5">← Vous êtes ici</span>}
+                        </button>
+                    );
+                })}
+            </div>
+        </div>
+    ) : null;
+
+    // Next week still to choose, offered after sending this one
+    const nextWeekToChoose = weeks.find(w => w.weekStart !== activeWeekStart && !sentByWeek[w.weekStart]);
+
     if (sentRecap) {
         const sentTotal = sentRecap.dishes.length + (sentRecap.customDish ? 1 : 0);
         return (
             <div className="min-h-screen bg-[#faf8f5] py-12 px-4">
-                <div className="max-w-xl mx-auto">
+                <div className="max-w-xl mx-auto space-y-5">
+                    {weekPicker}
                     <Card className="bg-white border-emerald-200 shadow-xl overflow-hidden text-center p-8 rounded-3xl">
                         <div className="w-16 h-16 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto mb-4">
                             <CheckCircle2 className="w-10 h-10" />
@@ -345,6 +445,15 @@ export default function ClientMenuSelectionPage() {
                             <Lock className="w-3.5 h-3.5" />
                             Vos choix sont enregistrés. Pour toute modification, contactez Elisa.
                         </p>
+
+                        {nextWeekToChoose && (
+                            <Button
+                                onClick={() => switchWeek(nextWeekToChoose.weekStart)}
+                                className="mt-6 w-full bg-[#E1567A] hover:bg-[#c94567] text-white rounded-full font-semibold gap-2"
+                            >
+                                Choisir pour la {nextWeekToChoose.weekLabel.toLowerCase()} <ArrowRight className="w-4 h-4" />
+                            </Button>
+                        )}
                     </Card>
                 </div>
             </div>
@@ -380,7 +489,8 @@ export default function ClientMenuSelectionPage() {
 
             {/* Main Content Area with Generous Spacing */}
             <main className="max-w-3xl mx-auto px-4 pt-8 sm:pt-10 space-y-8">
-                
+                {weekPicker}
+
                 {/* Welcome Card */}
                 <div className="bg-white rounded-3xl p-6 sm:p-7 border border-stone-200 shadow-sm">
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -394,6 +504,10 @@ export default function ClientMenuSelectionPage() {
                             <h1 className="text-2xl sm:text-3xl font-serif font-bold text-stone-900">
                                 Bonjour {client.firstName} 👋
                             </h1>
+                            <p className="text-sm font-bold text-[#E1567A] mt-1 flex items-center gap-1.5">
+                                <CalendarDays className="w-4 h-4" />
+                                {hasSeveralWeeks ? `${menu.when} · ` : ''}{menu.weekLabel}
+                            </p>
                             <p className="text-xs sm:text-sm text-stone-600 mt-1.5">
                                 Choisissez vos <strong>{targetCount} plats</strong> parmi les {menu.dishes.length} recettes fraîches de la semaine.
                                 {targetCount > 0 && <> Envie d&apos;autre chose ? Vous pouvez remplacer <strong>un</strong> des plats par un plat sur mesure (en bas de la liste).</>}
@@ -705,6 +819,9 @@ export default function ClientMenuSelectionPage() {
                     <DialogHeader>
                         <DialogTitle className="font-serif text-lg">Envoyer vos {targetCount} plats à Elisa ?</DialogTitle>
                     </DialogHeader>
+                    <p className="text-sm font-bold text-[#E1567A] flex items-center gap-1.5 -mt-1">
+                        <CalendarDays className="w-4 h-4" /> Pour la {menu.weekLabel.toLowerCase()}
+                    </p>
                     <div className="space-y-4 py-1 text-sm text-stone-700">
                         <ul className="space-y-1.5 bg-stone-50 border border-stone-200 rounded-2xl p-4">
                             {selectedDishes.map(id => (

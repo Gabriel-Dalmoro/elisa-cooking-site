@@ -13,7 +13,8 @@ import {
     Utensils,
     Calendar,
     Users,
-    Navigation
+    Navigation,
+    ShoppingCart
 } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -194,6 +195,27 @@ export default function AdminDashboard({ displayName }: { displayName: string | 
                         </Card>
                     </motion.div>
                 </div>
+
+                {/* Combined shopping for several clients */}
+                <motion.div whileHover={{ y: -3, transition: { duration: 0.2 } }}>
+                    <Card
+                        onClick={() => router.push('/admin/courses')}
+                        className="w-full flex flex-row items-center justify-between gap-4 hover:shadow-lg transition-all border-emerald-200 hover:border-emerald-400 cursor-pointer bg-emerald-50/60 rounded-3xl p-5 select-none"
+                    >
+                        <div className="flex items-center gap-4">
+                            <div className="h-11 w-11 rounded-2xl bg-white border border-emerald-200 flex items-center justify-center text-emerald-700 shrink-0">
+                                <ShoppingCart className="h-5 w-5" />
+                            </div>
+                            <div>
+                                <h3 className="text-sm font-bold text-stone-900">Courses groupées</h3>
+                                <p className="text-xs text-stone-600 mt-0.5">
+                                    Plusieurs clients à faire en même temps ? Une seule liste, avec la part de chacun.
+                                </p>
+                            </div>
+                        </div>
+                        <ArrowRight className="h-4 w-4 text-emerald-700 shrink-0" />
+                    </Card>
+                </motion.div>
 
                 {/* Secondary Utility Tools (3 Column Grid) */}
                 <div className="space-y-4 pt-2">

@@ -23,7 +23,7 @@ import RecipeBoxes from '@/components/admin/RecipeBoxes';
 import ScaledIngredients from '@/components/admin/ScaledIngredients';
 import GroceryListCard from '@/components/admin/GroceryListCard';
 import { BookingSession, ClientProfile, ClientSelection, WeeklyDish } from '@/lib/types/cooking-ops';
-import { effectiveRecipe, DishRecipe } from '@/lib/grocery/recipe';
+import { sheetRecipes, sheetGroceryInput, CUSTOM_DISH_RECIPE_ID } from '@/lib/grocery/fromSheet';
 import { buildGroceryList } from '@/lib/grocery/list';
 
 const NO_TICKS: string[] = [];
@@ -37,8 +37,6 @@ interface KitchenSheet {
     weekLabel: string;
 }
 
-// Recipe-override key for the client's custom dish (mirrors CUSTOM_DISH_RECIPE_ID in lib/db/selections)
-const CUSTOM_DISH_RECIPE_ID = '__custom__';
 
 // Minimal typing for the Screen Wake Lock API
 interface WakeLockSentinelLike {
@@ -136,46 +134,13 @@ export default function ChefCookingModePage({ params }: { params: Promise<{ sess
     };
 
     // Each chosen dish's ingredients and steps for this client (their adapted version, else the menu's)
-    const recipes = useMemo(() => {
-        const map: Record<string, DishRecipe> = {};
-        if (!sheet) return map;
-        const sel = sheet.selection;
-        const overrideFor = (id: string) => ({ recipe: sel?.recipeOverrides?.[id], ingredients: sel?.ingredientOverrides?.[id] });
-        for (const dish of sheet.dishes) {
-            map[dish.id] = effectiveRecipe(dish.ingredients || '', (dish.instructions || []).join('\n'), overrideFor(dish.id));
-        }
-        if (sel?.customDish) map[CUSTOM_DISH_RECIPE_ID] = effectiveRecipe('', '', overrideFor(CUSTOM_DISH_RECIPE_ID));
-        return map;
-    }, [sheet]);
+    const recipes = useMemo(() => (sheet ? sheetRecipes(sheet) : {}), [sheet]);
 
     const persons = sheet ? sheet.session.personCount || sheet.client?.personCount || 2 : 2;
 
     const groceryList = useMemo(() => {
-        if (!sheet?.client || !sheet.selection) return null;
-        const { client, selection, dishes } = sheet;
-        return buildGroceryList({
-            persons,
-            dishes: [
-                ...dishes.map(d => ({
-                    name: d.name,
-                    ingredients: recipes[d.id]?.ingredients || '',
-                    recipeText: recipes[d.id]?.steps || '',
-                    clientNote: selection.dishNotes?.[d.id]
-                })),
-                ...(selection.customDish
-                    ? [{
-                        name: selection.customDish,
-                        ingredients: recipes[CUSTOM_DISH_RECIPE_ID]?.ingredients || '',
-                        recipeText: recipes[CUSTOM_DISH_RECIPE_ID]?.steps || ''
-                    }]
-                    : [])
-            ],
-            allergies: client.allergies,
-            notes: [
-                { label: 'N’aime pas', text: client.dislikes || '' },
-                { label: 'Message de la semaine', text: selection.generalNote || '' }
-            ]
-        });
+        const input = sheet ? sheetGroceryInput(sheet, persons, recipes) : null;
+        return input ? buildGroceryList(input) : null;
     }, [sheet, recipes, persons]);
 
     // Saves the ticked grocery items for this client's week (still ticked next time, on any device)
@@ -471,6 +436,14 @@ export default function ChefCookingModePage({ params }: { params: Promise<{ sess
                         title={`Liste de courses — ${displayName}`}
                         savedChecked={selection?.groceryChecked || NO_TICKS}
                         onSave={saveGroceryTicks}
+                        extraActions={
+                            <Link
+                                href={`/admin/courses?s=${encodeURIComponent(sessionId)}`}
+                                className="inline-flex items-center gap-1.5 h-8 px-3 rounded-full border border-emerald-300 text-emerald-800 text-xs font-semibold hover:bg-emerald-50"
+                            >
+                                + Grouper avec un autre client
+                            </Link>
+                        }
                         onCopied={ok => showToast(ok ? 'Liste copiée — collez-la dans WhatsApp ou Notes' : 'Copie impossible sur cet appareil', ok ? 'check' : 'error')}
                     />
                 )}

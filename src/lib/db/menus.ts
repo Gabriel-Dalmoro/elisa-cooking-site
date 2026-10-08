@@ -117,12 +117,14 @@ export async function setMenuStatus(weekStart: string, status: MenuStatus): Prom
 }
 
 export type ClientFacingMenu =
-    | { state: 'open'; menu: WeeklyMenuData }
+    | { state: 'open'; menus: WeeklyMenuData[] }
     | { state: 'closed'; menu: WeeklyMenuData }
     | { state: 'none' };
 
 /**
- * What a client link shows: the most recent OPEN menu for this week or later.
+ * What a client link shows: every OPEN menu for this week or later, oldest first.
+ * Two weeks can be open at once (Elisa opens next week early): the client then picks
+ * which week they are choosing for, so nobody is locked out of the current week.
  * If none is open but one was closed, the client sees "choices closed".
  * Menus for past weeks are never shown (old links can't pick from a stale menu).
  */
@@ -132,13 +134,13 @@ export async function getClientFacingMenu(): Promise<ClientFacingMenu> {
         .select('*')
         .in('status', ['open', 'closed'])
         .gte('week_start', getCurrentWeekStart())
-        .order('week_start', { ascending: false });
+        .order('week_start', { ascending: true });
     if (error) throw new Error(`Lecture du menu impossible : ${error.message}`);
 
     const menus = (data as MenuRow[]).map(rowToMenu);
-    const open = menus.find(m => m.status === 'open');
-    if (open) return { state: 'open', menu: open };
-    if (menus.length > 0) return { state: 'closed', menu: menus[0] };
+    const open = menus.filter(m => m.status === 'open');
+    if (open.length > 0) return { state: 'open', menus: open };
+    if (menus.length > 0) return { state: 'closed', menu: menus[menus.length - 1] };
     return { state: 'none' };
 }
 
