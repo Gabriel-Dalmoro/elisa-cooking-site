@@ -233,3 +233,33 @@ export function isMondayIso(value: string): boolean {
 export function getWeekStartForDate(dateIso: string): string {
     return getWeekBounds(getWeekOffsetForDate(dateIso)).startIso;
 }
+
+export type Season = 'printemps' | 'ete' | 'automne' | 'hiver';
+
+/**
+ * Season of a date "YYYY-MM-DD" (by month: Sept–Nov autumn, Dec–Feb winter, Mar–May spring, Jun–Aug summer).
+ * Elisa only cooks seasonal produce, so past recipes offered to clients come from the same season.
+ */
+export function seasonOf(dateIso: string): Season {
+    const month = parseInt(dateIso.slice(5, 7), 10);
+    if (month >= 3 && month <= 5) return 'printemps';
+    if (month >= 6 && month <= 8) return 'ete';
+    if (month >= 9 && month <= 11) return 'automne';
+    return 'hiver';
+}
+
+/** « cet automne », « cet hiver »… for client-facing text. */
+export const SEASON_PHRASE: Record<Season, string> = {
+    printemps: 'ce printemps',
+    ete: 'cet été',
+    automne: 'cet automne',
+    hiver: 'cet hiver'
+};
+
+/** « de l'automne »… */
+export const SEASON_OF_PHRASE: Record<Season, string> = {
+    printemps: 'du printemps',
+    ete: 'de l’été',
+    automne: 'de l’automne',
+    hiver: 'de l’hiver'
+};

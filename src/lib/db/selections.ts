@@ -20,6 +20,8 @@ interface SelectionRow {
 
 // The client's own dish request is stored alongside the dish notes (no extra column needed)
 const CUSTOM_DISH_KEY = '__custom_dish__';
+// When that dish was picked from an earlier menu of the season: the week it was on (Monday)
+const CUSTOM_DISH_FROM_KEY = '__custom_dish_from__';
 // Same for Elisa's recipes adapted for this one client (dish id → recipe text). Never sent to the client.
 const RECIPE_OVERRIDES_KEY = '__recipe_overrides__';
 // And their ingredient lists (dish id → ingredient text), read by the client's grocery list
@@ -42,10 +44,12 @@ function asStringRecord(v: unknown): Record<string, string> {
 function rowToSelection(row: SelectionRow): ClientSelection {
     const notes = row.dish_notes && typeof row.dish_notes === 'object' ? { ...(row.dish_notes as Record<string, unknown>) } : {};
     const customDish = typeof notes[CUSTOM_DISH_KEY] === 'string' ? notes[CUSTOM_DISH_KEY] : '';
+    const customDishFrom = typeof notes[CUSTOM_DISH_FROM_KEY] === 'string' ? notes[CUSTOM_DISH_FROM_KEY] : undefined;
     const recipeOverrides = asStringRecord(notes[RECIPE_OVERRIDES_KEY]);
     const ingredientOverrides = asStringRecord(notes[INGREDIENT_OVERRIDES_KEY]);
     const groceryChecked = asStringArray(notes[GROCERY_CHECKED_KEY]);
     delete notes[CUSTOM_DISH_KEY];
+    delete notes[CUSTOM_DISH_FROM_KEY];
     delete notes[RECIPE_OVERRIDES_KEY];
     delete notes[INGREDIENT_OVERRIDES_KEY];
     delete notes[GROCERY_CHECKED_KEY];
@@ -59,6 +63,7 @@ function rowToSelection(row: SelectionRow): ClientSelection {
         selectedDishNames: asStringArray(row.selected_dish_names),
         dishNotes,
         customDish,
+        customDishFrom,
         recipeOverrides,
         ingredientOverrides,
         groceryChecked,
@@ -111,6 +116,7 @@ export async function upsertSelection(input: {
     selectedDishNames: string[];
     dishNotes: Record<string, string>;
     customDish: string;
+    customDishFrom?: string;
     generalNote: string;
     allergiesAtSubmission: string[];
     allergiesAdded: string[];
@@ -123,7 +129,13 @@ export async function upsertSelection(input: {
             week_start: input.weekStart,
             selected_dish_ids: input.selectedDishIds,
             selected_dish_names: input.selectedDishNames,
-            dish_notes: input.customDish ? { ...input.dishNotes, [CUSTOM_DISH_KEY]: input.customDish } : input.dishNotes,
+            dish_notes: input.customDish
+                ? {
+                    ...input.dishNotes,
+                    [CUSTOM_DISH_KEY]: input.customDish,
+                    ...(input.customDishFrom ? { [CUSTOM_DISH_FROM_KEY]: input.customDishFrom } : {})
+                }
+                : input.dishNotes,
             general_note: input.generalNote,
             allergies_at_submission: input.allergiesAtSubmission,
             allergies_added: input.allergiesAdded,

@@ -4,7 +4,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { CheckSquare, ChefHat, ShoppingCart, Square, Users } from 'lucide-react';
 import AdminPageHeader from '@/components/admin/AdminPageHeader';
-import GroceryListCard from '@/components/admin/GroceryListCard';
+import CombinedGroceryList from '@/components/admin/CombinedGroceryList';
 import { useToast } from '@/components/admin/useToast';
 import { BookingSession, SlotSessionStatus } from '@/lib/types/cooking-ops';
 import { getParisDateTimeInfo } from '@/lib/dateUtils';
@@ -125,41 +125,23 @@ export default function CombinedGroceryPage() {
 
     const list = useMemo(() => {
         if (chosen.length < 2) return null;
-        const clients: GroceryClientInput[] = chosen.map(c => ({
-            ...c.input,
-            label: c.label,
-            done: c.sheet.selection?.groceryChecked || []
-        }));
+        // Ticks are shown per client by the list itself: every client's full amounts are kept here
+        const clients: GroceryClientInput[] = chosen.map(c => ({ ...c.input, label: c.label }));
         return buildMergedGroceryList(clients);
     }, [chosen]);
 
-    // Ticked in the combined list = ticked for every client who needs that item
-    const savedChecked = useMemo(
-        () => (list ? list.sections.flatMap(s => s.items.filter(i => i.done).map(i => i.key)) : []),
-        [list]
+    // Each client's saved ticks (their own list), keyed by the label shown in the combined list
+    const savedTicks = useMemo(
+        () => Object.fromEntries(chosen.map(c => [c.label, c.sheet.selection?.groceryChecked || []])),
+        [chosen]
     );
 
-    // Only the items whose tick changed are written to each client's own list
-    const saveTicks = useCallback(async (checkedKeys: string[]) => {
-        if (!list) return false;
-        const turnedOn = checkedKeys.filter(k => !savedChecked.includes(k));
-        const turnedOff = savedChecked.filter(k => !checkedKeys.includes(k));
-        const itemsByClient = new Map<string, Set<string>>();
-        for (const item of list.sections.flatMap(s => s.items)) {
-            for (const share of item.byClient || []) {
-                if (!itemsByClient.has(share.client)) itemsByClient.set(share.client, new Set());
-                itemsByClient.get(share.client)!.add(item.key);
-            }
-        }
-
+    // A tick on a client's tile is a tick on that client's own list: save each client whose ticks changed
+    const saveTicks = useCallback(async (next: Record<string, string[]>) => {
         try {
             const updates = chosen.map(async ({ sheet, label }) => {
-                const own = itemsByClient.get(label) || new Set<string>();
                 const before = sheet.selection?.groceryChecked || [];
-                const after = [
-                    ...before.filter(k => !(turnedOff.includes(k) && own.has(k))),
-                    ...turnedOn.filter(k => own.has(k) && !before.includes(k))
-                ];
+                const after = next[label] || [];
                 if (sameKeys(before, after)) return null;
                 const res = await fetch(`/api/cooking-ops/session/${encodeURIComponent(sheet.session.id)}`, {
                     method: 'PATCH',
@@ -172,17 +154,17 @@ export default function CombinedGroceryPage() {
             });
             const results = (await Promise.all(updates)).filter((r): r is NonNullable<typeof r> => Boolean(r));
             setSheets(prev => {
-                const next = { ...prev };
-                for (const [id, selection] of results) next[id] = { ...next[id], selection };
-                return next;
+                const copy = { ...prev };
+                for (const [id, selection] of results) copy[id] = { ...copy[id], selection };
+                return copy;
             });
-            showToast('Liste enregistrée sur la fiche de chaque client', 'check');
+            showToast('Enregistré sur la liste de chaque client', 'check');
             return true;
         } catch (e) {
             showToast(e instanceof Error ? e.message : 'Enregistrement impossible', 'error');
             return false;
         }
-    }, [list, savedChecked, chosen, showToast]);
+    }, [chosen, showToast]);
 
     return (
         <div className="min-h-screen bg-[#FAFAF9] text-stone-800 pb-28 font-sans">
@@ -267,14 +249,11 @@ export default function CombinedGroceryPage() {
                     <p className="text-sm text-stone-500 text-center">Préparation de la liste…</p>
                 ) : list ? (
                     <>
-                        <GroceryListCard
+                        <CombinedGroceryList
                             list={list}
-                            title="Courses groupées"
-                            heading="2. Liste de courses groupée"
-                            defaultOpen
-                            savedChecked={savedChecked}
+                            saved={savedTicks}
                             onSave={saveTicks}
-                            onCopied={ok => showToast(ok ? 'Liste copiée — collez-la dans WhatsApp ou Notes' : 'Copie impossible sur cet appareil', ok ? 'check' : 'error')}
+                            onCopied={ok => showToast(ok ? 'Listes copiées (une par client) — collez-les dans WhatsApp ou Notes' : 'Copie impossible sur cet appareil', ok ? 'check' : 'error')}
                         />
                         <div className="flex flex-wrap gap-2 justify-center">
                             {chosen.map(({ sheet, label }) => (

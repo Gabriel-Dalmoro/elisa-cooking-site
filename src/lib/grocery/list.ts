@@ -24,19 +24,18 @@ export interface GroceryInput {
 /** One client in a combined list (shopping for several clients at once). */
 export interface GroceryClientInput extends GroceryInput {
     label: string; // client name shown in the combined list
-    done?: string[]; // item keys already ticked on this client's own list (bought / the client has it)
 }
 
 export interface GroceryClientShare {
     client: string;
     amount: string | null; // this client's part, null if the recipe gives no amount
-    done: boolean; // ticked on this client's own list: not counted in the total
 }
 
 export interface GrocerySource {
     dish: string; // short dish name, with the sub-recipe: « Suprême de volaille › Polenta »
     amount: string | null; // scaled amount from this dish, null if the recipe gives none
     raw: string; // line as written in the recipe (for the recipe's base number of people)
+    client?: string; // combined lists only: whose dish this is
 }
 
 export interface GroceryItem {
@@ -47,7 +46,6 @@ export interface GroceryItem {
     sources: GrocerySource[];
     warnings: string[];
     byClient?: GroceryClientShare[]; // combined lists only: each client's part
-    done?: boolean; // combined lists only: ticked for every client who needs it
 }
 
 export interface GrocerySection {
@@ -144,7 +142,12 @@ function sumAmounts(contributions: Contribution[]): string | null {
         const prev = totals.get(line.unit);
         totals.set(line.unit, prev ? { min: prev.min + scaled.min, max: prev.max + scaled.max } : scaled);
     }
-    const amounts = [...totals.entries()].map(([unit, q]) => formatAmount(unit, q));
+    // A bare count next to grams reads as a mystery (« 525 g + 0,75 »): name it when units are mixed
+    const mixed = totals.size > 1;
+    const amounts = [...totals.entries()].map(([unit, q]) => {
+        const text = formatAmount(unit, q);
+        return mixed && unit === 'piece' ? `${text} ${q.max >= 2 ? 'pièces' : 'pièce'}` : text;
+    });
     if (hasUnquantified && amounts.length > 0) amounts.push('selon recette');
     return amounts.length > 0 ? amounts.join(' + ') : null;
 }
@@ -158,7 +161,7 @@ export function buildGroceryList(input: GroceryInput): GroceryList {
  * One list for several clients shopped together: each client's dishes are scaled to that client's
  * number of people, then everything is added up per ingredient. Each item keeps every client's part,
  * and allergy alerts only look at the dishes of the client who has the allergy.
- * Items already ticked on a client's own list are not counted for that client.
+ * (Ticks are per client and handled by the screen, see CombinedGroceryList.)
  */
 export function buildMergedGroceryList(clients: GroceryClientInput[]): GroceryList {
     return buildLists(clients, true);
@@ -181,7 +184,8 @@ function buildLists(clients: GroceryClientInput[], merged: boolean): GroceryList
             }
             const servings = parsed.servings ?? findServings(dish.recipeText || '') ?? DEFAULT_SERVINGS;
             const factor = persons / servings;
-            const label = withClient(client, shortDishName(dish.name));
+            // Combined lists show each client in their own column: the dish label stays short
+            const label = shortDishName(dish.name);
             dishes.push({ name: withClient(client, dish.name), servings, itemCount: parsed.items.length });
 
             for (const { line, part } of parsed.items) {
@@ -206,7 +210,8 @@ function buildLists(clients: GroceryClientInput[], merged: boolean): GroceryList
                 acc.sources.push({
                     dish: part ? `${label} › ${part}` : label,
                     amount: scaled ? formatAmount(line.unit, scaled) : null,
-                    raw: line.raw
+                    raw: line.raw,
+                    ...(merged ? { client: client.label } : {})
                 });
             }
         }
@@ -225,8 +230,7 @@ function buildLists(clients: GroceryClientInput[], merged: boolean): GroceryList
             notes: client.notes.filter(n => n.text.trim()).map(n => ({ label: n.label, text: normalize(n.text) })),
             dishNotes: client.dishes
                 .filter(d => d.clientNote?.trim())
-                .map(d => ({ dish: d.name, label: `Demande du client (${shortDishName(d.name)})`, text: normalize(d.clientNote || '') })),
-            done: new Set(client.done || [])
+                .map(d => ({ dish: d.name, label: `Demande du client (${shortDishName(d.name)})`, text: normalize(d.clientNote || '') }))
         };
     });
 
@@ -257,11 +261,6 @@ function buildLists(clients: GroceryClientInput[], merged: boolean): GroceryList
             }
         }
 
-        // Combined list: what's ticked on a client's own list isn't bought again for them
-        const isDone = (idx: number) => merged && restrictions[idx].done.has(acc.key);
-        const allDone = merged && clientIdxs.every(isDone);
-        const counted = allDone ? acc.contributions : acc.contributions.filter(c => !isDone(c.client));
-
         const lines = acc.contributions.map(c => c.line);
         const item: GroceryItem = {
             key: acc.key,
@@ -269,17 +268,15 @@ function buildLists(clients: GroceryClientInput[], merged: boolean): GroceryList
             details: [...new Map(lines.map(l => [normalize(l.phrase), l.phrase] as const)).entries()]
                 .filter(([key]) => key && key !== normalize(acc.name))
                 .map(([, phrase]) => phrase),
-            total: sumAmounts(counted),
+            total: sumAmounts(acc.contributions),
             sources: acc.sources,
             warnings: [...warnings]
         };
         if (merged) {
             item.byClient = clientIdxs.map(idx => ({
                 client: clients[idx].label,
-                amount: sumAmounts(acc.contributions.filter(c => c.client === idx)),
-                done: isDone(idx)
+                amount: sumAmounts(acc.contributions.filter(c => c.client === idx))
             }));
-            item.done = allDone;
         }
         if (!bySection.has(acc.section)) bySection.set(acc.section, []);
         bySection.get(acc.section)!.push(item);
@@ -304,28 +301,34 @@ function buildLists(clients: GroceryClientInput[], merged: boolean): GroceryList
     };
 }
 
+/**
+ * Combined list as text, one block per client (two clients = two invoices):
+ * only what is still to buy for each of them.
+ */
+export function combinedListToText(list: GroceryList, isDone: (client: string, key: string) => boolean): string {
+    const blocks: string[] = [];
+    for (const c of list.clients || []) {
+        const out = [`🛒 ${c.label} (${c.persons} pers.)`];
+        for (const section of list.sections) {
+            const lines = section.items.flatMap(item => {
+                const share = item.byClient?.find(b => b.client === c.label);
+                if (!share || isDone(c.label, item.key)) return [];
+                return [`- ${item.name}${share.amount ? ` : ${share.amount}` : ''}`];
+            });
+            if (lines.length > 0) out.push('', `*${section.name}*`, ...lines);
+        }
+        if (out.length === 1) out.push('Tout est coché ✓');
+        blocks.push(out.join('\n'));
+    }
+    return blocks.join('\n\n————————\n\n');
+}
+
 /** Plain text version, to paste into WhatsApp / Notes. */
 export function groceryListToText(list: GroceryList, title: string): string {
-    const who = list.clients
-        ? list.clients.map(c => `${c.label} (${c.persons} pers.)`).join(' + ')
-        : `pour ${list.persons} personne${list.persons > 1 ? 's' : ''}`;
-    const out = [`🛒 ${title} — ${who}`];
+    const out = [`🛒 ${title} — pour ${list.persons} personne${list.persons > 1 ? 's' : ''}`];
     for (const section of list.sections) {
-        // Combined list: only what is left to buy
-        const items = list.clients ? section.items.filter(i => !i.done) : section.items;
-        if (items.length === 0) continue;
         out.push('', `*${section.name}*`);
-        for (const item of items) {
-            if (item.byClient) {
-                const parts = item.byClient
-                    .filter(c => !c.done)
-                    .map(c => `${c.client} ${c.amount || 'selon recette'}`)
-                    .join(' · ');
-                const warn = item.warnings.length ? `  ⚠️ ${item.warnings.join(', ')}` : '';
-                const name = item.details.length ? `${item.name} (${item.details.join(', ')})` : item.name;
-                out.push(`- ${name}${item.total ? ` : ${item.total}` : ''} (${parts})${warn}`);
-                continue;
-            }
+        for (const item of section.items) {
             const detail = item.sources.length > 1
                 ? ` (${item.sources.map(s => (s.amount ? `${s.amount} ${s.dish}` : s.dish)).join(' · ')})`
                 : ` — ${item.sources[0].dish}`;

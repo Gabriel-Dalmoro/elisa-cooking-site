@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getClientByToken, updateClient } from '@/lib/db/clients';
-import { getClientFacingMenu } from '@/lib/db/menus';
-import { getSelection, upsertSelection } from '@/lib/db/selections';
+import { findPastSeasonDish, getClientFacingMenu, listPastSeasonDishes } from '@/lib/db/menus';
+import { getSelection, setRecipeOverride, upsertSelection, CUSTOM_DISH_RECIPE_ID } from '@/lib/db/selections';
 import { sendSelectionEmail } from '@/lib/selectionEmail';
 import { ClientProfile, WeeklyDish } from '@/lib/types/cooking-ops';
-import { getWeekOffsetForDate } from '@/lib/dateUtils';
+import { getWeekBoundsForStart, getWeekOffsetForDate, isMondayIso, seasonOf, SEASON_OF_PHRASE, SEASON_PHRASE } from '@/lib/dateUtils';
 
 /**
  * PUBLIC endpoint behind the client's personal link (/choisir/[token]).
@@ -55,12 +55,28 @@ export async function GET(req: NextRequest) {
 
         // Every open week, with what the client already sent for it (if anything)
         const weeks = await Promise.all(facing.menus.map(async menu => {
-            const existing = await getSelection(client.id, menu.weekStart);
+            const [existing, past] = await Promise.all([
+                getSelection(client.id, menu.weekStart),
+                listPastSeasonDishes(menu.weekStart)
+            ]);
+            // Earlier dishes of the season the client can ask for again (not the ones already on this menu)
+            const onThisMenu = new Set(menu.recipes.map(d => d.name.trim().toLowerCase()));
+            const pastDishes = past
+                .filter(p => !onThisMenu.has(p.dish.name.trim().toLowerCase()))
+                .map(p => ({
+                    ...toPublicDish(p.dish),
+                    weekStart: p.weekStart,
+                    cookedWeek: getWeekBoundsForStart(p.weekStart).weekLabel
+                }));
+            const season = seasonOf(menu.weekStart);
             return {
                 weekStart: menu.weekStart,
                 weekLabel: menu.weekLabel,
                 when: relativeWeek(menu.weekStart),
                 dishes: menu.recipes.map(toPublicDish),
+                pastDishes,
+                seasonPhrase: SEASON_PHRASE[season], // « cet automne »
+                seasonOfPhrase: SEASON_OF_PHRASE[season], // « de l'automne »
                 existingSelection: existing
                     ? {
                         selectedDishIds: existing.selectedDishIds,
@@ -86,7 +102,7 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
     try {
         const body = await req.json();
-        const { token, weekStart, selectedDishIds, dishNotes, customDish, generalNote, updatedAllergies, updatedDislikes } = body;
+        const { token, weekStart, selectedDishIds, dishNotes, customDish, pastDish, generalNote, updatedAllergies, updatedDislikes } = body;
 
         if (typeof token !== 'string' || typeof weekStart !== 'string' || !Array.isArray(selectedDishIds)) {
             return NextResponse.json({ error: 'Données invalides' }, { status: 400 });
@@ -113,7 +129,15 @@ export async function POST(req: NextRequest) {
         // Exactly the formula: either all dishes from the menu, or all but one plus ONE custom dish
         const menuIds = new Set(menu.recipes.map(d => d.id));
         const ids = Array.from(new Set(selectedDishIds.filter((d: unknown): d is string => typeof d === 'string' && menuIds.has(d))));
-        const custom = typeof customDish === 'string' ? customDish.trim().slice(0, 500) : '';
+        // A dish from an earlier menu of the season: checked here, and its recipe comes with it
+        const picked = pastDish && typeof pastDish === 'object'
+            && typeof pastDish.weekStart === 'string' && isMondayIso(pastDish.weekStart)
+            && typeof pastDish.dishId === 'string'
+            ? await findPastSeasonDish(weekStart, pastDish.weekStart, pastDish.dishId)
+            : null;
+        const custom = picked
+            ? picked.name.slice(0, 500)
+            : typeof customDish === 'string' ? customDish.trim().slice(0, 500) : '';
         const targetCount = Math.min(client.defaultDishCount, menu.recipes.length);
         const expectedFromMenu = custom ? targetCount - 1 : targetCount;
         if (ids.length !== expectedFromMenu || ids.length + (custom ? 1 : 0) === 0) {
@@ -148,17 +172,33 @@ export async function POST(req: NextRequest) {
             });
         }
 
-        const selection = await upsertSelection({
+        let selection = await upsertSelection({
             clientId: client.id,
             weekStart,
             selectedDishIds: ids,
             selectedDishNames: ids.map(id => menu.recipes.find(d => d.id === id)?.name || ''),
             dishNotes: cleanNotes,
             customDish: custom,
+            customDishFrom: picked ? pastDish.weekStart : undefined,
             generalNote: typeof generalNote === 'string' ? generalNote.trim().slice(0, 2000) : '',
             allergiesAtSubmission: allergies,
             allergiesAdded: addedAllergies
         });
+
+        // Picked from an earlier menu: Elisa's recipe for it is copied onto this client's custom dish,
+        // so the kitchen sheet and the grocery list are ready without retyping anything
+        if (picked) {
+            const steps = (picked.instructions || []).join('\n').trim();
+            const ingredients = (picked.ingredients || '').trim();
+            if (steps || ingredients) {
+                try {
+                    selection = await setRecipeOverride(client.id, weekStart, CUSTOM_DISH_RECIPE_ID, steps, ingredients);
+                } catch (e) {
+                    // The choice is saved; only the recipe copy failed (Elisa can still add it by hand)
+                    console.error('Copying the past recipe failed:', e);
+                }
+            }
+        }
 
         // Tell Elisa (never blocks or fails the client's submission)
         await sendSelectionEmail({

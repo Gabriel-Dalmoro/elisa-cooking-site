@@ -67,6 +67,7 @@ export interface ClientSelection {
     selectedDishNames: string[]; // Snapshot at submission (kept if a dish is later removed)
     dishNotes: Record<string, string>; // Keyed by dish id
     customDish?: string; // The one dish the client wrote themselves (replaces one menu dish)
+    customDishFrom?: string; // Week (Monday) of the earlier menu the custom dish was picked from, if any
     recipeOverrides: Record<string, string>; // Elisa's recipe adapted for this client only, keyed by dish id ('__custom__' = custom dish). Staff only.
     ingredientOverrides: Record<string, string>; // Same, for the ingredient list (feeds this client's grocery list). Staff only.
     groceryChecked: string[]; // Grocery list items ticked off and saved by Elisa (item keys). Staff only.

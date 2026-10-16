@@ -30,6 +30,9 @@ export function Navbar() {
     const [isOpen, setIsOpen] = React.useState(false);
     const pathname = usePathname();
 
+    // Admin pages and client links have their own header: the floating site menu would cover them
+    if (pathname?.startsWith('/admin') || pathname?.startsWith('/choisir')) return null;
+
     return (
         <header className="fixed top-6 z-50 w-full px-4 sm:px-6 lg:px-8 print:hidden">
             <div className="container mx-auto max-w-7xl">

@@ -25,6 +25,7 @@ import GroceryListCard from '@/components/admin/GroceryListCard';
 import { BookingSession, ClientProfile, ClientSelection, WeeklyDish } from '@/lib/types/cooking-ops';
 import { sheetRecipes, sheetGroceryInput, CUSTOM_DISH_RECIPE_ID } from '@/lib/grocery/fromSheet';
 import { buildGroceryList } from '@/lib/grocery/list';
+import { getWeekBoundsForStart } from '@/lib/dateUtils';
 
 const NO_TICKS: string[] = [];
 
@@ -496,6 +497,11 @@ export default function ChefCookingModePage({ params }: { params: Promise<{ sess
                                 Plat #{dishes.length + 1} • Demande sur mesure
                             </Badge>
                             <p className="text-base font-serif font-bold text-stone-900 whitespace-pre-wrap">{selection.customDish}</p>
+                            {selection.customDishFrom && (
+                                <p className="text-xs text-stone-500">
+                                    Repris par le client du menu de la {getWeekBoundsForStart(selection.customDishFrom).weekLabel.toLowerCase()} (votre recette a été recopiée ici).
+                                </p>
+                            )}
                             {renderRecipe(CUSTOM_DISH_RECIPE_ID, false)}
                         </div>
                     )}

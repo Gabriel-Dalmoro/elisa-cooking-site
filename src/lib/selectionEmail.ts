@@ -63,6 +63,7 @@ export function buildSelectionEmail(input: {
         ? `<div style="margin-top:10px;padding:12px 14px;background:#fff1f4;border:1px dashed #E1567A;border-radius:12px;">
                 <div style="font-size:11px;font-weight:700;color:#E1567A;text-transform:uppercase;letter-spacing:1px;">${dishes.length + 1}. Plat sur mesure demandé</div>
                 <div style="font-weight:600;color:#1c1917;margin-top:4px;">${nl2br(selection.customDish)}</div>
+                ${selection.customDishFrom ? `<div style="font-size:12px;color:#78716c;margin-top:4px;">Repris du menu de la ${esc(getWeekBoundsForStart(selection.customDishFrom).weekLabel.toLowerCase())} : votre recette a été recopiée sur sa fiche cuisine.</div>` : ''}
            </div>`
         : '';
 
@@ -123,7 +124,9 @@ export function buildSelectionEmail(input: {
         '',
         `Plats choisis (${total}) :`,
         ...dishes.map((d, i) => `${i + 1}. ${d.name}${d.note ? ` — « ${d.note} »` : ''}`),
-        ...(selection.customDish ? [`${dishes.length + 1}. SUR MESURE : ${selection.customDish}`] : []),
+        ...(selection.customDish
+            ? [`${dishes.length + 1}. SUR MESURE : ${selection.customDish}${selection.customDishFrom ? ` (repris du menu de la ${getWeekBoundsForStart(selection.customDishFrom).weekLabel.toLowerCase()})` : ''}`]
+            : []),
         ...(selection.generalNote ? ['', `Message : ${selection.generalNote}`] : []),
         '',
         `Allergies : ${allergies.length > 0 ? allergies.join(', ') : 'aucune'}${added.length > 0 ? ` (ajoutées par le client : ${added.join(', ')})` : ''}`,

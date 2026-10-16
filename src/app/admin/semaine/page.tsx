@@ -42,7 +42,7 @@ import AdminPageHeader from '@/components/admin/AdminPageHeader';
 import { useConfirm } from '@/components/admin/useConfirm';
 import { useToast } from '@/components/admin/useToast';
 import { ClientProfile, SlotSessionStatus, WeeklyMenuData } from '@/lib/types/cooking-ops';
-import { getWeekBounds, WEEK_DAY_NAMES } from '@/lib/dateUtils';
+import { getWeekBounds, getWeekBoundsForStart, WEEK_DAY_NAMES } from '@/lib/dateUtils';
 import { allergyOptions } from '@/lib/allergies';
 import CustomAllergyInput from '@/components/CustomAllergyInput';
 
@@ -1056,6 +1056,9 @@ export default function WeeklyOpsAdminDashboard() {
                                                     <li className="text-sm text-stone-800 bg-rose-50 border border-dashed border-[#E1567A]/50 rounded-xl p-2.5">
                                                         <span className="block text-[10px] uppercase tracking-wider text-[#E1567A] font-bold">{chosen.length + 1}. Plat sur mesure</span>
                                                         <span className="font-semibold whitespace-pre-wrap">{selection.customDish}</span>
+                                                        {selection.customDishFrom && (
+                                                            <span className="block text-[11px] text-stone-500">Repris du menu de la {getWeekBoundsForStart(selection.customDishFrom).weekLabel.toLowerCase()}</span>
+                                                        )}
                                                     </li>
                                                 )}
                                             </ol>

@@ -36,7 +36,6 @@ export default function GroceryListCard({
     extraActions
 }: Props) {
     const [open, setOpen] = useState(defaultOpen);
-    const isCombined = Boolean(list.clients);
     const [checked, setChecked] = useState<string[]>(savedChecked);
     const [saving, setSaving] = useState(false);
 
@@ -87,10 +86,8 @@ export default function GroceryListCard({
     const itemCount = allItems.length;
     const tickedCount = allItems.filter(i => checked.includes(i.key)).length;
     const alertCount = allItems.filter(i => i.warnings.length > 0).length;
-    const otherBases = isCombined ? [] : list.dishes.filter(d => d.servings !== list.persons);
-    const forWhom = list.clients
-        ? list.clients.map(c => `${c.label} (${c.persons})`).join(' + ')
-        : `pour ${list.persons} personne${list.persons > 1 ? 's' : ''}`;
+    const otherBases = list.dishes.filter(d => d.servings !== list.persons);
+    const forWhom = `pour ${list.persons} personne${list.persons > 1 ? 's' : ''}`;
 
     if (itemCount === 0 && list.dishesWithoutIngredients.length === 0) return null;
 
@@ -153,18 +150,8 @@ export default function GroceryListCard({
                     )}
 
                     <p className="text-[11px] text-stone-500">
-                        {isCombined ? (
-                            <>
-                                Une seule liste pour plusieurs clients : chaque article montre la part de chacun.
-                                Cocher ici coche l&apos;article sur la liste de chaque client concerné (après « Enregistrer »).
-                                Ce qui est déjà coché sur la liste d&apos;un client n&apos;est pas compté pour lui.
-                            </>
-                        ) : (
-                            <>
-                                Cochez ce qui est acheté ou ce que le client a déjà (ex : beurre), puis « Enregistrer » :
-                                les cases restent cochées la prochaine fois, sur tous vos appareils.
-                            </>
-                        )}
+                        Cochez ce qui est acheté ou ce que le client a déjà (ex : beurre), puis « Enregistrer » :
+                        les cases restent cochées la prochaine fois, sur tous vos appareils.
                     </p>
 
                     <div className="flex flex-wrap gap-2">
@@ -224,23 +211,6 @@ export default function GroceryListCard({
                                                             </span>
                                                         )}
                                                     </span>
-                                                    {item.byClient && (
-                                                        <span className="flex flex-wrap gap-1 pt-0.5">
-                                                            {item.byClient.map(share => (
-                                                                <span
-                                                                    key={share.client}
-                                                                    className={`text-[11px] font-semibold rounded-full px-2 py-0.5 border ${
-                                                                        share.done
-                                                                            ? 'bg-stone-50 text-stone-400 border-stone-200 line-through'
-                                                                            : 'bg-sky-50 text-sky-800 border-sky-200'
-                                                                    }`}
-                                                                    title={share.done ? 'Déjà coché sur la liste de ce client' : undefined}
-                                                                >
-                                                                    {share.client} {share.amount || 'selon recette'}
-                                                                </span>
-                                                            ))}
-                                                        </span>
-                                                    )}
                                                     {item.details.length > 0 && (
                                                         <span className="block text-[11px] text-stone-500 italic">{item.details.join(' · ')}</span>
                                                     )}
