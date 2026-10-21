@@ -248,9 +248,6 @@ export default function ManualGiftCardPage() {
                     {/* Header */}
                     <header className="flex flex-col md:flex-row justify-between items-start md:items-center mb-12 gap-4">
                         <div>
-                            <div className="inline-flex items-center gap-2 bg-[#E1567A]/10 text-[#E1567A] px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-widest mb-3">
-                                <Gift className="h-4 w-4" /> Espace Admin • Générateur Manuel
-                            </div>
                             <h1 className="text-3xl md:text-4xl font-black text-stone-900 tracking-tight font-sans">
                                 Créer une Carte Cadeau Manuelle
                             </h1>

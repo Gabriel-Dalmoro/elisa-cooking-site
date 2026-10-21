@@ -324,7 +324,6 @@ export default function ChefCookingModePage({ params }: { params: Promise<{ sess
     return (
         <div className="min-h-screen bg-[#FAFAF9] text-stone-800 pb-36 font-sans">
             <AdminPageHeader
-                badgeText="ESPACE ADMIN • FICHE CUISINE"
                 title={`Cuisine : ${displayName}`}
                 subtitle={`${session.dayName} ${session.dateIso.split('-').reverse().join('/')} • ${session.timeSlot}${arrival ? ` • arrivée ${arrival}` : ''}`}
                 backHref="/admin/semaine"

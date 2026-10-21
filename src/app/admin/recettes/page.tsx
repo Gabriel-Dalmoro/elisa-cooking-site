@@ -321,7 +321,6 @@ export default function WeeklyRecipeAndVaultPage() {
         <div className="min-h-screen bg-[#FAFAF9] text-stone-800 pb-28 font-sans">
             {/* Standardized Header */}
             <AdminPageHeader
-                badgeText="ESPACE ADMIN • GESTION DU MENU"
                 title="Gestion Menu & Recettes"
                 subtitle="Composez les 8 plats de votre menu hebdomadaire, piochez dans vos 100+ recettes passées et générez votre visuel Instagram Stories."
                 backHref="/admin"

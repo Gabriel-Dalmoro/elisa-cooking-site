@@ -377,7 +377,6 @@ export default function TodayOperationsPage() {
         <div className="min-h-screen bg-[#FAFAF9] text-stone-900 pb-28 font-sans">
             {/* Standardized Header */}
             <AdminPageHeader
-                badgeText="ESPACE ADMIN • EN ROUTE"
                 title="Séances du Jour & Itinéraires"
                 subtitle="Consultez vos clients du jour sur mobile, lancez l'itinéraire direct Waze / Google Maps et ouvrez vos fiches cuisine."
                 backHref="/admin"

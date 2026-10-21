@@ -169,7 +169,6 @@ export default function CombinedGroceryPage() {
     return (
         <div className="min-h-screen bg-[#FAFAF9] text-stone-800 pb-28 font-sans">
             <AdminPageHeader
-                badgeText="ESPACE ADMIN • COURSES"
                 title="Courses groupées"
                 subtitle="Vous faites les courses pour plusieurs clients en même temps ? Cochez-les : une seule liste, quantités additionnées, avec la part de chaque client."
                 backHref="/admin"

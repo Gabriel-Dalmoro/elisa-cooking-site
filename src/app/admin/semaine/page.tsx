@@ -388,7 +388,6 @@ export default function WeeklyOpsAdminDashboard() {
         <div className="min-h-screen bg-[#FAFAF9] text-stone-800 pb-28 font-sans">
             {/* Standardized Header with Controls */}
             <AdminPageHeader
-                badgeText="ESPACE ADMIN • PLANNING & COMMANDES"
                 title="Planning Hebdo & Commandes"
                 subtitle="Visualisez votre calendrier synchronisé avec Google Calendar en temps réel et suivez les choix de plats."
                 backHref="/admin"

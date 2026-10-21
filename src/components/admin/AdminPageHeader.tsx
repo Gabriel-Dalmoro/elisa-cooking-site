@@ -6,7 +6,6 @@ import { ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 interface AdminPageHeaderProps {
-    badgeText: string;
     title: string;
     subtitle: string;
     backHref?: string;
@@ -15,7 +14,6 @@ interface AdminPageHeaderProps {
 }
 
 export default function AdminPageHeader({
-    badgeText,
     title,
     subtitle,
     backHref = '/admin',
@@ -26,11 +24,6 @@ export default function AdminPageHeader({
         <div className="pt-10 sm:pt-14 pb-8 max-w-6xl mx-auto px-4 select-none">
             <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
                 <div className="space-y-2">
-                    {/* Category Tag Badge */}
-                    <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-rose-50 border border-rose-200/80 text-[11px] font-black uppercase tracking-wider text-[#E1567A]">
-                        {badgeText}
-                    </div>
-
                     {/* Page Title */}
                     <h1 className="text-3xl sm:text-4xl font-black text-stone-900 tracking-tight font-sans">
                         {title}
