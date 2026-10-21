@@ -490,28 +490,6 @@ export default function ClientMenuSelectionPage() {
 
     return (
         <div className="min-h-screen bg-[#faf8f5] text-stone-800 pb-36 font-sans">
-            {/* Top Navigation / Brand Header */}
-            <header className="bg-white/95 backdrop-blur-md border-b border-stone-200 sticky top-0 z-30 px-4 py-3.5 shadow-xs">
-                <div className="max-w-3xl mx-auto flex items-center justify-between">
-                    <div className="flex items-center space-x-2.5">
-                        <div className="w-8 h-8 bg-[#E1567A] text-white rounded-xl flex items-center justify-center font-serif font-bold text-base shadow-xs">
-                            E
-                        </div>
-                        <div>
-                            <span className="font-serif font-semibold text-stone-900 tracking-tight block text-sm">
-                                Elisa • Batch Cooking
-                            </span>
-                            <span className="text-[11px] text-stone-500 block leading-tight font-medium">
-                                Espace Privé Client
-                            </span>
-                        </div>
-                    </div>
-
-                    <Badge variant="outline" className="bg-rose-50 text-[#E1567A] border-[#E1567A]/30 text-xs py-1 px-3 font-semibold rounded-full">
-                        {menu.weekLabel}
-                    </Badge>
-                </div>
-            </header>
 
             {/* Main Content Area with Generous Spacing */}
             <main className="max-w-3xl mx-auto px-4 pt-8 sm:pt-10 space-y-8">
