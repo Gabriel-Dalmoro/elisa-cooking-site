@@ -1,7 +1,7 @@
 import { randomUUID } from 'crypto';
 import { getSupabaseAdmin } from '../supabase/admin';
 import { MenuStatus, WeeklyDish, WeeklyMenuData } from '../types/cooking-ops';
-import { getCurrentWeekStart, getWeekBoundsForStart } from '../dateUtils';
+import { getCurrentWeekStart, getWeekBoundsForStart, seasonOf } from '../dateUtils';
 import { markDishesUsed, saveDishesToVault } from './vault';
 
 /**
@@ -160,4 +160,46 @@ export async function getPublicWeekMenu(): Promise<WeeklyMenuData | null> {
     if (error) throw new Error(`Lecture du menu impossible : ${error.message}`);
     const menu = (data as MenuRow[]).map(rowToMenu)[0];
     return menu && menu.recipes.length > 0 ? menu : null;
+}
+
+export interface PastDish {
+    weekStart: string; // the week it was on the menu
+    dish: WeeklyDish;
+}
+
+/**
+ * Dishes from menus before this week, in the same season (any year), most recent first,
+ * one per dish name. Clients can pick one as their custom dish (Elisa only cooks seasonal produce).
+ * Only menus that were shown to clients (open or closed) count, never drafts.
+ */
+export async function listPastSeasonDishes(weekStart: string): Promise<PastDish[]> {
+    const { data, error } = await getSupabaseAdmin()
+        .from('weekly_menus')
+        .select('*')
+        .in('status', ['open', 'closed'])
+        .lt('week_start', weekStart)
+        .order('week_start', { ascending: false });
+    if (error) throw new Error(`Lecture des anciens menus impossible : ${error.message}`);
+
+    const season = seasonOf(weekStart);
+    const seen = new Set<string>();
+    const out: PastDish[] = [];
+    for (const menu of (data as MenuRow[]).map(rowToMenu)) {
+        if (seasonOf(menu.weekStart) !== season) continue;
+        for (const dish of menu.recipes) {
+            const key = dish.name.trim().toLowerCase();
+            if (seen.has(key)) continue;
+            seen.add(key);
+            out.push({ weekStart: menu.weekStart, dish });
+        }
+    }
+    return out;
+}
+
+/** One past dish, if it really is a same-season dish from an earlier published menu. */
+export async function findPastSeasonDish(forWeekStart: string, fromWeekStart: string, dishId: string): Promise<WeeklyDish | null> {
+    if (fromWeekStart >= forWeekStart || seasonOf(fromWeekStart) !== seasonOf(forWeekStart)) return null;
+    const menu = await getMenu(fromWeekStart);
+    if (menu.status === 'draft') return null;
+    return menu.recipes.find(d => d.id === dishId) || null;
 }

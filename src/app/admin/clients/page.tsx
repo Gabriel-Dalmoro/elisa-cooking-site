@@ -454,7 +454,6 @@ export default function ClientDirectoryPage() {
         <div className="min-h-screen bg-[#FAFAF9] text-stone-800 pb-28 font-sans">
             {/* Standardized Header */}
             <AdminPageHeader
-                badgeText="ESPACE ADMIN • GESTION DES CLIENTS"
                 title="Répertoire & Préférences Clients"
                 subtitle="Consultez toutes les fiches clients, gérez le nombre de personnes, les allergies alimentaires et envoyez les liens de choix."
                 backHref="/admin"

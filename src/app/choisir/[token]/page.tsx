@@ -4,6 +4,7 @@ import React, { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import { allergyOptions } from '@/lib/allergies';
 import CustomAllergyInput from '@/components/CustomAllergyInput';
+import PastDishPicker, { PastDishOption } from '@/components/client/PastDishPicker';
 import { 
     Check, 
     Sparkles, 
@@ -18,7 +19,9 @@ import {
     ArrowRight,
     Lock,
     PenLine,
-    CalendarDays
+    CalendarDays,
+    History,
+    X
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -56,6 +59,9 @@ interface ExistingSelection {
 
 // One open week. Usually one, but two when Elisa opens next week's menu early.
 interface PublicWeek extends PublicMenu {
+    pastDishes: PastDishOption[]; // earlier dishes of the same season, most recent first
+    seasonPhrase: string; // « cet automne »
+    seasonOfPhrase: string; // « de l'automne »
     when: string; // "Cette semaine" / "Semaine prochaine"
     existingSelection: ExistingSelection | null;
 }
@@ -92,6 +98,9 @@ export default function ClientMenuSelectionPage() {
     // Instead of one menu dish, the client may write ONE dish of their own
     const [wantsCustomDish, setWantsCustomDish] = useState(false);
     const [customDish, setCustomDish] = useState('');
+    // …or ONE dish picked from an earlier menu of the season (its recipe comes with it)
+    const [pastPick, setPastPick] = useState<PastDishOption | null>(null);
+    const [isPastOpen, setIsPastOpen] = useState(false);
     const [allergies, setAllergies] = useState<string[]>([]);
     // Allergies already on file can't be removed from the client link (only Elisa can)
     const [lockedAllergies, setLockedAllergies] = useState<string[]>([]);
@@ -162,6 +171,7 @@ export default function ClientMenuSelectionPage() {
         setGeneralNote('');
         setWantsCustomDish(false);
         setCustomDish('');
+        setPastPick(null);
         setSubmitError(null);
         window.scrollTo({ top: 0, behavior: 'smooth' });
     };
@@ -170,7 +180,9 @@ export default function ClientMenuSelectionPage() {
     const targetCount = Math.min(client?.defaultDishCount || 4, menu?.dishes.length || client?.defaultDishCount || 4);
     // A custom dish takes the place of one menu dish
     const menuDishTarget = wantsCustomDish ? targetCount - 1 : targetCount;
-    const customDishFilled = wantsCustomDish && customDish.trim().length > 0;
+    const customDishFilled = wantsCustomDish && (Boolean(pastPick) || customDish.trim().length > 0);
+    const customDishText = pastPick ? pastPick.name : customDish.trim();
+    const pastDishes = menu?.pastDishes || [];
     const totalChosen = selectedDishes.length + (customDishFilled ? 1 : 0);
     const canSubmit = selectedDishes.length === menuDishTarget && (!wantsCustomDish || customDishFilled);
     const canAddCustomDish = selectedDishes.length < targetCount;
@@ -190,10 +202,23 @@ export default function ClientMenuSelectionPage() {
         setSubmitError(null);
         if (wantsCustomDish) {
             setWantsCustomDish(false);
+            setPastPick(null);
             return;
         }
         if (!canAddCustomDish) return;
         setWantsCustomDish(true);
+    };
+
+    const openPastDishes = () => {
+        if (!wantsCustomDish && !canAddCustomDish) return;
+        setIsPastOpen(true);
+    };
+
+    const pickPastDish = (dish: PastDishOption) => {
+        setSubmitError(null);
+        setPastPick(dish);
+        setWantsCustomDish(true);
+        setIsPastOpen(false);
     };
 
     const handleNoteChange = (dishId: string, note: string) => {
@@ -226,7 +251,8 @@ export default function ClientMenuSelectionPage() {
                     weekStart: menu.weekStart,
                     selectedDishIds: selectedDishes,
                     dishNotes,
-                    customDish: wantsCustomDish ? customDish : '',
+                    customDish: wantsCustomDish ? customDishText : '',
+                    pastDish: wantsCustomDish && pastPick ? { weekStart: pastPick.weekStart, dishId: pastPick.id } : null,
                     generalNote,
                     updatedAllergies: allergies,
                     updatedDislikes: dislikes
@@ -258,7 +284,7 @@ export default function ClientMenuSelectionPage() {
                 ...prev,
                 [menu.weekStart]: {
                     dishes: selectedDishes.map(id => ({ name: dishName(id), note: dishNotes[id]?.trim() || '' })),
-                    customDish: wantsCustomDish ? customDish.trim() : '',
+                    customDish: wantsCustomDish ? customDishText : '',
                     submittedAt: new Date().toISOString(),
                     justSent: true
                 }
@@ -464,28 +490,6 @@ export default function ClientMenuSelectionPage() {
 
     return (
         <div className="min-h-screen bg-[#faf8f5] text-stone-800 pb-36 font-sans">
-            {/* Top Navigation / Brand Header */}
-            <header className="bg-white/95 backdrop-blur-md border-b border-stone-200 sticky top-0 z-30 px-4 py-3.5 shadow-xs">
-                <div className="max-w-3xl mx-auto flex items-center justify-between">
-                    <div className="flex items-center space-x-2.5">
-                        <div className="w-8 h-8 bg-[#E1567A] text-white rounded-xl flex items-center justify-center font-serif font-bold text-base shadow-xs">
-                            E
-                        </div>
-                        <div>
-                            <span className="font-serif font-semibold text-stone-900 tracking-tight block text-sm">
-                                Elisa • Batch Cooking
-                            </span>
-                            <span className="text-[11px] text-stone-500 block leading-tight font-medium">
-                                Espace Privé Client
-                            </span>
-                        </div>
-                    </div>
-
-                    <Badge variant="outline" className="bg-rose-50 text-[#E1567A] border-[#E1567A]/30 text-xs py-1 px-3 font-semibold rounded-full">
-                        {menu.weekLabel}
-                    </Badge>
-                </div>
-            </header>
 
             {/* Main Content Area with Generous Spacing */}
             <main className="max-w-3xl mx-auto px-4 pt-8 sm:pt-10 space-y-8">
@@ -510,7 +514,10 @@ export default function ClientMenuSelectionPage() {
                             </p>
                             <p className="text-xs sm:text-sm text-stone-600 mt-1.5">
                                 Choisissez vos <strong>{targetCount} plats</strong> parmi les {menu.dishes.length} recettes fraîches de la semaine.
-                                {targetCount > 0 && <> Envie d&apos;autre chose ? Vous pouvez remplacer <strong>un</strong> des plats par un plat sur mesure (en bas de la liste).</>}
+                                {targetCount > 0 && (
+                                    <> Envie d&apos;autre chose ? Vous pouvez remplacer <strong>un</strong> des plats par un plat sur mesure
+                                    {pastDishes.length > 0 ? <>, ou par un plat déjà cuisiné {menu.seasonPhrase}</> : null} (en bas de la liste).</>
+                                )}
                             </p>
                         </div>
 
@@ -720,18 +727,69 @@ export default function ClientMenuSelectionPage() {
                             <p className="text-xs text-stone-600 mt-1 leading-relaxed">
                                 {!wantsCustomDish && !canAddCustomDish
                                     ? `Retirez un plat de votre sélection pour pouvoir demander un plat sur mesure.`
-                                    : `Un seul plat sur mesure possible : il remplace un des ${targetCount} plats de votre formule.`}
+                                    : pastDishes.length > 0
+                                        ? `Un plat déjà cuisiné ${menu.seasonPhrase}, ou une envie à vous. Un seul possible : il remplace un des ${targetCount} plats de votre formule.`
+                                        : `Un seul plat sur mesure possible : il remplace un des ${targetCount} plats de votre formule.`}
                             </p>
                         </div>
                     </button>
-                    {wantsCustomDish && (
+
+                    {/* Shortcut straight to the season's dishes, even before ticking the box */}
+                    {!wantsCustomDish && canAddCustomDish && pastDishes.length > 0 && (
+                        <div className="px-4 sm:px-5 pb-4 sm:pb-5 -mt-1">
+                            <button
+                                type="button"
+                                onClick={openPastDishes}
+                                className="w-full flex items-center justify-center gap-2 text-sm font-semibold text-[#E1567A] bg-white border border-[#E1567A]/40 rounded-xl py-2.5 hover:bg-rose-50"
+                            >
+                                <History className="w-4 h-4" /> Voir les {pastDishes.length} plats déjà cuisinés {menu.seasonPhrase}
+                            </button>
+                        </div>
+                    )}
+
+                    {wantsCustomDish && pastPick && (
                         <div className="px-4 sm:px-5 pb-4 sm:pb-5">
+                            <div className="bg-white rounded-xl border border-[#E1567A]/40 p-3.5 flex items-start gap-3">
+                                <History className="w-5 h-5 text-[#E1567A] shrink-0 mt-0.5" />
+                                <div className="flex-1 min-w-0">
+                                    <p className="font-serif font-bold text-stone-900 leading-snug">{pastPick.name}</p>
+                                    <p className="text-[11px] text-stone-500 mt-0.5">Déjà cuisiné · {pastPick.cookedWeek.toLowerCase()}</p>
+                                    <button type="button" onClick={() => setIsPastOpen(true)} className="text-xs font-semibold text-[#E1567A] underline mt-1.5">
+                                        Choisir un autre plat
+                                    </button>
+                                </div>
+                                <button
+                                    type="button"
+                                    onClick={() => setPastPick(null)}
+                                    aria-label="Retirer ce plat"
+                                    className="p-1 rounded-lg text-stone-400 hover:text-stone-700 hover:bg-stone-100"
+                                >
+                                    <X className="w-4 h-4" />
+                                </button>
+                            </div>
+                        </div>
+                    )}
+
+                    {wantsCustomDish && !pastPick && (
+                        <div className="px-4 sm:px-5 pb-4 sm:pb-5 space-y-2.5">
+                            {pastDishes.length > 0 && (
+                                <>
+                                    <button
+                                        type="button"
+                                        onClick={() => setIsPastOpen(true)}
+                                        className="w-full flex items-center justify-center gap-2 text-sm font-semibold text-white bg-[#E1567A] hover:bg-[#c94567] rounded-xl py-2.5"
+                                    >
+                                        <History className="w-4 h-4" /> Choisir parmi les {pastDishes.length} plats {menu.seasonOfPhrase}
+                                    </button>
+                                    <p className="text-center text-[11px] text-stone-500 font-semibold">ou décrivez votre envie</p>
+                                </>
+                            )}
                             <textarea
                                 rows={2}
                                 value={customDish}
                                 onChange={(e) => setCustomDish(e.target.value)}
                                 maxLength={500}
-                                autoFocus
+                                autoFocus={pastDishes.length === 0}
                                 placeholder="Ex: Un gratin dauphinois comme la dernière fois, un poulet basquaise..."
                                 className="w-full text-sm p-3 rounded-xl bg-white border border-[#E1567A]/40 focus:outline-none focus:ring-2 focus:ring-[#E1567A] text-stone-800"
                             />
@@ -761,7 +819,9 @@ export default function ClientMenuSelectionPage() {
                     <div className="max-w-3xl mx-auto mb-3 text-xs text-amber-900 bg-amber-50 border border-amber-200 rounded-xl p-2.5 font-medium">
                         {countDifference > 0
                             ? `Choisissez encore ${countDifference} plat${countDifference > 1 ? 's' : ''} du menu${wantsCustomDish ? ' (en plus de votre plat sur mesure)' : ''}.`
-                            : 'Décrivez votre plat sur mesure, ou décochez-le.'}
+                            : pastDishes.length > 0
+                                ? 'Choisissez un plat déjà cuisiné ou décrivez votre envie (ou décochez le plat sur mesure).'
+                                : 'Décrivez votre plat sur mesure, ou décochez-le.'}
                     </div>
                 )}
 
@@ -813,6 +873,16 @@ export default function ClientMenuSelectionPage() {
                 </div>
             </div>
 
+            <PastDishPicker
+                open={isPastOpen}
+                onOpenChange={setIsPastOpen}
+                dishes={pastDishes}
+                seasonPhrase={menu.seasonPhrase}
+                seasonOfPhrase={menu.seasonOfPhrase}
+                replaceCount={targetCount}
+                onPick={pickPastDish}
+            />
+
             {/* Choices are final once sent: ask once before sending */}
             <Dialog open={isConfirmOpen} onOpenChange={setIsConfirmOpen}>
                 <DialogContent className="sm:max-w-md bg-white rounded-3xl">
@@ -828,7 +898,7 @@ export default function ClientMenuSelectionPage() {
                                 <li key={id} className="flex items-start gap-2"><span className="text-amber-600 font-bold">✓</span>{dishName(id)}</li>
                             ))}
                             {customDishFilled && (
-                                <li className="flex items-start gap-2"><span className="text-[#E1567A] font-bold">✎</span><span><strong>Sur mesure :</strong> {customDish.trim()}</span></li>
+                                <li className="flex items-start gap-2"><span className="text-[#E1567A] font-bold">✎</span><span><strong>{pastPick ? 'Déjà cuisiné :' : 'Sur mesure :'}</strong> {customDishText}</span></li>
                             )}
                         </ul>
                         <p className="text-xs text-stone-500 flex items-start gap-1.5">
