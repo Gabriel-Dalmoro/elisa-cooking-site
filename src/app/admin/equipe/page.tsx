@@ -2,7 +2,7 @@
 
 import React, { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
-import { Calendar, Check, Copy, KeyRound, MapPin, Phone, Mail, Plus, Power, UserPlus, Users } from 'lucide-react';
+import { Calendar, Check, Copy, KeyRound, MapPin, Phone, Mail, Plus, Power, Trash2, UserPlus, Users } from 'lucide-react';
 import AdminPageHeader from '@/components/admin/AdminPageHeader';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -115,6 +115,24 @@ export default function TeamPage() {
             return;
         }
         showToast(active ? `${member.displayName} peut de nouveau se connecter` : `Accès de ${member.displayName} désactivé`, 'check');
+        load();
+    };
+
+    // For good (e.g. a test account): their clients and sessions go back to Elisa
+    const removeChef = async (member: TeamMember) => {
+        if (!(await confirm({
+            title: `Supprimer ${member.displayName} définitivement ?`,
+            description: `Son accès est supprimé. ${member.clientCount > 0 ? `Ses ${member.clientCount} client(s) et ` : 'Ses '}séances reviennent à Elisa. Pour un chef qui fait une pause, préférez « Désactiver ».`,
+            confirmLabel: 'Supprimer le chef',
+            tone: 'danger'
+        }))) return;
+        const res = await fetch(`/api/cooking-ops/admin/team?userId=${encodeURIComponent(member.userId)}`, { method: 'DELETE' });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) {
+            showToast(data.error || 'Suppression impossible', 'error');
+            return;
+        }
+        showToast(`${member.displayName} supprimé`, 'check');
         load();
     };
 
@@ -233,6 +251,14 @@ export default function TeamPage() {
                                                 className={`rounded-full text-xs h-8 gap-1.5 ml-auto ${chef.active ? 'border-red-200 text-red-700 hover:bg-red-50' : 'border-emerald-300 text-emerald-700 hover:bg-emerald-50'}`}
                                             >
                                                 <Power className="w-3.5 h-3.5" /> {chef.active ? 'Désactiver' : 'Réactiver'}
+                                            </Button>
+                                            <Button
+                                                size="sm"
+                                                variant="outline"
+                                                onClick={() => removeChef(chef)}
+                                                className="rounded-full text-xs h-8 gap-1.5 border-red-200 text-red-700 hover:bg-red-50"
+                                            >
+                                                <Trash2 className="w-3.5 h-3.5" /> Supprimer
                                             </Button>
                                         </div>
                                     </div>

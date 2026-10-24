@@ -163,3 +163,17 @@ export async function resetChefPassword(userId: string): Promise<string> {
     if (error) throw new Error(`Réinitialisation impossible : ${error.message}`);
     return password;
 }
+
+/**
+ * Removes a chef for good (e.g. a test account). Their login is deleted; the database then hands
+ * their clients and sessions back to Elisa (chef_id / assigned_to become null), nothing else is lost.
+ * For a chef who simply stops working, prefer deactivating (keeps their history).
+ */
+export async function deleteChef(userId: string): Promise<void> {
+    const member = await getStaffMember(userId);
+    if (!member || member.role !== 'chef') throw new Error('Chef introuvable');
+    const { error } = await getSupabaseAdmin().auth.admin.deleteUser(userId);
+    if (error) throw new Error(`Suppression du chef impossible : ${error.message}`);
+    // The staff row normally goes with the login (on delete cascade); make sure it's gone
+    await getSupabaseAdmin().from('staff').delete().eq('user_id', userId).eq('role', 'chef');
+}
