@@ -14,7 +14,8 @@ import {
     Calendar,
     Users,
     Navigation,
-    ShoppingCart
+    ShoppingCart,
+    UserPlus
 } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -196,11 +197,12 @@ export default function AdminDashboard({ displayName }: { displayName: string | 
                     </motion.div>
                 </div>
 
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                 {/* Combined shopping for several clients */}
                 <motion.div whileHover={{ y: -3, transition: { duration: 0.2 } }}>
                     <Card
                         onClick={() => router.push('/admin/courses')}
-                        className="w-full flex flex-row items-center justify-between gap-4 hover:shadow-lg transition-all border-emerald-200 hover:border-emerald-400 cursor-pointer bg-emerald-50/60 rounded-3xl p-5 select-none"
+                        className="w-full h-full flex flex-row items-center justify-between gap-4 hover:shadow-lg transition-all border-emerald-200 hover:border-emerald-400 cursor-pointer bg-emerald-50/60 rounded-3xl p-5 select-none"
                     >
                         <div className="flex items-center gap-4">
                             <div className="h-11 w-11 rounded-2xl bg-white border border-emerald-200 flex items-center justify-center text-emerald-700 shrink-0">
@@ -216,6 +218,28 @@ export default function AdminDashboard({ displayName }: { displayName: string | 
                         <ArrowRight className="h-4 w-4 text-emerald-700 shrink-0" />
                     </Card>
                 </motion.div>
+
+                {/* The team: chefs cooking under Elisa's brand */}
+                <motion.div whileHover={{ y: -3, transition: { duration: 0.2 } }}>
+                    <Card
+                        onClick={() => router.push('/admin/equipe')}
+                        className="w-full h-full flex flex-row items-center justify-between gap-4 hover:shadow-lg transition-all border-sky-200 hover:border-sky-400 cursor-pointer bg-sky-50/60 rounded-3xl p-5 select-none"
+                    >
+                        <div className="flex items-center gap-4">
+                            <div className="h-11 w-11 rounded-2xl bg-white border border-sky-200 flex items-center justify-center text-sky-700 shrink-0">
+                                <UserPlus className="h-5 w-5" />
+                            </div>
+                            <div>
+                                <h3 className="text-sm font-bold text-stone-900">Équipe & chefs</h3>
+                                <p className="text-xs text-stone-600 mt-0.5">
+                                    Créer l’accès d’un chef, lui attribuer des clients, voir son planning.
+                                </p>
+                            </div>
+                        </div>
+                        <ArrowRight className="h-4 w-4 text-sky-700 shrink-0" />
+                    </Card>
+                </motion.div>
+                </div>
 
                 {/* Secondary Utility Tools (3 Column Grid) */}
                 <div className="space-y-4 pt-2">

@@ -32,6 +32,7 @@ interface ClientRow {
     person_count: number | null;
     notes: string | null;
     private_notes: string | null;
+    chef_id?: string | null; // migration 006
     is_booked_this_week: boolean | null;
     booking_day: string | null;
     created_at: string;
@@ -52,6 +53,7 @@ function rowToClient(row: ClientRow): ClientProfile {
         personCount: row.person_count || 2,
         notes: row.notes || '',
         privateNotes: row.private_notes || '',
+        chefId: row.chef_id || null,
         isBookedThisWeek: Boolean(row.is_booked_this_week),
         bookingDay: row.booking_day || undefined,
         createdAt: row.created_at
@@ -59,8 +61,11 @@ function rowToClient(row: ClientRow): ClientProfile {
 }
 
 export type ClientInput = Partial<Pick<ClientProfile,
-    'name' | 'phone' | 'email' | 'address' | 'accessCode' | 'allergies' | 'dislikes' | 'defaultDishCount' | 'personCount' | 'notes' | 'privateNotes'
+    'name' | 'phone' | 'email' | 'address' | 'accessCode' | 'allergies' | 'dislikes' | 'defaultDishCount' | 'personCount' | 'notes' | 'privateNotes' | 'chefId'
 >>;
+
+/** Fields a chef may change on their own clients (they're in the kitchen and hear about changes first). */
+export const CHEF_EDITABLE_FIELDS = ['allergies', 'dislikes', 'notes', 'personCount'] as const;
 
 // Only fields present in `input` are written, so a form that doesn't show a field can't wipe it
 function inputToRow(input: ClientInput): Record<string, unknown> {
@@ -76,14 +81,18 @@ function inputToRow(input: ClientInput): Record<string, unknown> {
     if (input.personCount !== undefined) row.person_count = input.personCount;
     if (input.notes !== undefined) row.notes = input.notes.trim();
     if (input.privateNotes !== undefined) row.private_notes = input.privateNotes.trim();
+    if (input.chefId !== undefined) row.chef_id = input.chefId || null;
     return row;
 }
 
-export async function listClients(): Promise<ClientProfile[]> {
-    const { data, error } = await getSupabaseAdmin()
+/** All clients, or only one chef's clients. */
+export async function listClients(chefId?: string): Promise<ClientProfile[]> {
+    let query = getSupabaseAdmin()
         .from('clients')
         .select('*')
         .order('created_at', { ascending: false });
+    if (chefId) query = query.eq('chef_id', chefId);
+    const { data, error } = await query;
     if (error) throw new Error(`Lecture des clients impossible : ${error.message}`);
     return (data as ClientRow[]).map(rowToClient);
 }

@@ -36,6 +36,7 @@ import { useToast } from '@/components/admin/useToast';
 import { ClientProfile } from '@/lib/types/cooking-ops';
 import { allergyOptions } from '@/lib/allergies';
 import CustomAllergyInput from '@/components/CustomAllergyInput';
+import { chefColor, chefName, useStaff } from '@/components/admin/StaffContext';
 
 interface ParsedCsvClient {
     name: string;
@@ -84,6 +85,11 @@ export default function ClientDirectoryPage() {
     const [formDislikes, setFormDislikes] = useState('');
     const [formNotes, setFormNotes] = useState('');
     const [formPrivateNotes, setFormPrivateNotes] = useState('');
+    const [formChefId, setFormChefId] = useState('');
+
+    // Elisa sees every client and assigns them to chefs; a chef sees only theirs (the server enforces it)
+    const { isOwner, isChef, userId, chefs } = useStaff();
+    const [chefFilter, setChefFilter] = useState<string>('all'); // 'all' | 'elisa' | chef id
     const [isSaving, setIsSaving] = useState(false);
 
     // CSV Import State
@@ -103,7 +109,9 @@ export default function ClientDirectoryPage() {
             const res = await fetch('/api/cooking-ops/admin');
             if (!res.ok) throw new Error('Erreur de chargement');
             const data = await res.json();
-            setClients(data.clients || []);
+            const list: ClientProfile[] = data.clients || [];
+            // A chef's week can include a client of Elisa's for one session: « Mes clients » = theirs only
+            setClients(isChef ? list.filter(c => c.chefId === userId) : list);
         } catch (e) {
             console.error('Error loading clients:', e);
             setLoadError('Impossible de charger les clients. Rechargez la page.');
@@ -113,6 +121,8 @@ export default function ClientDirectoryPage() {
     };
 
     useEffect(() => {
+        const fromUrl = new URLSearchParams(window.location.search).get('chef');
+        if (fromUrl) setChefFilter(fromUrl);
         loadClients();
         // Remember Elisa's sort choice on this device
         try {
@@ -181,6 +191,7 @@ export default function ClientDirectoryPage() {
         setFormDislikes(client.dislikes || '');
         setFormNotes(client.notes || '');
         setFormPrivateNotes(client.privateNotes || '');
+        setFormChefId(client.chefId || '');
         setIsModalOpen(true);
     };
 
@@ -205,7 +216,8 @@ export default function ClientDirectoryPage() {
                     allergies: formAllergies,
                     dislikes: formDislikes,
                     notes: formNotes,
-                    privateNotes: formPrivateNotes
+                    // Elisa only (a chef never receives nor sends these; the server ignores them from a chef)
+                    ...(isOwner ? { privateNotes: formPrivateNotes, chefId: formChefId || null } : {})
                 })
             });
 
@@ -432,6 +444,10 @@ export default function ClientDirectoryPage() {
 
             if (!matchesSearch) return false;
 
+            if (isOwner && chefFilter !== 'all') {
+                if (chefFilter === 'elisa' ? Boolean(client.chefId) : client.chefId !== chefFilter) return false;
+            }
+
             if (allergyFilter === 'allergies') {
                 return client.allergies && client.allergies.length > 0;
             }
@@ -445,7 +461,7 @@ export default function ClientDirectoryPage() {
         if (sortOrder === 'recent') return matching;
         const sorted = [...matching].sort((a, b) => a.name.localeCompare(b.name, 'fr', { sensitivity: 'base' }));
         return sortOrder === 'za' ? sorted.reverse() : sorted;
-    }, [clients, searchQuery, allergyFilter, sortOrder]);
+    }, [clients, searchQuery, allergyFilter, sortOrder, isOwner, chefFilter]);
 
     const totalClients = clients.length;
     const clientsWithAllergies = clients.filter(c => c.allergies && c.allergies.length > 0).length;
@@ -454,11 +470,13 @@ export default function ClientDirectoryPage() {
         <div className="min-h-screen bg-[#FAFAF9] text-stone-800 pb-28 font-sans">
             {/* Standardized Header */}
             <AdminPageHeader
-                title="Répertoire & Préférences Clients"
-                subtitle="Consultez toutes les fiches clients, gérez le nombre de personnes, les allergies alimentaires et envoyez les liens de choix."
+                title={isChef ? 'Mes clients' : 'Répertoire & Préférences Clients'}
+                subtitle={isChef
+                    ? 'Les clients qu’Elisa vous a attribués : coordonnées, allergies, notes cuisine et liens de choix des plats.'
+                    : 'Consultez toutes les fiches clients, attribuez-les à vos chefs, gérez les allergies et envoyez les liens de choix.'}
                 backHref="/admin"
                 backLabel="Retour à l'admin"
-                actionElement={
+                actionElement={isOwner ? (
                     <div className="flex items-center gap-2">
                         <Button 
                             size="sm" 
@@ -481,7 +499,7 @@ export default function ClientDirectoryPage() {
                             <Plus className="w-4 h-4" /> Nouveau Client
                         </Button>
                     </div>
-                }
+                ) : undefined}
             />
 
             {/* Main Container */}
@@ -519,6 +537,27 @@ export default function ClientDirectoryPage() {
                         </div>
                     </div>
                 </div>
+
+                {/* Elisa: everyone, her own clients, or one chef's */}
+                {isOwner && chefs.length > 0 && (
+                    <div className="flex flex-wrap items-center gap-1.5 text-xs">
+                        <span className="font-semibold text-stone-600 mr-1">Clients de :</span>
+                        {[{ id: 'all', label: `Tous (${clients.length})` }, { id: 'elisa', label: `Elisa (${clients.filter(c => !c.chefId).length})` }, ...chefs.map(c => ({ id: c.userId, label: `${c.displayName} (${clients.filter(x => x.chefId === c.userId).length})` }))].map(opt => {
+                            const color = opt.id === 'all' ? null : chefColor(chefs, opt.id === 'elisa' ? null : opt.id);
+                            return (
+                                <button
+                                    key={opt.id}
+                                    type="button"
+                                    onClick={() => setChefFilter(opt.id)}
+                                    className={`px-3 py-1.5 rounded-full border font-semibold flex items-center gap-1.5 cursor-pointer ${chefFilter === opt.id ? 'bg-stone-900 text-white border-stone-900' : 'bg-white text-stone-700 border-stone-300'}`}
+                                >
+                                    {color && <span className={`w-2 h-2 rounded-full ${color.dot}`} />}
+                                    {opt.label}
+                                </button>
+                            );
+                        })}
+                    </div>
+                )}
 
                 {/* Search, Filter & View Mode Bar */}
                 <div className="bg-white rounded-3xl p-4 border border-stone-200 shadow-xs flex flex-col sm:flex-row items-center justify-between gap-3">
@@ -610,8 +649,8 @@ export default function ClientDirectoryPage() {
                 ) : filteredClients.length === 0 ? (
                     <div className="bg-white rounded-3xl p-12 text-center text-stone-500 border border-stone-200 space-y-3">
                         <Users className="w-10 h-10 text-stone-300 mx-auto" />
-                        <p className="text-sm font-medium">Aucun client ne correspond à votre recherche.</p>
-                        <div className="flex items-center justify-center gap-2">
+                        <p className="text-sm font-medium">{isChef && clients.length === 0 ? 'Elisa ne vous a pas encore attribué de client.' : 'Aucun client ne correspond à votre recherche.'}</p>
+                        {isOwner && <div className="flex items-center justify-center gap-2">
                             <Button 
                                 variant="outline" 
                                 onClick={() => setIsImportModalOpen(true)}
@@ -627,7 +666,7 @@ export default function ClientDirectoryPage() {
                                 <Plus className="w-3.5 h-3.5" />
                                 Créer une nouvelle fiche
                             </Button>
-                        </div>
+                        </div>}
                     </div>
                 ) : viewMode === 'table' ? (
                     /* COMPACT TABLE VIEW */
@@ -652,6 +691,12 @@ export default function ClientDirectoryPage() {
                                                 <div className="font-serif font-bold text-stone-900 text-sm">
                                                     {client.name}
                                                 </div>
+                                                {isOwner && chefs.length > 0 && (
+                                                    <span className={`mt-1 inline-flex items-center gap-1 text-[10px] font-bold rounded-full border px-2 py-0.5 ${chefColor(chefs, client.chefId).pill}`}>
+                                                        <span className={`w-1.5 h-1.5 rounded-full ${chefColor(chefs, client.chefId).dot}`} />
+                                                        {chefName(chefs, client.chefId)}
+                                                    </span>
+                                                )}
                                             </td>
 
                                             {/* Formula & Household */}
@@ -766,13 +811,13 @@ export default function ClientDirectoryPage() {
                                                         <Edit2 className="w-4 h-4" />
                                                     </button>
 
-                                                    <button
+                                                    {isOwner && <button
                                                         onClick={() => handleDeleteClient(client.id, client.name)}
                                                         className="p-1.5 rounded-xl hover:bg-red-50 text-stone-300 hover:text-red-600 transition-colors cursor-pointer"
                                                         title="Supprimer"
                                                     >
                                                         <Trash2 className="w-4 h-4" />
-                                                    </button>
+                                                    </button>}
                                                 </div>
                                             </td>
                                         </tr>
@@ -798,6 +843,12 @@ export default function ClientDirectoryPage() {
                                                     {client.name}
                                                 </h3>
                                                 <div className="flex flex-wrap items-center gap-1.5 mt-1">
+                                                    {isOwner && chefs.length > 0 && (
+                                                        <span className={`inline-flex items-center gap-1 text-[11px] font-bold rounded-full border px-2.5 py-0.5 ${chefColor(chefs, client.chefId).pill}`}>
+                                                            <span className={`w-1.5 h-1.5 rounded-full ${chefColor(chefs, client.chefId).dot}`} />
+                                                            {chefName(chefs, client.chefId)}
+                                                        </span>
+                                                    )}
                                                     {/* Portion Badge */}
                                                     <span className="text-[11px] bg-rose-50 text-[#E1567A] border border-rose-200 font-bold px-2.5 py-0.5 rounded-full">
                                                         👥 {client.personCount || 2} personnes
@@ -818,13 +869,13 @@ export default function ClientDirectoryPage() {
                                                 >
                                                     <Edit2 className="w-4 h-4" />
                                                 </button>
-                                                <button
+                                                {isOwner && <button
                                                     onClick={() => handleDeleteClient(client.id, client.name)}
                                                     className="p-1.5 rounded-xl hover:bg-red-50 text-stone-300 hover:text-red-600 transition-colors cursor-pointer"
                                                     title="Supprimer"
                                                 >
                                                     <Trash2 className="w-4 h-4" />
-                                                </button>
+                                                </button>}
                                             </div>
                                         </div>
 
@@ -1097,11 +1148,34 @@ export default function ClientDirectoryPage() {
                         </DialogTitle>
                     </DialogHeader>
                     <form onSubmit={handleSaveClient} className="space-y-3.5 py-2 text-xs">
+                        {/* Elisa: which chef looks after this client */}
+                        {isOwner && chefs.length > 0 && (
+                            <div>
+                                <label className="font-semibold block text-stone-700 mb-1">Chef attribué</label>
+                                <select
+                                    value={formChefId}
+                                    onChange={e => setFormChefId(e.target.value)}
+                                    className="w-full p-2.5 rounded-xl border border-stone-300 bg-white focus:ring-2 focus:ring-[#E1567A] focus:outline-none"
+                                >
+                                    <option value="">Elisa</option>
+                                    {chefs.filter(c => c.active || c.userId === formChefId).map(c => (
+                                        <option key={c.userId} value={c.userId}>{c.displayName}{c.city ? ` · ${c.city}` : ''}</option>
+                                    ))}
+                                </select>
+                                <p className="text-[11px] text-stone-500 mt-1">Le chef voit ce client (sans vos notes privées) et reçoit ses choix de plats par email.</p>
+                            </div>
+                        )}
+                        {isChef && (
+                            <p className="text-[11px] text-stone-500 bg-stone-50 border border-stone-200 rounded-xl p-2.5">
+                                Vous pouvez mettre à jour le nombre de personnes, les allergies, les aversions et les notes cuisine. Pour le reste, demandez à Elisa.
+                            </p>
+                        )}
                         <div>
                             <label className="font-semibold block text-stone-700 mb-1">Nom & Prénom *</label>
                             <input 
                                 type="text" 
                                 required 
+                                disabled={isChef}
                                 value={formName}
                                 onChange={e => setFormName(e.target.value)}
                                 placeholder="Ex: Thibault Martin"
@@ -1127,6 +1201,7 @@ export default function ClientDirectoryPage() {
                                     type="number" 
                                     min={1} 
                                     max={8}
+                                    disabled={isChef}
                                     value={formQuota}
                                     onChange={e => setFormQuota(Number(e.target.value))}
                                     className="w-full p-2.5 rounded-xl border border-stone-300 focus:ring-2 focus:ring-[#E1567A] focus:outline-none"
@@ -1139,6 +1214,7 @@ export default function ClientDirectoryPage() {
                                 <label className="font-semibold block text-stone-700 mb-1">Téléphone (WhatsApp)</label>
                                 <input 
                                     type="text" 
+                                    disabled={isChef}
                                     value={formPhone}
                                     onChange={e => setFormPhone(e.target.value)}
                                     placeholder="+33 6 12 34 56 78"
@@ -1149,6 +1225,7 @@ export default function ClientDirectoryPage() {
                                 <label className="font-semibold block text-stone-700 mb-1">Email (optionnel)</label>
                                 <input 
                                     type="email" 
+                                    disabled={isChef}
                                     value={formEmail}
                                     onChange={e => setFormEmail(e.target.value)}
                                     placeholder="thibault@email.com"
@@ -1162,6 +1239,7 @@ export default function ClientDirectoryPage() {
                                 <label className="font-semibold block text-stone-700 mb-1">Adresse</label>
                                 <input 
                                     type="text" 
+                                    disabled={isChef}
                                     value={formAddress}
                                     onChange={e => setFormAddress(e.target.value)}
                                     placeholder="12 avenue d'Albigny, 74000 Annecy"
@@ -1172,6 +1250,7 @@ export default function ClientDirectoryPage() {
                                 <label className="font-semibold block text-stone-700 mb-1">Code d&apos;accès</label>
                                 <input 
                                     type="text" 
+                                    disabled={isChef}
                                     value={formAccessCode}
                                     onChange={e => setFormAccessCode(e.target.value)}
                                     placeholder="Digicode, boîte à clés..."
@@ -1227,7 +1306,7 @@ export default function ClientDirectoryPage() {
                             />
                         </div>
 
-                        <div>
+                        {isOwner && <div>
                             <label className="font-semibold block text-stone-700 mb-1">Notes privées (visibles par vous uniquement)</label>
                             <textarea 
                                 rows={2}
@@ -1236,7 +1315,7 @@ export default function ClientDirectoryPage() {
                                 placeholder="Ex: facturation, situation familiale, préférences de contact..."
                                 className="w-full p-2.5 rounded-xl border border-stone-300 bg-stone-50 focus:ring-2 focus:ring-[#E1567A] focus:outline-none"
                             />
-                        </div>
+                        </div>}
 
                         <Button 
                             type="submit" 

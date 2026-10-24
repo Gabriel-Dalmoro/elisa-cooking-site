@@ -1,9 +1,10 @@
 import { BookingSession, ClientProfile, ClientSelection, WeeklyMenuData } from './types/cooking-ops';
 import { getWeekBoundsForStart } from './dateUtils';
 import { listSessions } from './db/sessions';
+import { getStaffMember } from './db/staff';
 
 /**
- * Email to Elisa when a client sends their dish choices.
+ * Email to Elisa when a client sends their dish choices. For a chef's client: to the chef, Elisa in copy.
  *
  * Sent through an n8n webhook (same setup as the gift card emails): the app builds the
  * whole email, n8n only delivers it. Payload: { to, subject, html, text }.
@@ -155,10 +156,17 @@ export async function sendSelectionEmail(input: {
         const sessions = (await listSessions(startIso, endIso)).filter(s => s.clientId === input.client.id);
         const email = buildSelectionEmail({ ...input, sessions });
 
+        // A chef's client: the chef prepares it, Elisa stays in the loop
+        const elisa = process.env.SELECTION_NOTIFY_EMAIL || DEFAULT_RECIPIENT;
+        const chef = input.client.chefId ? await getStaffMember(input.client.chefId).catch(() => null) : null;
+        const chefEmail = chef && chef.active && chef.email ? chef.email : null;
+        const to = chefEmail ? `${chefEmail}, ${elisa}` : elisa;
+        if (chef) email.subject = `[${chef.displayName.split(/\s+/)[0] || 'Chef'}] ${email.subject}`;
+
         const res = await fetch(webhookUrl, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ to: process.env.SELECTION_NOTIFY_EMAIL || DEFAULT_RECIPIENT, ...email }),
+            body: JSON.stringify({ to, ...email }),
             signal: AbortSignal.timeout(8000)
         });
         if (!res.ok) console.error(`[Selection email] Webhook answered ${res.status}`);

@@ -34,6 +34,7 @@ interface PublicClient {
     defaultDishCount: number;
     allergies: string[];
     dislikes: string;
+    cook: string; // who the client deals with: their chef's first name, or Elisa
 }
 
 interface PublicDish {
@@ -82,6 +83,7 @@ export default function ClientMenuSelectionPage() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [client, setClient] = useState<PublicClient | null>(null);
+    const cook = client?.cook || 'Elisa';
     const [weeks, setWeeks] = useState<PublicWeek[]>([]);
     const [activeWeekStart, setActiveWeekStart] = useState<string | null>(null);
     // open = the client can choose | none = no menu published yet | closed = choices locked
@@ -276,7 +278,7 @@ export default function ClientMenuSelectionPage() {
                 return;
             }
             if (!res.ok) {
-                throw new Error(data.error || 'Erreur lors de l’enregistrement. Réessayez ou contactez Elisa.');
+                throw new Error(data.error || `Erreur lors de l’enregistrement. Réessayez ou contactez ${cook}.`);
             }
 
             setLockedAllergies(allergies);
@@ -351,8 +353,8 @@ export default function ClientMenuSelectionPage() {
                     </h1>
                     <p className="text-stone-600 text-sm">
                         {menuState === 'closed'
-                            ? `Les choix pour la ${closedWeekLabel ? closedWeekLabel.toLowerCase() : 'semaine'} sont clôturés. Pour toute modification, contactez Elisa directement.`
-                            : 'Le menu de la semaine n’est pas encore disponible. Elisa vous enverra ce lien dès qu’il sera prêt.'}
+                            ? `Les choix pour la ${closedWeekLabel ? closedWeekLabel.toLowerCase() : 'semaine'} sont clôturés. Pour toute modification, contactez ${cook} directement.`
+                            : `Le menu de la semaine n’est pas encore disponible. ${cook} vous enverra ce lien dès qu’il sera prêt.`}
                     </p>
                 </Card>
             </div>
@@ -425,7 +427,7 @@ export default function ClientMenuSelectionPage() {
                         </h1>
                         <p className="text-stone-600 text-sm mb-6">
                             {sentRecap.justSent ? (
-                                <>Merci <strong>{client.firstName}</strong>, Elisa a bien reçu votre sélection de <strong>{sentTotal} plats</strong> pour la {menu.weekLabel.toLowerCase()}.</>
+                                <>Merci <strong>{client.firstName}</strong>, {cook} a bien reçu votre sélection de <strong>{sentTotal} plats</strong> pour la {menu.weekLabel.toLowerCase()}.</>
                             ) : (
                                 <>Bonjour <strong>{client.firstName}</strong>, vous avez déjà choisi vos <strong>{sentTotal} plats</strong> pour la {menu.weekLabel.toLowerCase()}
                                 {sentRecap.submittedAt && <> (le {new Date(sentRecap.submittedAt).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', timeZone: 'Europe/Paris' })})</>}.</>
@@ -469,7 +471,7 @@ export default function ClientMenuSelectionPage() {
 
                         <p className="text-xs text-stone-500 flex items-center justify-center gap-1.5">
                             <Lock className="w-3.5 h-3.5" />
-                            Vos choix sont enregistrés. Pour toute modification, contactez Elisa.
+                            Vos choix sont enregistrés. Pour toute modification, contactez {cook}.
                         </p>
 
                         {nextWeekToChoose && (
@@ -542,11 +544,11 @@ export default function ClientMenuSelectionPage() {
                                         </DialogHeader>
                                         <div className="space-y-4 py-2">
                                             <p className="text-xs text-stone-600">
-                                                Indiquez vos allergies et ce que vous ne mangez pas. Elisa en tiendra compte pour cette séance et toutes les suivantes.
+                                                Indiquez vos allergies et ce que vous ne mangez pas. {cook} en tiendra compte pour cette séance et toutes les suivantes.
                                             </p>
                                             {lockedAllergies.length > 0 && (
                                                 <p className="text-[11px] text-stone-500 flex items-center gap-1">
-                                                    <Lock className="w-3 h-3" /> Pour retirer une allergie déjà enregistrée, contactez Elisa.
+                                                    <Lock className="w-3 h-3" /> Pour retirer une allergie déjà enregistrée, contactez {cook}.
                                                 </p>
                                             )}
                                             <div className="flex flex-wrap gap-2">
@@ -801,13 +803,13 @@ export default function ClientMenuSelectionPage() {
                 <div className="bg-white rounded-3xl p-5 border border-stone-200 shadow-sm space-y-2">
                     <label className="text-xs font-bold uppercase tracking-wider text-stone-600 flex items-center gap-1.5">
                         <MessageSquare className="w-3.5 h-3.5 text-amber-600" />
-                        Un message général pour Elisa pour cette semaine ?
+                        Un message général pour {cook} pour cette semaine ?
                     </label>
                     <textarea
                         rows={2}
                         value={generalNote}
                         onChange={(e) => setGeneralNote(e.target.value)}
-                        placeholder="Ex: Merci Elisa, pourrais-tu ranger les barquettes directement dans le bac du bas du frigo..."
+                        placeholder={`Ex: Merci ${cook}, pourrais-tu ranger les barquettes directement dans le bac du bas du frigo...`}
                         className="w-full text-xs p-3 rounded-2xl border border-stone-200 focus:outline-none focus:ring-2 focus:ring-amber-500 text-stone-800"
                     />
                 </div>
@@ -887,7 +889,7 @@ export default function ClientMenuSelectionPage() {
             <Dialog open={isConfirmOpen} onOpenChange={setIsConfirmOpen}>
                 <DialogContent className="sm:max-w-md bg-white rounded-3xl">
                     <DialogHeader>
-                        <DialogTitle className="font-serif text-lg">Envoyer vos {targetCount} plats à Elisa ?</DialogTitle>
+                        <DialogTitle className="font-serif text-lg">Envoyer vos {targetCount} plats à {cook} ?</DialogTitle>
                     </DialogHeader>
                     <p className="text-sm font-bold text-[#E1567A] flex items-center gap-1.5 -mt-1">
                         <CalendarDays className="w-4 h-4" /> Pour la {menu.weekLabel.toLowerCase()}
@@ -903,7 +905,7 @@ export default function ClientMenuSelectionPage() {
                         </ul>
                         <p className="text-xs text-stone-500 flex items-start gap-1.5">
                             <Lock className="w-3.5 h-3.5 shrink-0 mt-0.5" />
-                            Une fois envoyés, vos choix ne pourront plus être modifiés depuis ce lien. Pour tout changement, il faudra contacter Elisa.
+                            Une fois envoyés, vos choix ne pourront plus être modifiés depuis ce lien. Pour tout changement, il faudra contacter {cook}.
                         </p>
                         <div className="flex gap-2 justify-end">
                             <Button variant="outline" onClick={() => setIsConfirmOpen(false)} className="rounded-full text-xs">
