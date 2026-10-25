@@ -12,8 +12,9 @@ export interface ClientProfile {
     dislikes?: string;
     defaultDishCount: number;
     personCount: number; // Household portions e.g. 2, 4 personnes
-    notes?: string; // Kitchen & equipment notes (operational, will be visible to an assistant chef)
-    privateNotes?: string; // Owner only — never shown to an assistant
+    notes?: string; // Kitchen & equipment notes (operational, visible to the client's chef)
+    privateNotes?: string; // Owner only — never sent to a chef
+    chefId?: string | null; // Chef in charge of this client (staff user id), null = Elisa
     isBookedThisWeek?: boolean;
     bookingDay?: string;
     createdAt: string;
@@ -34,7 +35,7 @@ export interface BookingSession {
     personCount: number; // e.g. 2 personnes
     gcalEventId?: string;
     notes?: string; // Google Calendar event title
-    assignedTo?: string | null; // Staff user id of an assistant chef (null = Elisa)
+    assignedTo?: string | null; // Staff user id of the chef cooking this session (null = Elisa)
     createdAt: string;
 }
 
@@ -71,6 +72,8 @@ export interface ClientSelection {
     recipeOverrides: Record<string, string>; // Elisa's recipe adapted for this client only, keyed by dish id ('__custom__' = custom dish). Staff only.
     ingredientOverrides: Record<string, string>; // Same, for the ingredient list (feeds this client's grocery list). Staff only.
     groceryChecked: string[]; // Grocery list items ticked off and saved by Elisa (item keys). Staff only.
+    groceryEdits: Record<string, string>; // Quantities corrected by hand on the grocery list (item key → amount). Staff only.
+    groceryExtras: string[]; // Items added by hand on the grocery list, one line each (« 2 citrons »). Staff only.
     generalNote?: string;
     submittedAt: string;
     allergiesAtSubmission: string[];

@@ -28,6 +28,10 @@ const RECIPE_OVERRIDES_KEY = '__recipe_overrides__';
 const INGREDIENT_OVERRIDES_KEY = '__ingredient_overrides__';
 // And the grocery items Elisa ticked off (bought, or the client already has them), saved with the Save button
 const GROCERY_CHECKED_KEY = '__grocery_checked__';
+// And the quantities Elisa corrected by hand on the list (item key → amount as she typed it)
+const GROCERY_EDITS_KEY = '__grocery_edits__';
+// And items added by hand straight on the list (one line each, e.g. « 2 citrons »)
+const GROCERY_EXTRAS_KEY = '__grocery_extras__';
 // Key used in the recipe overrides for the client's custom dish (it has no menu dish id)
 export const CUSTOM_DISH_RECIPE_ID = '__custom__';
 
@@ -48,11 +52,15 @@ function rowToSelection(row: SelectionRow): ClientSelection {
     const recipeOverrides = asStringRecord(notes[RECIPE_OVERRIDES_KEY]);
     const ingredientOverrides = asStringRecord(notes[INGREDIENT_OVERRIDES_KEY]);
     const groceryChecked = asStringArray(notes[GROCERY_CHECKED_KEY]);
+    const groceryEdits = asStringRecord(notes[GROCERY_EDITS_KEY]);
+    const groceryExtras = asStringArray(notes[GROCERY_EXTRAS_KEY]);
     delete notes[CUSTOM_DISH_KEY];
     delete notes[CUSTOM_DISH_FROM_KEY];
     delete notes[RECIPE_OVERRIDES_KEY];
     delete notes[INGREDIENT_OVERRIDES_KEY];
     delete notes[GROCERY_CHECKED_KEY];
+    delete notes[GROCERY_EDITS_KEY];
+    delete notes[GROCERY_EXTRAS_KEY];
     const dishNotes: Record<string, string> = {};
     for (const [id, note] of Object.entries(notes)) if (typeof note === 'string') dishNotes[id] = note;
     return {
@@ -67,6 +75,8 @@ function rowToSelection(row: SelectionRow): ClientSelection {
         recipeOverrides,
         ingredientOverrides,
         groceryChecked,
+        groceryEdits,
+        groceryExtras,
         generalNote: row.general_note || '',
         submittedAt: row.submitted_at,
         allergiesAtSubmission: asStringArray(row.allergies_at_submission),
@@ -196,9 +206,15 @@ export async function setRecipeOverride(
 }
 
 /**
- * Saves which grocery items are ticked off for this client's week (the keys of the list items).
+ * Saves this client's grocery list state for the week: ticked items, quantities corrected by hand,
+ * items added by hand.
+ * Only what is given is changed.
  */
-export async function setGroceryChecked(clientId: string, weekStart: string, keys: string[]): Promise<ClientSelection> {
+export async function setGroceryState(
+    clientId: string,
+    weekStart: string,
+    state: { checked?: string[]; edits?: Record<string, string>; extras?: string[] }
+): Promise<ClientSelection> {
     const supabase = getSupabaseAdmin();
     const { data: row, error: readError } = await supabase
         .from('client_selections')
@@ -210,7 +226,9 @@ export async function setGroceryChecked(clientId: string, weekStart: string, key
     if (!row) throw new Error('Ce client n’a pas encore envoyé ses choix pour cette semaine.');
 
     const notes = row.dish_notes && typeof row.dish_notes === 'object' ? { ...(row.dish_notes as Record<string, unknown>) } : {};
-    notes[GROCERY_CHECKED_KEY] = [...new Set(keys)];
+    if (state.checked) notes[GROCERY_CHECKED_KEY] = [...new Set(state.checked)];
+    if (state.edits) notes[GROCERY_EDITS_KEY] = state.edits;
+    if (state.extras) notes[GROCERY_EXTRAS_KEY] = state.extras;
 
     const { data, error } = await supabase
         .from('client_selections')

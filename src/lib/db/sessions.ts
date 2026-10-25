@@ -1,10 +1,12 @@
 import { getSupabaseAdmin } from '../supabase/admin';
 import { BookingSession, TimeSlot } from '../types/cooking-ops';
-import { getParisDateTimeInfo } from '../dateUtils';
+import { getParisDateTimeInfo, getParisUtcOffset } from '../dateUtils';
 
 /**
- * Cooking sessions, mirrored from Google Calendar (Google stays the source of truth for the schedule).
- * Fields set in the app (assigned chef, ignored) survive every re-sync.
+ * Cooking sessions. Elisa's come from her Google Calendar (Google stays the source of truth for them);
+ * fields set in the app (assigned chef, ignored) survive every re-sync.
+ * Chefs' sessions are created in the app and have no Google event (gcal_event_id null):
+ * the sync never touches them.
  */
 
 interface SessionRow {
@@ -73,8 +75,9 @@ function inputToRow(s: SessionInput) {
     };
 }
 
-export async function listSessions(startIso: string, endIso: string): Promise<BookingSession[]> {
-    const { data, error } = await getSupabaseAdmin()
+/** Sessions of a date range: everyone's, or only those assigned to one chef. */
+export async function listSessions(startIso: string, endIso: string, assignedTo?: string): Promise<BookingSession[]> {
+    let query = getSupabaseAdmin()
         .from('cooking_sessions')
         .select('*')
         .gte('date', startIso)
@@ -82,6 +85,8 @@ export async function listSessions(startIso: string, endIso: string): Promise<Bo
         .eq('ignored', false)
         .order('date', { ascending: true })
         .order('starts_at', { ascending: true, nullsFirst: false });
+    if (assignedTo) query = query.eq('assigned_to', assignedTo);
+    const { data, error } = await query;
     if (error) throw new Error(`Lecture des séances impossible : ${error.message}`);
     return (data as SessionRow[]).map(rowToSession);
 }
@@ -146,4 +151,70 @@ export async function deleteSession(id: string): Promise<void> {
         .delete()
         .eq('id', id);
     if (error) throw new Error(`Suppression de la séance impossible : ${error.message}`);
+}
+
+// Same hours as Elisa's Google Calendar events (09:00–12:00 / 14:00–17:00, Paris)
+function slotTimes(dateIso: string, timeSlot: TimeSlot) {
+    const offset = getParisUtcOffset(dateIso);
+    const [startHour, endHour] = timeSlot === 'Matin' ? ['09:00', '12:00'] : ['14:00', '17:00'];
+    return { starts_at: `${dateIso}T${startHour}:00${offset}`, ends_at: `${dateIso}T${endHour}:00${offset}` };
+}
+
+/**
+ * A session that lives only in the app (a chef's session: no Google Calendar event).
+ */
+export async function createAppSession(input: {
+    clientId: string;
+    displayName: string;
+    dateIso: string;
+    timeSlot: TimeSlot;
+    dishCount: number;
+    personCount: number;
+    assignedTo: string | null;
+}): Promise<BookingSession> {
+    const { data, error } = await getSupabaseAdmin()
+        .from('cooking_sessions')
+        .insert({
+            gcal_event_id: null,
+            client_id: input.clientId,
+            calendar_title: null,
+            display_name: input.displayName,
+            date: input.dateIso,
+            time_slot: input.timeSlot,
+            ...slotTimes(input.dateIso, input.timeSlot),
+            dish_count: input.dishCount,
+            person_count: input.personCount,
+            assigned_to: input.assignedTo
+        })
+        .select('*')
+        .single();
+    if (error) throw new Error(`Création de la séance impossible : ${error.message}`);
+    return rowToSession(data as SessionRow);
+}
+
+/** Moves an app-only session (Google Calendar sessions are moved in Google Calendar). */
+export async function rescheduleAppSession(id: string, dateIso: string, timeSlot: TimeSlot): Promise<BookingSession> {
+    const { data, error } = await getSupabaseAdmin()
+        .from('cooking_sessions')
+        .update({ date: dateIso, time_slot: timeSlot, ...slotTimes(dateIso, timeSlot), updated_at: new Date().toISOString() })
+        .eq('id', id)
+        .is('gcal_event_id', null)
+        .select('*')
+        .maybeSingle();
+    if (error) throw new Error(`Déplacement de la séance impossible : ${error.message}`);
+    if (!data) throw new Error('Cette séance vient de Google Calendar : déplacez-la dans votre agenda.');
+    return rowToSession(data as SessionRow);
+}
+
+/** Who cooks this session (null = Elisa). */
+export async function setSessionAssignee(id: string, assignedTo: string | null): Promise<BookingSession> {
+    const { data, error } = await getSupabaseAdmin()
+        .from('cooking_sessions')
+        .update({ assigned_to: assignedTo, updated_at: new Date().toISOString() })
+        .eq('id', id)
+        .select('*')
+        .maybeSingle();
+    if (error) throw new Error(`Attribution de la séance impossible : ${error.message}`);
+    if (!data) throw new Error('Séance introuvable');
+    return rowToSession(data as SessionRow);
 }

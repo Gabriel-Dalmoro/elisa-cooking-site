@@ -4,6 +4,8 @@ import { findPastSeasonDish, getClientFacingMenu, listPastSeasonDishes } from '@
 import { getSelection, setRecipeOverride, upsertSelection, CUSTOM_DISH_RECIPE_ID } from '@/lib/db/selections';
 import { sendSelectionEmail } from '@/lib/selectionEmail';
 import { ClientProfile, WeeklyDish } from '@/lib/types/cooking-ops';
+import { getStaffMember } from '@/lib/db/staff';
+import { effectiveRecipe } from '@/lib/grocery/recipe';
 import { getWeekBoundsForStart, getWeekOffsetForDate, isMondayIso, seasonOf, SEASON_OF_PHRASE, SEASON_PHRASE } from '@/lib/dateUtils';
 
 /**
@@ -11,12 +13,19 @@ import { getWeekBoundsForStart, getWeekOffsetForDate, isMondayIso, seasonOf, SEA
  * Only returns what the client needs to pick dishes: never phone, email, address, access code,
  * notes, or Elisa's recipe instructions.
  */
-function toPublicClient(client: ClientProfile) {
+async function toPublicClient(client: ClientProfile) {
+    // Who the client deals with: their chef's first name, or Elisa
+    let cook = 'Elisa';
+    if (client.chefId) {
+        const chef = await getStaffMember(client.chefId).catch(() => null);
+        if (chef?.active && chef.displayName) cook = chef.displayName.split(/\s+/)[0];
+    }
     return {
         firstName: client.name.split(/\s+/)[0],
         defaultDishCount: client.defaultDishCount,
         allergies: client.allergies,
-        dislikes: client.dislikes || ''
+        dislikes: client.dislikes || '',
+        cook
     };
 }
 
@@ -47,7 +56,7 @@ export async function GET(req: NextRequest) {
         const facing = await getClientFacingMenu();
         if (facing.state !== 'open') {
             return NextResponse.json({
-                client: toPublicClient(client),
+                client: await toPublicClient(client),
                 state: facing.state,
                 weekLabel: facing.state === 'closed' ? facing.menu.weekLabel : null
             });
@@ -92,7 +101,7 @@ export async function GET(req: NextRequest) {
                     : null
             };
         }));
-        return NextResponse.json({ client: toPublicClient(client), state: 'open', weeks });
+        return NextResponse.json({ client: await toPublicClient(client), state: 'open', weeks });
     } catch (error) {
         console.error('Error fetching client cooking data:', error);
         return NextResponse.json({ error: 'Erreur interne du serveur' }, { status: 500 });
@@ -188,8 +197,10 @@ export async function POST(req: NextRequest) {
         // Picked from an earlier menu: Elisa's recipe for it is copied onto this client's custom dish,
         // so the kitchen sheet and the grocery list are ready without retyping anything
         if (picked) {
-            const steps = (picked.instructions || []).join('\n').trim();
-            const ingredients = (picked.ingredients || '').trim();
+            // Same split as the « Séparer » button: older recipes keep their ingredients inside the text
+            const split = effectiveRecipe(picked.ingredients || '', (picked.instructions || []).join('\n'));
+            const steps = split.steps.trim();
+            const ingredients = split.ingredients.trim();
             if (steps || ingredients) {
                 try {
                     selection = await setRecipeOverride(client.id, weekStart, CUSTOM_DISH_RECIPE_ID, steps, ingredients);

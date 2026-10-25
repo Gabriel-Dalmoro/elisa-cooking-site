@@ -48,15 +48,27 @@ export function buildSlotStatuses(
 /**
  * Everything the planning screens need for one week (offset 0 = this week, in Paris time).
  * Sessions cover Monday–Sunday; the planning grid shows Monday–Friday.
+ * For a chef (chefId): only the sessions assigned to them, and only their clients plus the clients
+ * of those sessions — never private notes.
  */
-export async function loadWeekOverview(offsetWeeks: number) {
+export async function loadWeekOverview(offsetWeeks: number, chefId?: string) {
     const { startIso, endIso, weekLabel } = getWeekBounds(offsetWeeks);
-    const [clients, sessions, selections, weekMenu] = await Promise.all([
+    const [allClients, sessions, selections, weekMenu] = await Promise.all([
         listClients(),
-        listSessions(startIso, endIso),
+        listSessions(startIso, endIso, chefId),
         getSelectionsForWeek(startIso),
         getMenu(startIso)
     ]);
+
+    let clients = allClients;
+    if (chefId) {
+        const sessionClientIds = new Set(sessions.map(s => s.clientId).filter(Boolean));
+        clients = allClients
+            .filter(c => c.chefId === chefId || sessionClientIds.has(c.id))
+            // eslint-disable-next-line @typescript-eslint/no-unused-vars
+            .map(({ privateNotes, ...c }) => c);
+    }
+    const visibleIds = new Set(clients.map(c => c.id));
 
     return {
         weekLabel,
@@ -64,7 +76,7 @@ export async function loadWeekOverview(offsetWeeks: number) {
         endIso,
         weekMenu,
         clients,
-        slotStatuses: buildSlotStatuses(sessions, clients, selections)
+        slotStatuses: buildSlotStatuses(sessions, clients, selections.filter(s => visibleIds.has(s.clientId)))
     };
 }
 

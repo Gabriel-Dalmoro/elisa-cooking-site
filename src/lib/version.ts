@@ -5,12 +5,12 @@
  * version in the commit message (e.g. "fix(crm): ... [v0.9.1]"). That way the
  * number on screen tells you exactly what is running on prod vs preview.
  *
- *   0.9.x  — alpha: Elisa's first season, features still moving
- *   1.0.0  — once she has run a full week end to end without help
+ *   0.x    — alpha: Elisa's first season, features still moving
+ *   1.0.0  — first team version: chef accounts (Lucas), clients and sessions assigned by Elisa
  *
- * Patch (0.9.1) = fix or small change · Minor (0.10.0) = new capability.
+ * Patch (1.0.1) = fix or small change · Minor (1.1.0) = new capability · Major (2.0.0) = big change in how it works.
  */
-export const APP_VERSION = '0.16.2';
+export const APP_VERSION = '1.0.4';
 
 /**
  * Where this build is running. Vercel fills these in at build time when

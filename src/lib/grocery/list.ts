@@ -12,6 +12,7 @@ export interface GroceryDishInput {
     ingredients: string; // the dish's ingredient text for this client
     recipeText?: string; // the rest of the recipe, only read to find « Pour N personnes »
     clientNote?: string; // the client's note on this dish
+    handAdded?: boolean; // items typed straight on the shopping list: every line is something to buy
 }
 
 export interface GroceryInput {
@@ -29,6 +30,7 @@ export interface GroceryClientInput extends GroceryInput {
 export interface GroceryClientShare {
     client: string;
     amount: string | null; // this client's part, null if the recipe gives no amount
+    edited?: boolean; // amount corrected by hand
 }
 
 export interface GrocerySource {
@@ -46,6 +48,9 @@ export interface GroceryItem {
     sources: GrocerySource[];
     warnings: string[];
     byClient?: GroceryClientShare[]; // combined lists only: each client's part
+    edited?: boolean; // total corrected by hand
+    handAdded?: boolean; // only typed on the list (not from a recipe)
+    calculated?: string | null; // the computed amount, kept when it was corrected by hand
 }
 
 export interface GrocerySection {
@@ -119,6 +124,7 @@ interface Contribution {
     line: IngredientLine;
     client: number; // index in the clients list
     scaled: Qty | null;
+    added?: boolean; // typed on the list
 }
 
 interface Accumulator {
@@ -128,15 +134,17 @@ interface Accumulator {
     contributions: Contribution[];
     sources: GrocerySource[];
     dishNames: Set<string>; // `${client index}|${dish name}`
+    fromRecipe: boolean; // at least one line comes from a recipe (not only typed on the list)
 }
 
 // Adds amounts per unit; "selon recette" when some lines give no amount
 function sumAmounts(contributions: Contribution[]): string | null {
     const totals = new Map<string, Qty>();
     let hasUnquantified = false;
-    for (const { line, scaled } of contributions) {
+    for (const { line, scaled, added } of contributions) {
         if (!scaled) {
-            hasUnquantified = true;
+            // « croutons » typed without amount next to the recipes' 35 g: still just « 35 g »
+            if (!added) hasUnquantified = true;
             continue;
         }
         const prev = totals.get(line.unit);
@@ -174,10 +182,36 @@ function buildLists(clients: GroceryClientInput[], merged: boolean): GroceryList
     const personsOf = (c: GroceryClientInput) => (c.persons > 0 ? c.persons : DEFAULT_SERVINGS);
     const withClient = (c: GroceryClientInput, text: string) => (merged ? `${c.label} · ${text}` : text);
 
+    // Items typed on the list get their own line, unless worded like an ingredient already in the recipes
+    // (« croutons au fromage » ≠ « croutons »). Singular / plural count as the same (« citron » = « citrons »).
+    const wording = (phrase: string) => normalize(phrase).split(' ').map(w => w.replace(/(?<=..)[sx]$/, '')).join(' ');
+    const recipeKeyByWording = new Map<string, string>();
+    for (const client of clients) {
+        for (const dish of client.dishes) {
+            if (dish.handAdded) continue;
+            for (const { line } of parseIngredients(dish.ingredients || '').items) {
+                if (line.phrase && !recipeKeyByWording.has(wording(line.phrase))) recipeKeyByWording.set(wording(line.phrase), line.key);
+            }
+        }
+    }
+    // What she typed, without the amount (« 2 citrons » → « citrons », « croutons au fromage » stays whole)
+    const AMOUNT = /^\s*(?:[\d.,/½¼¾]+|un|une|deux|trois|quatre|cinq|six|dix|douze)\s*(?:kg|g|mg|l|cl|dl|ml|c\.?\s*à\s*(?:s|soupe|c|café)\.?|cuill\S*|pincées?|bottes?|tranches?|gousses?|sachets?|boîtes?|paquets?|pots?|brins?|feuilles?|morceaux?|bouteilles?|x)?\.?\s+(?:de\s+|d['’])?/i;
+    const asTyped = (line: IngredientLine): IngredientLine => {
+        const typed = line.raw.replace(AMOUNT, '').trim().toLowerCase() || line.phrase;
+        const sameAsRecipe = recipeKeyByWording.get(wording(typed));
+        if (sameAsRecipe) return { ...line, key: sameAsRecipe };
+        return {
+            ...line,
+            key: `added:${wording(typed)}`,
+            name: typed.charAt(0).toUpperCase() + typed.slice(1),
+            section: line.section ?? UNSORTED // typed on purpose (« eau gazeuse »): never dropped like tap water
+        };
+    };
+
     clients.forEach((client, clientIdx) => {
         const persons = personsOf(client);
         for (const dish of client.dishes) {
-            const parsed = parseIngredients(dish.ingredients || '');
+            const parsed = parseIngredients(dish.ingredients || '', { headingsAsItems: dish.handAdded });
             if (parsed.items.length === 0) {
                 dishesWithoutIngredients.push(withClient(client, dish.name));
                 continue;
@@ -188,7 +222,9 @@ function buildLists(clients: GroceryClientInput[], merged: boolean): GroceryList
             const label = shortDishName(dish.name);
             dishes.push({ name: withClient(client, dish.name), servings, itemCount: parsed.items.length });
 
-            for (const { line, part } of parsed.items) {
+            for (const item of parsed.items) {
+                const part = item.part;
+                const line = dish.handAdded ? asTyped(item.line) : item.line;
                 if (line.section === null) continue; // water
                 const scaled = line.qty && line.scales ? { min: line.qty.min * factor, max: line.qty.max * factor } : line.qty;
 
@@ -200,11 +236,13 @@ function buildLists(clients: GroceryClientInput[], merged: boolean): GroceryList
                         section: line.section,
                         contributions: [],
                         sources: [],
-                        dishNames: new Set()
+                        dishNames: new Set(),
+                        fromRecipe: false
                     };
                     items.set(line.key, acc);
                 }
-                acc.contributions.push({ line, client: clientIdx, scaled });
+                acc.contributions.push({ line, client: clientIdx, scaled, ...(dish.handAdded ? { added: true } : {}) });
+                if (!dish.handAdded) acc.fromRecipe = true;
                 acc.dishNames.add(`${clientIdx}|${dish.name}`);
                 if (line.section === 'Surgelés') acc.section = 'Surgelés';
                 acc.sources.push({
@@ -270,7 +308,8 @@ function buildLists(clients: GroceryClientInput[], merged: boolean): GroceryList
                 .map(([, phrase]) => phrase),
             total: sumAmounts(acc.contributions),
             sources: acc.sources,
-            warnings: [...warnings]
+            warnings: [...warnings],
+            ...(acc.fromRecipe ? {} : { handAdded: true })
         };
         if (merged) {
             item.byClient = clientIdxs.map(idx => ({
@@ -298,6 +337,47 @@ function buildLists(clients: GroceryClientInput[], merged: boolean): GroceryList
         dishesWithoutIngredients,
         unsortedCount: bySection.get(UNSORTED)?.length || 0,
         ...(merged ? { clients: clients.map(c => ({ label: c.label, persons: personsOf(c) })) } : {})
+    };
+}
+
+/**
+ * One client's list with the quantities Elisa corrected by hand (item key → amount as typed).
+ */
+export function applyGroceryEdits(list: GroceryList, edits: Record<string, string> | undefined): GroceryList {
+    if (!edits || Object.keys(edits).length === 0) return list;
+    return {
+        ...list,
+        sections: list.sections.map(section => ({
+            ...section,
+            items: section.items.map(item =>
+                edits[item.key] ? { ...item, total: edits[item.key], edited: true, calculated: item.total } : item
+            )
+        }))
+    };
+}
+
+/**
+ * Combined list with each client's corrected quantities (client label → item key → amount).
+ * When a part was corrected, the total can't be added up any more: it's hidden for that item.
+ */
+export function applyCombinedEdits(list: GroceryList, editsByClient: Record<string, Record<string, string>>): GroceryList {
+    return {
+        ...list,
+        sections: list.sections.map(section => ({
+            ...section,
+            items: section.items.map(item => {
+                if (!item.byClient?.some(b => editsByClient[b.client]?.[item.key])) return item;
+                return {
+                    ...item,
+                    total: null,
+                    edited: true,
+                    byClient: item.byClient.map(b => {
+                        const edit = editsByClient[b.client]?.[item.key];
+                        return edit ? { ...b, amount: edit, edited: true } : b;
+                    })
+                };
+            })
+        }))
     };
 }
 

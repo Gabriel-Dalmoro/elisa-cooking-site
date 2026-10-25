@@ -32,7 +32,8 @@ export function Navbar() {
     const pathname = usePathname();
 
     // Admin pages and client links: same brand pill, without the site menu, and it scrolls away
-    if (pathname?.startsWith('/admin')) return <AppHeader space="admin" />;
+    // (the admin header is drawn by the admin layout, which knows who is signed in)
+    if (pathname?.startsWith('/admin')) return null;
     if (pathname?.startsWith('/choisir')) return <AppHeader space="client" />;
 
     return (

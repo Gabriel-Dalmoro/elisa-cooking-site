@@ -1,5 +1,5 @@
 -- =========================================================
--- ELISA COOKING OPS — REFERENCE SCHEMA (state after supabase/migrations/003)
+-- ELISA COOKING OPS — REFERENCE SCHEMA (state after supabase/migrations/006)
 -- Do NOT run this against production: changes go in supabase/migrations/ as numbered files.
 -- RLS is enabled with NO policies: only the server (service-role key) can read/write.
 -- =========================================================
@@ -18,6 +18,7 @@ CREATE TABLE IF NOT EXISTS public.clients (
     person_count INTEGER NOT NULL DEFAULT 2,
     notes TEXT,          -- kitchen / equipment notes (assistant-visible)
     private_notes TEXT,  -- Elisa only
+    chef_id UUID REFERENCES public.staff(user_id) ON DELETE SET NULL, -- migration 006 (null = Elisa)
     is_booked_this_week BOOLEAN DEFAULT TRUE,
     booking_day TEXT,
     created_at TIMESTAMPTZ DEFAULT NOW(),
@@ -69,10 +70,14 @@ ALTER TABLE public.recipe_vault ENABLE ROW LEVEL SECURITY;
 
 CREATE TABLE IF NOT EXISTS public.staff (
     user_id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
-    role TEXT NOT NULL CHECK (role IN ('owner', 'assistant')),
+    role TEXT NOT NULL CHECK (role IN ('owner', 'chef')),   -- migration 006
     display_name TEXT,
+    email TEXT,                                          -- migration 006 (receives their clients' choices)
+    phone TEXT,                                          -- migration 006
+    city TEXT,                                           -- migration 006
     active BOOLEAN NOT NULL DEFAULT TRUE,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 ALTER TABLE public.staff ENABLE ROW LEVEL SECURITY;
 

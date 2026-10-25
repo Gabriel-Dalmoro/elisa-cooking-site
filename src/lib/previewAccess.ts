@@ -23,3 +23,6 @@ export const PREVIEW_STAFF = {
     role: 'owner' as const,
     displayName: 'Aperçu (sans connexion)'
 };
+
+/** Preview only: cookie holding the chef whose view is being tested (« Voir comme Lucas »). */
+export const PREVIEW_AS_COOKIE = 'preview_view_as';

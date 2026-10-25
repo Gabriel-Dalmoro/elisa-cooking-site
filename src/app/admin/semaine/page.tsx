@@ -45,6 +45,7 @@ import { ClientProfile, SlotSessionStatus, WeeklyMenuData } from '@/lib/types/co
 import { getWeekBounds, getWeekBoundsForStart, WEEK_DAY_NAMES } from '@/lib/dateUtils';
 import { allergyOptions } from '@/lib/allergies';
 import CustomAllergyInput from '@/components/CustomAllergyInput';
+import { chefColor, chefName, useStaff } from '@/components/admin/StaffContext';
 
 const SLOTS: ('Matin' | 'Après-midi')[] = ['Matin', 'Après-midi'];
 
@@ -82,6 +83,20 @@ export default function WeeklyOpsAdminDashboard() {
     const [isSavingClient, setIsSavingClient] = useState(false);
     // When booking a slot: '' = new client, otherwise the id of an existing client (their profile is not modified)
     const [bookingExistingClientId, setBookingExistingClientId] = useState<string>('');
+    // Who cooks the booked session ('' = Elisa, her Google Calendar) and which chef a client belongs to
+    const [bookingAssignee, setBookingAssignee] = useState<string>('');
+    const [clientFormChefId, setClientFormChefId] = useState<string>('');
+
+    // Team: Elisa sees every chef's sessions and can filter; a chef only ever gets their own
+    const { isOwner, isChef, chefs } = useStaff();
+    const activeChefs = chefs.filter(c => c.active);
+    const [chefFilter, setChefFilter] = useState<string>('all'); // 'all' | 'elisa' | chef id
+    useEffect(() => {
+        const fromUrl = new URLSearchParams(window.location.search).get('chef');
+        if (fromUrl) setChefFilter(fromUrl);
+    }, []);
+    const [moveDraft, setMoveDraft] = useState<{ dateIso: string; timeSlot: 'Matin' | 'Après-midi' } | null>(null);
+    const [isUpdatingSession, setIsUpdatingSession] = useState(false);
 
     const weekInfo = useMemo(() => getWeekBounds(weekOffset), [weekOffset]);
 
@@ -121,7 +136,8 @@ export default function WeeklyOpsAdminDashboard() {
             setSlotStatuses(data.slotStatuses || []);
             setWeekMenu(data.weekMenu);
             setAllClients(data.clients || []);
-            
+            if (data.chefView) return; // a chef has no Google Calendar: nothing was synced
+
             const validCount = data.validBookingsCount || 0;
             const ignoredCount = data.ignoredBlocksCount || 0;
             const syncMsg = `Google Calendar synchronisé : ${validCount} séance(s) active(s)${ignoredCount > 0 ? ` • ${ignoredCount} créneau(x) "Bloc" ignoré(s)` : ''}`;
@@ -227,6 +243,7 @@ export default function WeeklyOpsAdminDashboard() {
         setClientFormPersonCount(client.personCount || 2);
         setClientFormAllergies(client.allergies || []);
         setClientFormNotes(client.notes || '');
+        setClientFormChefId(client.chefId || '');
         setSlotTargetDateIso('');
         setBookingExistingClientId('');
         setIsAddClientOpen(true);
@@ -243,6 +260,7 @@ export default function WeeklyOpsAdminDashboard() {
         setClientFormPersonCount(personCount || 2);
         setClientFormAllergies([]);
         setClientFormNotes('');
+        setClientFormChefId('');
         setSlotTargetDateIso('');
         setBookingExistingClientId('');
         setIsAddClientOpen(true);
@@ -262,7 +280,18 @@ export default function WeeklyOpsAdminDashboard() {
         setSlotTargetDayName(dayName);
         setSlotTargetTimeSlot(slot);
         setBookingExistingClientId('');
+        // Booking while looking at one chef's planning: that chef cooks it by default
+        const filterChef = chefFilter !== 'all' && chefFilter !== 'elisa' ? chefFilter : '';
+        setBookingAssignee(filterChef);
+        setClientFormChefId(filterChef);
         setIsAddClientOpen(true);
+    };
+
+    // Picking an existing client for a booking: their chef cooks it by default
+    const pickBookingClient = (clientId: string) => {
+        setBookingExistingClientId(clientId);
+        const chosen = allClients.find(c => c.id === clientId);
+        if (chosen) setBookingAssignee(chosen.chefId || '');
     };
 
     const handleSaveClientForm = async (e: React.FormEvent) => {
@@ -279,7 +308,8 @@ export default function WeeklyOpsAdminDashboard() {
                     existingClientId: bookingExistingClientId,
                     bookingDateIso: slotTargetDateIso,
                     dayName: slotTargetDayName,
-                    timeSlot: slotTargetTimeSlot
+                    timeSlot: slotTargetTimeSlot,
+                    assignedTo: bookingAssignee || null
                 } : {
                     id: editingClient ? editingClient.id : undefined,
                     name: clientFormName,
@@ -290,9 +320,12 @@ export default function WeeklyOpsAdminDashboard() {
                     personCount: clientFormPersonCount,
                     allergies: clientFormAllergies,
                     notes: clientFormNotes,
+                    // Only Elisa assigns clients to chefs (the server ignores it from a chef)
+                    ...(isOwner ? { chefId: (slotTargetDateIso && !editingClient ? bookingAssignee : clientFormChefId) || null } : {}),
                     bookingDateIso: slotTargetDateIso || undefined,
                     dayName: slotTargetDayName,
-                    timeSlot: slotTargetTimeSlot
+                    timeSlot: slotTargetTimeSlot,
+                    assignedTo: bookingAssignee || null
                 })
             });
 
@@ -320,12 +353,62 @@ export default function WeeklyOpsAdminDashboard() {
         );
     };
 
-    const bookedCount = slotStatuses.length;
-    const submittedCount = slotStatuses.filter(s => s.isSubmitted).length;
+    // Elisa's chef filter (a chef's list already only holds their sessions)
+    const visibleStatuses = useMemo(() => {
+        if (!isOwner || chefFilter === 'all') return slotStatuses;
+        if (chefFilter === 'elisa') return slotStatuses.filter(s => !s.session.assignedTo);
+        return slotStatuses.filter(s => s.session.assignedTo === chefFilter);
+    }, [slotStatuses, chefFilter, isOwner]);
+
+    const bookedCount = visibleStatuses.length;
+    const submittedCount = visibleStatuses.filter(s => s.isSubmitted).length;
+
+    // Elisa: who cooks this session (null = herself)
+    const assignSession = async (sessionId: string, chefId: string) => {
+        try {
+            setIsUpdatingSession(true);
+            const res = await fetch(`/api/cooking-ops/session/${encodeURIComponent(sessionId)}`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ assignedTo: chefId || null })
+            });
+            const data = await res.json().catch(() => ({}));
+            if (!res.ok) throw new Error(data.error || 'Attribution impossible');
+            setSlotStatuses(prev => prev.map(s => s.session.id === sessionId ? { ...s, session: { ...s.session, assignedTo: chefId || null } } : s));
+            showToast(`Séance attribuée à ${chefName(chefs, chefId || null)}`, 'check');
+        } catch (err) {
+            showToast(err instanceof Error ? err.message : 'Attribution impossible', 'error');
+        } finally {
+            setIsUpdatingSession(false);
+        }
+    };
+
+    // Moves a session created in the app (Google Calendar sessions are moved in Google Calendar)
+    const moveSession = async (sessionId: string) => {
+        if (!moveDraft) return;
+        try {
+            setIsUpdatingSession(true);
+            const res = await fetch(`/api/cooking-ops/session/${encodeURIComponent(sessionId)}`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(moveDraft)
+            });
+            const data = await res.json().catch(() => ({}));
+            if (!res.ok) throw new Error(data.error || 'Déplacement impossible');
+            setMoveDraft(null);
+            setDetailSessionId(null);
+            await loadWeekOverview(weekOffset);
+            showToast('Séance déplacée', 'calendar');
+        } catch (err) {
+            showToast(err instanceof Error ? err.message : 'Déplacement impossible', 'error');
+        } finally {
+            setIsUpdatingSession(false);
+        }
+    };
 
     // Several sessions can share a slot (e.g. Elisa and an assistant cooking at the same time)
     const getSessionsForSlot = (isoDate: string, slot: 'Matin' | 'Après-midi') => {
-        return slotStatuses.filter(s => s.session.dateIso === isoDate && s.session.timeSlot === slot);
+        return visibleStatuses.filter(s => s.session.dateIso === isoDate && s.session.timeSlot === slot);
     };
 
     const handleIgnoreSession = async (sessionId: string, name: string) => {
@@ -349,9 +432,10 @@ export default function WeeklyOpsAdminDashboard() {
 
     // Cancels the booking: removes the Google Calendar event, then the session here
     const handleDeleteSession = async (sessionId: string, name: string, dateIso: string, slot: string) => {
+        const fromGoogle = Boolean(slotStatuses.find(s => s.session.id === sessionId)?.session.gcalEventId);
         if (!(await confirm({
             title: `Supprimer la séance de ${name} ?`,
-            description: `${slot} du ${dateIso.split('-').reverse().join('/')} — l’événement sera aussi supprimé de votre Google Calendar. La fiche client et ses choix ne sont pas touchés.`,
+            description: `${slot} du ${dateIso.split('-').reverse().join('/')} — ${fromGoogle ? 'l’événement sera aussi supprimé de votre Google Calendar. ' : ''}La fiche client et ses choix ne sont pas touchés.`,
             confirmLabel: 'Supprimer la séance',
             tone: 'danger'
         }))) return;
@@ -362,7 +446,7 @@ export default function WeeklyOpsAdminDashboard() {
             const data = await res.json().catch(() => ({}));
             if (!res.ok) throw new Error(data.error || 'Suppression impossible');
             setSlotStatuses(prev => prev.filter(s => s.session.id !== sessionId));
-            showToast(`Séance de ${name} supprimée (Google Calendar mis à jour)`, 'calendar');
+            showToast(`Séance de ${name} supprimée${fromGoogle ? ' (Google Calendar mis à jour)' : ''}`, 'calendar');
         } catch (err) {
             showToast(err instanceof Error ? err.message : 'Suppression impossible', 'error');
         } finally {
@@ -375,25 +459,27 @@ export default function WeeklyOpsAdminDashboard() {
         if (!weekMenu) return [];
         return weekMenu.recipes.map(dish => {
             const households = new Map<string, number>();
-            slotStatuses.forEach(s => {
+            visibleStatuses.forEach(s => {
                 if (s.selection?.selectedDishIds.includes(dish.id) && !households.has(s.client.id)) {
                     households.set(s.client.id, s.session.personCount || s.client.personCount || 2);
                 }
             });
             return { dish, households: households.size, portions: Array.from(households.values()).reduce((a, b) => a + b, 0) };
         });
-    }, [weekMenu, slotStatuses]);
+    }, [weekMenu, visibleStatuses]);
 
     return (
         <div className="min-h-screen bg-[#FAFAF9] text-stone-800 pb-28 font-sans">
             {/* Standardized Header with Controls */}
             <AdminPageHeader
-                title="Planning Hebdo & Commandes"
-                subtitle="Visualisez votre calendrier synchronisé avec Google Calendar en temps réel et suivez les choix de plats."
+                title={isChef ? 'Mon planning' : 'Planning Hebdo & Commandes'}
+                subtitle={isChef
+                    ? 'Vos séances de la semaine et les choix de vos clients. Touchez un créneau libre pour ajouter une séance.'
+                    : 'Visualisez votre calendrier synchronisé avec Google Calendar en temps réel, celui de vos chefs, et suivez les choix de plats.'}
                 backHref="/admin"
                 backLabel="Retour à l'admin"
                 actionElement={
-                    <div className="flex items-center gap-2">
+                    <div className="flex flex-wrap items-center gap-2">
                         {/* View Switchers: Calendrier | Liste | Aujourd'hui */}
                         <div className="flex items-center bg-stone-100 p-1 rounded-full border border-stone-200 text-xs">
                             <button
@@ -429,7 +515,7 @@ export default function WeeklyOpsAdminDashboard() {
                             onClick={() => openCreateClientForSlot('Lundi', 'Matin', weekInfo.daysWithDates[0].isoDate)}
                             className="bg-[#E1567A] hover:bg-[#c94567] text-white gap-1.5 shadow-xs text-xs h-9 px-4 rounded-full font-semibold cursor-pointer"
                         >
-                            <Plus className="w-3.5 h-3.5" /> Nouveau Client
+                            <Plus className="w-3.5 h-3.5" /> {isChef ? 'Ajouter une séance' : 'Nouveau Client'}
                         </Button>
                     </div>
                 }
@@ -477,8 +563,8 @@ export default function WeeklyOpsAdminDashboard() {
                             </button>
                         )}
 
-                        {/* Sync GCal Button inside Hero */}
-                        <Button
+                        {/* Sync GCal Button inside Hero (Elisa's calendar only) */}
+                        {isOwner && <Button
                             size="sm"
                             variant="outline"
                             onClick={() => handleCalendarSync(weekOffset)}
@@ -488,7 +574,7 @@ export default function WeeklyOpsAdminDashboard() {
                         >
                             <RefreshCw className={`w-3.5 h-3.5 text-amber-600 ${isSyncingCalendar ? 'animate-spin' : ''}`} />
                             <span>{isSyncingCalendar ? 'Syncing...' : 'Sync GCal'}</span>
-                        </Button>
+                        </Button>}
                     </div>
 
                     {/* Stats Counters */}
@@ -513,6 +599,28 @@ export default function WeeklyOpsAdminDashboard() {
                     </div>
                 </div>
 
+                {/* Elisa: everyone's sessions, or one chef's planning */}
+                {isOwner && activeChefs.length > 0 && (
+                    <div className="flex flex-wrap items-center gap-1.5 text-xs">
+                        <span className="font-semibold text-stone-600 mr-1">Planning de :</span>
+                        {[{ id: 'all', label: 'Tous' }, { id: 'elisa', label: 'Elisa' }, ...chefs.filter(c => c.active || c.userId === chefFilter).map(c => ({ id: c.userId, label: c.displayName }))].map(opt => {
+                            const active = chefFilter === opt.id;
+                            const color = opt.id === 'all' ? null : chefColor(chefs, opt.id === 'elisa' ? null : opt.id);
+                            return (
+                                <button
+                                    key={opt.id}
+                                    type="button"
+                                    onClick={() => setChefFilter(opt.id)}
+                                    className={`px-3 py-1.5 rounded-full border font-semibold flex items-center gap-1.5 ${active ? 'bg-stone-900 text-white border-stone-900' : 'bg-white text-stone-700 border-stone-300'}`}
+                                >
+                                    {color && <span className={`w-2 h-2 rounded-full ${color.dot}`} />}
+                                    {opt.label}
+                                </button>
+                            );
+                        })}
+                    </div>
+                )}
+
                 {weekMenu && (
                     <div className="flex flex-wrap items-center gap-2 text-xs px-1">
                         <span className="font-semibold text-stone-600">Menu de cette semaine :</span>
@@ -524,9 +632,11 @@ export default function WeeklyOpsAdminDashboard() {
                             <span className="bg-amber-50 text-amber-800 border border-amber-300 px-2.5 py-0.5 rounded-full font-bold">Brouillon — les liens clients ne l&apos;affichent pas</span>
                         )}
                         <span className="text-stone-500">{weekMenu.recipes.length} plat(s)</span>
-                        <Link href={`/admin/recettes?offset=${weekOffset}`} className="text-[#E1567A] font-bold hover:underline">
-                            Gérer le menu →
-                        </Link>
+                        {isOwner && (
+                            <Link href={`/admin/recettes?offset=${weekOffset}`} className="text-[#E1567A] font-bold hover:underline">
+                                Gérer le menu →
+                            </Link>
+                        )}
                     </div>
                 )}
 
@@ -574,6 +684,8 @@ export default function WeeklyOpsAdminDashboard() {
                                             {cellStatuses.map((status) => {
                                             const { client, isSubmitted, selectedCount, session, isUnmatchedClient, selection } = status;
                                             const isMissingPhone = !isUnmatchedClient && (!client.phone || client.phone.trim().length === 0);
+                                            const canDelete = isOwner || !session.gcalEventId;
+                                            const cook = chefColor(chefs, session.assignedTo);
 
                                             return (
                                                 <div 
@@ -599,16 +711,26 @@ export default function WeeklyOpsAdminDashboard() {
                                                                         <Edit2 className="w-3.5 h-3.5" />
                                                                     </button>
                                                                 )}
+                                                                {canDelete && (
                                                                 <button
                                                                     onClick={() => handleDeleteSession(session.id, session.clientName, session.dateIso, session.timeSlot)}
                                                                     disabled={deletingSessionId === session.id}
                                                                     className="text-stone-300 hover:text-red-600 p-1 cursor-pointer"
-                                                                    title="Supprimer cette séance (et l'événement Google Calendar)"
+                                                                    title="Supprimer cette séance"
                                                                 >
                                                                     <Trash2 className="w-3.5 h-3.5" />
                                                                 </button>
+                                                                )}
                                                             </div>
                                                         </div>
+
+                                                        {/* Who cooks it (Elisa's view, once she has chefs) */}
+                                                        {isOwner && chefs.length > 0 && (
+                                                            <span className={`inline-flex items-center gap-1.5 text-[10px] font-bold rounded-full border px-2 py-0.5 ${cook.pill}`}>
+                                                                <span className={`w-1.5 h-1.5 rounded-full ${cook.dot}`} />
+                                                                {chefName(chefs, session.assignedTo)}
+                                                            </span>
+                                                        )}
 
                                                         {isUnmatchedClient && (
                                                             <div className="space-y-1">
@@ -782,12 +904,12 @@ export default function WeeklyOpsAdminDashboard() {
                     /* LIST VIEW: Detailed Vertical Cards                                        */
                     /* ========================================================================= */
                     <div className="grid grid-cols-1 gap-3.5">
-                        {slotStatuses.length === 0 ? (
+                        {visibleStatuses.length === 0 ? (
                             <div className="bg-white rounded-3xl p-12 text-center text-stone-500 border border-stone-200">
                                 Aucun client réservé pour cette semaine.
                             </div>
                         ) : (
-                            slotStatuses.map(({ client, isSubmitted, selectedCount, session, isUnmatchedClient, selection }) => {
+                            visibleStatuses.map(({ client, isSubmitted, selectedCount, session, isUnmatchedClient, selection }) => {
                                 const isMissingPhone = !isUnmatchedClient && (!client.phone || client.phone.trim().length === 0);
 
                                 return (
@@ -829,6 +951,13 @@ export default function WeeklyOpsAdminDashboard() {
                                                                 Ignorer cet événement
                                                             </button>
                                                         </>
+                                                    )}
+
+                                                    {isOwner && chefs.length > 0 && (
+                                                        <span className={`text-[11px] font-bold rounded-full border px-2.5 py-0.5 flex items-center gap-1.5 ${chefColor(chefs, session.assignedTo).pill}`}>
+                                                            <span className={`w-1.5 h-1.5 rounded-full ${chefColor(chefs, session.assignedTo).dot}`} />
+                                                            {chefName(chefs, session.assignedTo)}
+                                                        </span>
                                                     )}
 
                                                     {/* Booking Slot pill */}
@@ -958,14 +1087,16 @@ export default function WeeklyOpsAdminDashboard() {
                                                     </Button>
                                                 </Link>
 
+                                                {(isOwner || !session.gcalEventId) && (
                                                 <button
                                                     onClick={() => handleDeleteSession(session.id, session.clientName, session.dateIso, session.timeSlot)}
                                                     disabled={deletingSessionId === session.id}
                                                     className="p-2 rounded-full text-stone-300 hover:text-red-600 hover:bg-red-50 transition-colors cursor-pointer"
-                                                    title="Supprimer cette séance (et l'événement Google Calendar)"
+                                                    title="Supprimer cette séance"
                                                 >
                                                     <Trash2 className="w-4 h-4" />
                                                 </button>
+                                                )}
                                             </div>
                                             )}
                                         </div>
@@ -1008,7 +1139,7 @@ export default function WeeklyOpsAdminDashboard() {
             {toastElement}
 
             {/* Booking details: what the client chose + ways to send their link */}
-            <Dialog open={!!detailStatus} onOpenChange={open => !open && setDetailSessionId(null)}>
+            <Dialog open={!!detailStatus} onOpenChange={open => { if (!open) { setDetailSessionId(null); setMoveDraft(null); } }}>
                 <DialogContent className="sm:max-w-lg bg-white rounded-3xl p-6 max-h-[90vh] overflow-y-auto">
                     {detailStatus && (() => {
                         const { client, session, selection } = detailStatus;
@@ -1032,6 +1163,63 @@ export default function WeeklyOpsAdminDashboard() {
                                 </DialogHeader>
 
                                 <div className="space-y-4 py-2 text-xs">
+                                    {/* Who cooks it: Elisa assigns; a session created in the app can be moved */}
+                                    {(isOwner && activeChefs.length > 0) || !session.gcalEventId ? (
+                                        <div className="bg-stone-50 border border-stone-200 rounded-2xl p-3 space-y-2.5">
+                                            {isOwner && activeChefs.length > 0 && (
+                                                <label className="flex items-center justify-between gap-2">
+                                                    <span className="font-bold text-stone-700">Cuisiné par</span>
+                                                    <select
+                                                        value={session.assignedTo || ''}
+                                                        disabled={isUpdatingSession}
+                                                        onChange={e => assignSession(session.id, e.target.value)}
+                                                        className="p-2 rounded-xl border border-stone-300 bg-white font-semibold"
+                                                    >
+                                                        <option value="">Elisa</option>
+                                                        {chefs.filter(c => c.active || c.userId === session.assignedTo).map(c => (
+                                                            <option key={c.userId} value={c.userId}>{c.displayName}{c.city ? ` · ${c.city}` : ''}</option>
+                                                        ))}
+                                                    </select>
+                                                </label>
+                                            )}
+                                            {!session.gcalEventId && (
+                                                moveDraft ? (
+                                                    <div className="flex flex-wrap items-center gap-2">
+                                                        <input
+                                                            type="date"
+                                                            value={moveDraft.dateIso}
+                                                            onChange={e => setMoveDraft({ ...moveDraft, dateIso: e.target.value })}
+                                                            className="p-2 rounded-xl border border-stone-300 bg-white"
+                                                        />
+                                                        <select
+                                                            value={moveDraft.timeSlot}
+                                                            onChange={e => setMoveDraft({ ...moveDraft, timeSlot: e.target.value as 'Matin' | 'Après-midi' })}
+                                                            className="p-2 rounded-xl border border-stone-300 bg-white"
+                                                        >
+                                                            <option value="Matin">Matin</option>
+                                                            <option value="Après-midi">Après-midi</option>
+                                                        </select>
+                                                        <Button size="sm" disabled={isUpdatingSession || !moveDraft.dateIso} onClick={() => moveSession(session.id)} className="rounded-full text-xs h-8 bg-stone-900 text-white">
+                                                            Déplacer
+                                                        </Button>
+                                                        <button type="button" onClick={() => setMoveDraft(null)} className="text-stone-500 underline">Annuler</button>
+                                                    </div>
+                                                ) : (
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => setMoveDraft({ dateIso: session.dateIso, timeSlot: session.timeSlot })}
+                                                        className="flex items-center gap-1.5 font-semibold text-stone-700 hover:text-[#E1567A]"
+                                                    >
+                                                        <CalendarIcon className="w-3.5 h-3.5" /> Déplacer cette séance (autre jour ou créneau)
+                                                    </button>
+                                                )
+                                            )}
+                                            {session.gcalEventId && isOwner && session.assignedTo && (
+                                                <p className="text-[11px] text-stone-500">Séance de votre Google Calendar : pour la déplacer, changez l&apos;événement dans votre agenda.</p>
+                                            )}
+                                        </div>
+                                    ) : null}
+
                                     {/* Choices */}
                                     {selection ? (
                                         <div className="space-y-2">
@@ -1179,10 +1367,11 @@ export default function WeeklyOpsAdminDashboard() {
                                 <label className="font-semibold block text-stone-700 mb-1">Client</label>
                                 <select
                                     value={bookingExistingClientId}
-                                    onChange={e => setBookingExistingClientId(e.target.value)}
+                                    required={isChef}
+                                    onChange={e => pickBookingClient(e.target.value)}
                                     className="w-full p-2.5 rounded-xl border border-stone-300 bg-white focus:ring-2 focus:ring-[#E1567A] focus:outline-none"
                                 >
-                                    <option value="">+ Nouveau client</option>
+                                    <option value="">{isChef ? 'Choisir un de vos clients…' : '+ Nouveau client'}</option>
                                     {[...allClients]
                                         .sort((a, b) => a.name.localeCompare(b.name, 'fr'))
                                         .map(c => (
@@ -1191,7 +1380,44 @@ export default function WeeklyOpsAdminDashboard() {
                                 </select>
                             </div>
                         )}
+                        {/* Elisa: who cooks this session (a chef's session stays in the app, not in Google Calendar) */}
+                        {isOwner && activeChefs.length > 0 && !editingClient && slotTargetDateIso && (
+                            <div>
+                                <label className="font-semibold block text-stone-700 mb-1">Cuisiné par</label>
+                                <select
+                                    value={bookingAssignee}
+                                    onChange={e => setBookingAssignee(e.target.value)}
+                                    className="w-full p-2.5 rounded-xl border border-stone-300 bg-white focus:ring-2 focus:ring-[#E1567A] focus:outline-none"
+                                >
+                                    <option value="">Elisa (dans votre Google Calendar)</option>
+                                    {activeChefs.map(c => <option key={c.userId} value={c.userId}>{c.displayName}{c.city ? ` · ${c.city}` : ''}</option>)}
+                                </select>
+                                {bookingAssignee && !bookingExistingClientId && (
+                                    <p className="text-[11px] text-stone-500 mt-1">Le nouveau client sera aussi attribué à {chefName(chefs, bookingAssignee)}.</p>
+                                )}
+                            </div>
+                        )}
+                        {/* Elisa: which chef this client belongs to */}
+                        {isOwner && activeChefs.length > 0 && editingClient && (
+                            <div>
+                                <label className="font-semibold block text-stone-700 mb-1">Chef attribué</label>
+                                <select
+                                    value={clientFormChefId}
+                                    onChange={e => setClientFormChefId(e.target.value)}
+                                    className="w-full p-2.5 rounded-xl border border-stone-300 bg-white focus:ring-2 focus:ring-[#E1567A] focus:outline-none"
+                                >
+                                    <option value="">Elisa</option>
+                                    {chefs.filter(c => c.active || c.userId === clientFormChefId).map(c => <option key={c.userId} value={c.userId}>{c.displayName}</option>)}
+                                </select>
+                            </div>
+                        )}
+                        {isChef && editingClient && (
+                            <p className="text-[11px] text-stone-500 bg-stone-50 border border-stone-200 rounded-xl p-2.5">
+                                Vous pouvez mettre à jour le nombre de personnes, les allergies et les notes cuisine. Pour le reste, demandez à Elisa.
+                            </p>
+                        )}
                         {!bookingExistingClientId && (<>
+                        <fieldset disabled={isChef} className="space-y-3.5 disabled:opacity-60">
                         <div>
                             <label className="font-semibold block text-stone-700 mb-1">Nom & Prénom *</label>
                             <input 
@@ -1225,6 +1451,7 @@ export default function WeeklyOpsAdminDashboard() {
                                 />
                             </div>
                         </div>
+                        </fieldset>
 
                         <div className="grid grid-cols-2 gap-2">
                             <div>
@@ -1244,6 +1471,7 @@ export default function WeeklyOpsAdminDashboard() {
                                     type="number" 
                                     min={1} 
                                     max={8}
+                                    disabled={isChef}
                                     value={clientFormQuota}
                                     onChange={e => setClientFormQuota(Number(e.target.value))}
                                     className="w-full p-2.5 rounded-xl border border-stone-300 focus:ring-2 focus:ring-[#E1567A] focus:outline-none"
@@ -1255,6 +1483,7 @@ export default function WeeklyOpsAdminDashboard() {
                             <input 
                                 type="text" 
                                 value={clientFormAddress}
+                                disabled={isChef}
                                 onChange={e => setClientFormAddress(e.target.value)}
                                 placeholder="12 rue de Rivoli, 75004 Paris (Code: 4589)"
                                 className="w-full p-2.5 rounded-xl border border-stone-300 focus:ring-2 focus:ring-[#E1567A] focus:outline-none"
@@ -1306,9 +1535,11 @@ export default function WeeklyOpsAdminDashboard() {
                                     ? 'Mettre à jour la fiche'
                                     : !slotTargetDateIso
                                         ? 'Créer la fiche client'
-                                        : bookingExistingClientId
-                                            ? 'Réserver ce créneau & Sync Google Calendar'
-                                            : 'Créer le client & la séance'}
+                                        : bookingAssignee || isChef
+                                            ? (bookingExistingClientId ? `Réserver ce créneau${isOwner ? ` pour ${chefName(chefs, bookingAssignee)}` : ''}` : `Créer le client & la séance de ${chefName(chefs, bookingAssignee)}`)
+                                            : bookingExistingClientId
+                                                ? 'Réserver ce créneau & Sync Google Calendar'
+                                                : 'Créer le client & la séance'}
                         </Button>
                     </form>
                 </DialogContent>

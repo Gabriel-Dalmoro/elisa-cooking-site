@@ -1,10 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { loadWeekOverview } from '@/lib/cookingOps';
-import { listClients, getClientById, createClient, updateClient, deleteClient, ClientInput } from '@/lib/db/clients';
-import { upsertSession } from '@/lib/db/sessions';
+import { listClients, getClientById, createClient, updateClient, deleteClient, ClientInput, CHEF_EDITABLE_FIELDS } from '@/lib/db/clients';
+import { createAppSession, upsertSession } from '@/lib/db/sessions';
+import { getStaffMember } from '@/lib/db/staff';
 import { createGoogleCalendarEvent } from '@/lib/googleCalendar';
 import { getParisUtcOffset } from '@/lib/dateUtils';
-import { requireOwner } from '@/lib/auth';
+import { requireOwner, requireStaff } from '@/lib/auth';
+import { canAccessClient, clientForStaff, forbidden, isOwner } from '@/lib/access';
 
 function errorMessage(error: unknown, fallback: string): string {
     return error instanceof Error ? error.message : fallback;
@@ -24,18 +26,36 @@ function pickClientInput(body: Record<string, unknown>): ClientInput {
     if (typeof body.privateNotes === 'string') input.privateNotes = body.privateNotes;
     if (body.defaultDishCount !== undefined) input.defaultDishCount = Number(body.defaultDishCount) || 4;
     if (body.personCount !== undefined) input.personCount = Number(body.personCount) || 2;
+    if (body.chefId !== undefined) input.chefId = typeof body.chefId === 'string' && body.chefId ? body.chefId : null;
     return input;
 }
 
+// A chef may only touch these fields on their own clients
+function onlyChefFields(input: ClientInput): ClientInput {
+    const out: ClientInput = {};
+    for (const key of CHEF_EDITABLE_FIELDS) {
+        if (input[key] !== undefined) (out as Record<string, unknown>)[key] = input[key];
+    }
+    return out;
+}
+
+// A chef id sent by Elisa must be a real, active chef
+async function validChefId(id: string | null | undefined): Promise<string | null | 'invalid'> {
+    if (!id) return null;
+    const member = await getStaffMember(id).catch(() => null);
+    return member && member.role === 'chef' && member.active ? id : 'invalid';
+}
+
 export async function GET(req: NextRequest) {
-    const denied = await requireOwner();
+    const { staff, denied } = await requireStaff();
     if (denied) return denied;
 
     try {
         const { searchParams } = new URL(req.url);
         const offsetParam = searchParams.get('offset');
         const offsetWeeks = offsetParam ? parseInt(offsetParam, 10) || 0 : 0;
-        return NextResponse.json(await loadWeekOverview(offsetWeeks));
+        // A chef only gets their own sessions and clients
+        return NextResponse.json(await loadWeekOverview(offsetWeeks, isOwner(staff) ? undefined : staff.userId));
     } catch (error) {
         console.error('Error fetching admin cooking overview:', error);
         return NextResponse.json({ error: errorMessage(error, 'Erreur serveur') }, { status: 500 });
@@ -47,15 +67,27 @@ export async function GET(req: NextRequest) {
  * - { existingClientId, bookingDateIso, timeSlot, dayName } → book an existing client (profile untouched)
  * - { id, ...fields }  → update that client (only the fields sent)
  * - { name, ...fields } → create a new client
- * Any of these can carry bookingDateIso + timeSlot to also create the Google Calendar event.
+ * Any of these can carry bookingDateIso + timeSlot to also book a session, and `assignedTo`
+ * (a chef id) to give that session to a chef. Elisa's own sessions go to her Google Calendar;
+ * a chef's sessions live only in the app.
+ *
+ * A chef can: update allergies / dislikes / kitchen notes / number of people of their own clients,
+ * and book their own clients (always in their own calendar). Nothing else.
  */
 export async function POST(req: NextRequest) {
-    const denied = await requireOwner();
+    const { staff, denied } = await requireStaff();
     if (denied) return denied;
 
     try {
         const body = await req.json();
-        const input = pickClientInput(body);
+        const owner = isOwner(staff);
+        let input = pickClientInput(body);
+
+        if (owner && input.chefId !== undefined) {
+            const chef = await validChefId(input.chefId);
+            if (chef === 'invalid') return NextResponse.json({ error: 'Chef introuvable ou désactivé' }, { status: 400 });
+            input.chefId = chef;
+        }
 
         let savedClient;
         if (body.existingClientId) {
@@ -63,8 +95,16 @@ export async function POST(req: NextRequest) {
             if (!savedClient) {
                 return NextResponse.json({ error: 'Client introuvable' }, { status: 404 });
             }
+            if (!canAccessClient(staff, savedClient)) return forbidden('Ce client ne vous est pas attribué');
         } else if (body.id) {
+            if (!owner) {
+                const current = await getClientById(String(body.id));
+                if (!canAccessClient(staff, current)) return forbidden('Ce client ne vous est pas attribué');
+                input = onlyChefFields(input);
+            }
             savedClient = await updateClient(String(body.id), input);
+        } else if (!owner) {
+            return forbidden('Seule Elisa peut créer une fiche client');
         } else {
             if (!input.name || !input.name.trim()) {
                 return NextResponse.json({ error: 'Le nom du client est requis' }, { status: 400 });
@@ -75,7 +115,36 @@ export async function POST(req: NextRequest) {
         let gcalEventId: string | undefined = body.gcalEventId;
         let gcalSyncResult: { success: boolean; error?: string } = { success: true };
 
-        // Booking a specific date & slot → create the Google Calendar event, then store the session.
+        // Who cooks it: a chef always books in their own calendar; Elisa picks (empty = herself)
+        let assignedTo: string | null = null;
+        if (body.bookingDateIso && body.timeSlot) {
+            if (!owner) {
+                assignedTo = staff.userId;
+            } else {
+                const chef = await validChefId(typeof body.assignedTo === 'string' ? body.assignedTo : null);
+                if (chef === 'invalid') return NextResponse.json({ error: 'Chef introuvable ou désactivé' }, { status: 400 });
+                assignedTo = chef;
+            }
+        }
+
+        // A chef's session: stored in the app only, never in Elisa's Google Calendar
+        if (body.bookingDateIso && body.timeSlot && assignedTo) {
+            if (!/^\d{4}-\d{2}-\d{2}$/.test(String(body.bookingDateIso)) || !['Matin', 'Après-midi'].includes(body.timeSlot)) {
+                return NextResponse.json({ error: 'Créneau invalide' }, { status: 400 });
+            }
+            const session = await createAppSession({
+                clientId: savedClient.id,
+                displayName: savedClient.name,
+                dateIso: body.bookingDateIso,
+                timeSlot: body.timeSlot,
+                dishCount: savedClient.defaultDishCount,
+                personCount: savedClient.personCount,
+                assignedTo
+            });
+            return NextResponse.json({ success: true, client: clientForStaff(staff, savedClient), session, gcalSyncResult });
+        }
+
+        // Elisa's booking → create the Google Calendar event, then store the session.
         // Google Calendar is the source of truth: if the event can't be created, no session is stored.
         if (body.bookingDateIso && body.timeSlot) {
             if (!/^\d{4}-\d{2}-\d{2}$/.test(String(body.bookingDateIso)) || !['Matin', 'Après-midi'].includes(body.timeSlot)) {
@@ -120,7 +189,7 @@ export async function POST(req: NextRequest) {
 
         return NextResponse.json({
             success: true,
-            client: savedClient,
+            client: clientForStaff(staff, savedClient),
             gcalEventId,
             gcalSyncResult
         });

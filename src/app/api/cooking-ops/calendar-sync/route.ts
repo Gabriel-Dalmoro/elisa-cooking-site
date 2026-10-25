@@ -1,9 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { loadWeekOverview, syncWeekFromCalendar } from '@/lib/cookingOps';
-import { requireOwner } from '@/lib/auth';
+import { requireStaff } from '@/lib/auth';
+import { isOwner } from '@/lib/access';
 
+/**
+ * Syncs Elisa's Google Calendar for a week, then returns the week.
+ * A chef has no Google Calendar: they just get their own week (nothing is synced).
+ */
 export async function GET(request: NextRequest) {
-    const denied = await requireOwner();
+    const { staff, denied } = await requireStaff();
     if (denied) return denied;
 
     try {
@@ -15,6 +20,10 @@ export async function GET(request: NextRequest) {
         } else if (offsetParam !== null && offsetParam !== 'current') {
             const parsed = parseInt(offsetParam, 10);
             offsetWeeks = isNaN(parsed) ? 0 : parsed;
+        }
+
+        if (!isOwner(staff)) {
+            return NextResponse.json({ success: true, chefView: true, ...(await loadWeekOverview(offsetWeeks, staff.userId)) });
         }
 
         const sync = await syncWeekFromCalendar(offsetWeeks);

@@ -1,11 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getSession, setSessionIgnored, deleteSession } from '@/lib/db/sessions';
+import { getSession, setSessionIgnored, deleteSession, rescheduleAppSession, setSessionAssignee } from '@/lib/db/sessions';
+import { getStaffMember } from '@/lib/db/staff';
 import { deleteGoogleCalendarEvent } from '@/lib/googleCalendar';
 import { getClientById } from '@/lib/db/clients';
-import { getSelection, setRecipeOverride, setGroceryChecked, CUSTOM_DISH_RECIPE_ID } from '@/lib/db/selections';
+import { getSelection, setRecipeOverride, setGroceryState, CUSTOM_DISH_RECIPE_ID } from '@/lib/db/selections';
 import { getMenu } from '@/lib/db/menus';
 import { getWeekStartForDate } from '@/lib/dateUtils';
-import { requireOwner } from '@/lib/auth';
+import { requireStaff } from '@/lib/auth';
+import { canAccessSession, clientForStaff, forbidden, isOwner } from '@/lib/access';
 
 type Params = { params: Promise<{ id: string }> };
 
@@ -14,7 +16,7 @@ type Params = { params: Promise<{ id: string }> };
  * (with Elisa's instructions from that week's menu).
  */
 export async function GET(_req: NextRequest, { params }: Params) {
-    const denied = await requireOwner();
+    const { staff, denied } = await requireStaff();
     if (denied) return denied;
 
     try {
@@ -23,6 +25,8 @@ export async function GET(_req: NextRequest, { params }: Params) {
         if (!session) {
             return NextResponse.json({ error: 'Séance introuvable' }, { status: 404 });
         }
+        // A chef only opens the sessions assigned to them
+        if (!canAccessSession(staff, session)) return forbidden('Cette séance ne vous est pas attribuée');
 
         const weekStart = getWeekStartForDate(session.dateIso);
         const [client, menu] = await Promise.all([
@@ -39,7 +43,14 @@ export async function GET(_req: NextRequest, { params }: Params) {
             .map((dishId, i) => (menu.recipes.some(d => d.id === dishId) ? null : selection?.selectedDishNames[i] || null))
             .filter((n): n is string => Boolean(n));
 
-        return NextResponse.json({ session, client, selection, dishes, missingDishNames, weekLabel: menu.weekLabel });
+        return NextResponse.json({
+            session,
+            client: client ? clientForStaff(staff, client) : null,
+            selection,
+            dishes,
+            missingDishNames,
+            weekLabel: menu.weekLabel
+        });
     } catch (error) {
         console.error('Error loading session:', error);
         return NextResponse.json({ error: error instanceof Error ? error.message : 'Erreur serveur' }, { status: 500 });
@@ -50,15 +61,43 @@ export async function GET(_req: NextRequest, { params }: Params) {
  * PATCH { ignored: boolean } → hide a calendar event that isn't a cooking session (kept hidden across syncs)
  * PATCH { dishId, recipe, ingredients? } → Elisa's recipe for one dish, adapted for THIS client only
  *   (the week's menu and the recipe bank stay unchanged; both empty goes back to the menu one)
- * PATCH { groceryChecked: string[] } → saves the ticked grocery items for this client's week
+ * PATCH { groceryChecked?, groceryEdits?: { itemKey: amount }, groceryExtras?: string[] } → saves this client's grocery list
+ *   for the week (ticked items, quantities corrected by hand; an empty amount goes back to the calculated one)
+ * PATCH { dateIso, timeSlot } → moves a session created in the app (Google ones move in Google Calendar)
+ * PATCH { assignedTo: chefId | null } → who cooks it (Elisa only; null = Elisa)
+ * A chef can do all of this on their own sessions, except hiding events and reassigning.
  */
 export async function PATCH(req: NextRequest, { params }: Params) {
-    const denied = await requireOwner();
+    const { staff, denied } = await requireStaff();
     if (denied) return denied;
 
     try {
         const { id } = await params;
         const body = await req.json();
+        const current = await getSession(id);
+        if (!current) return NextResponse.json({ error: 'Séance introuvable' }, { status: 404 });
+        if (!canAccessSession(staff, current)) return forbidden('Cette séance ne vous est pas attribuée');
+
+        if ('assignedTo' in body) {
+            if (!isOwner(staff)) return forbidden('Seule Elisa attribue les séances');
+            const chefId = typeof body.assignedTo === 'string' && body.assignedTo ? body.assignedTo : null;
+            if (chefId) {
+                const chef = await getStaffMember(chefId).catch(() => null);
+                if (!chef || chef.role !== 'chef' || !chef.active) {
+                    return NextResponse.json({ error: 'Chef introuvable ou désactivé' }, { status: 400 });
+                }
+            }
+            const session = await setSessionAssignee(id, chefId);
+            return NextResponse.json({ success: true, session });
+        }
+
+        if (typeof body.dateIso === 'string' && typeof body.timeSlot === 'string') {
+            if (!/^\d{4}-\d{2}-\d{2}$/.test(body.dateIso) || !['Matin', 'Après-midi'].includes(body.timeSlot)) {
+                return NextResponse.json({ error: 'Créneau invalide' }, { status: 400 });
+            }
+            const session = await rescheduleAppSession(id, body.dateIso, body.timeSlot);
+            return NextResponse.json({ success: true, session });
+        }
 
         if (typeof body.dishId === 'string' && typeof body.recipe === 'string') {
             const session = await getSession(id);
@@ -78,20 +117,37 @@ export async function PATCH(req: NextRequest, { params }: Params) {
             return NextResponse.json({ success: true, selection: updated });
         }
 
-        if (Array.isArray(body.groceryChecked)) {
+        const hasEdits = body.groceryEdits && typeof body.groceryEdits === 'object' && !Array.isArray(body.groceryEdits);
+        if (Array.isArray(body.groceryChecked) || hasEdits || Array.isArray(body.groceryExtras)) {
             const session = await getSession(id);
             if (!session?.clientId) {
                 return NextResponse.json({ error: 'Aucune fiche client liée à cette séance' }, { status: 404 });
             }
-            const keys = body.groceryChecked
-                .filter((k: unknown): k is string => typeof k === 'string' && k.length > 0)
-                .slice(0, 1000)
-                .map((k: string) => k.slice(0, 200));
-            const updated = await setGroceryChecked(session.clientId, getWeekStartForDate(session.dateIso), keys);
+            const checked = Array.isArray(body.groceryChecked)
+                ? body.groceryChecked
+                    .filter((k: unknown): k is string => typeof k === 'string' && k.length > 0)
+                    .slice(0, 1000)
+                    .map((k: string) => k.slice(0, 200))
+                : undefined;
+            let edits: Record<string, string> | undefined;
+            if (hasEdits) {
+                edits = {};
+                for (const [key, value] of Object.entries(body.groceryEdits as Record<string, unknown>).slice(0, 500)) {
+                    if (typeof value === 'string' && value.trim() && key) edits[key.slice(0, 200)] = value.trim().slice(0, 60);
+                }
+            }
+            const extras = Array.isArray(body.groceryExtras)
+                ? body.groceryExtras
+                    .filter((l: unknown): l is string => typeof l === 'string' && l.trim().length > 0)
+                    .slice(0, 100)
+                    .map((l: string) => l.trim().slice(0, 100))
+                : undefined;
+            const updated = await setGroceryState(session.clientId, getWeekStartForDate(session.dateIso), { checked, edits, extras });
             return NextResponse.json({ success: true, selection: updated });
         }
 
         const { ignored } = body;
+        if (!isOwner(staff)) return forbidden('Seule Elisa peut masquer un événement');
         if (typeof ignored !== 'boolean') {
             return NextResponse.json({ error: 'Données invalides' }, { status: 400 });
         }
@@ -104,12 +160,12 @@ export async function PATCH(req: NextRequest, { params }: Params) {
 }
 
 /**
- * DELETE → cancels the booking: removes the Google Calendar event first
+ * DELETE → cancels the booking: removes the Google Calendar event first (if it has one)
  * (Google is the source of truth), then the stored session.
  * If Google refuses, nothing is deleted, so the two never drift apart.
  */
 export async function DELETE(_req: NextRequest, { params }: Params) {
-    const denied = await requireOwner();
+    const { staff, denied } = await requireStaff();
     if (denied) return denied;
 
     try {
@@ -117,6 +173,11 @@ export async function DELETE(_req: NextRequest, { params }: Params) {
         const session = await getSession(id);
         if (!session) {
             return NextResponse.json({ error: 'Séance introuvable' }, { status: 404 });
+        }
+        // A chef cancels their own app sessions; a session from Elisa's Google Calendar stays hers to cancel
+        if (!isOwner(staff)) {
+            if (!canAccessSession(staff, session)) return forbidden('Cette séance ne vous est pas attribuée');
+            if (session.gcalEventId) return forbidden('Cette séance vient de l’agenda d’Elisa : demandez-lui de l’annuler.');
         }
 
         if (session.gcalEventId) {

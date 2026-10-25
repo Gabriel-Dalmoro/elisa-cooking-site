@@ -3,21 +3,29 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { CheckSquare, ChevronDown, Copy, Save, ShoppingCart, Square } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { GroceryList, groceryListToText } from '@/lib/grocery/list';
+import { applyGroceryEdits, GroceryList, groceryListToText } from '@/lib/grocery/list';
+import QuantityEdit from './QuantityEdit';
+import AddGroceryItem from './AddGroceryItem';
 import { UNSORTED } from '@/lib/grocery/parse';
 
 interface Props {
     list: GroceryList;
     title: string; // used in the copied text: « Liste de courses — Dupont »
     savedChecked: string[]; // ticks saved on the server for this client's week
-    onSave: (checkedKeys: string[]) => Promise<boolean>;
+    savedEdits?: Record<string, string>; // quantities corrected by hand (item key → amount)
+    onSave: (checkedKeys: string[], edits: Record<string, string>) => Promise<boolean>;
     onCopied: (ok: boolean) => void;
     heading?: string;
     defaultOpen?: boolean;
     extraActions?: React.ReactNode; // e.g. « Combiner avec un autre client »
+    extras?: string[]; // items added by hand on the list
+    onExtrasChange?: (next: string[]) => Promise<boolean>; // saved right away
 }
 
 const sameKeys = (a: string[], b: string[]) => a.length === b.length && a.every(k => b.includes(k));
+const sameEdits = (a: Record<string, string>, b: Record<string, string>) =>
+    Object.keys(a).length === Object.keys(b).length && Object.entries(a).every(([k, v]) => b[k] === v);
+const NO_EDITS: Record<string, string> = {};
 
 /**
  * One client's grocery list: sections in supermarket order, exact totals for their number of people,
@@ -29,11 +37,14 @@ export default function GroceryListCard({
     list,
     title,
     savedChecked,
+    savedEdits = NO_EDITS,
     onSave,
     onCopied,
     heading = 'Liste de courses',
     defaultOpen = false,
-    extraActions
+    extraActions,
+    extras = [],
+    onExtrasChange
 }: Props) {
     const [open, setOpen] = useState(defaultOpen);
     const [checked, setChecked] = useState<string[]>(savedChecked);
@@ -45,8 +56,28 @@ export default function GroceryListCard({
         setLastSaved(savedChecked);
         setChecked(savedChecked);
     }
+    // Same for the quantities corrected by hand
+    const [edits, setEdits] = useState<Record<string, string>>(savedEdits);
+    const [lastSavedEdits, setLastSavedEdits] = useState(savedEdits);
+    if (!sameEdits(lastSavedEdits, savedEdits)) {
+        setLastSavedEdits(savedEdits);
+        setEdits(savedEdits);
+    }
 
-    const isDirty = useMemo(() => !sameKeys(checked, savedChecked), [checked, savedChecked]);
+    const isDirty = useMemo(
+        () => !sameKeys(checked, savedChecked) || !sameEdits(edits, savedEdits),
+        [checked, savedChecked, edits, savedEdits]
+    );
+    // What's shown and copied: the list with Elisa's corrected quantities
+    const shown = useMemo(() => applyGroceryEdits(list, edits), [list, edits]);
+    const setEdit = (key: string, amount: string | null) => {
+        setEdits(prev => {
+            const next = { ...prev };
+            if (amount) next[key] = amount;
+            else delete next[key];
+            return next;
+        });
+    };
 
     // Warn before leaving the page with ticks that are not saved yet
     useEffect(() => {
@@ -67,7 +98,7 @@ export default function GroceryListCard({
     const save = async () => {
         setSaving(true);
         try {
-            await onSave(checked);
+            await onSave(checked, edits);
         } finally {
             setSaving(false);
         }
@@ -75,7 +106,7 @@ export default function GroceryListCard({
 
     const copy = async () => {
         try {
-            await navigator.clipboard.writeText(groceryListToText(list, title));
+            await navigator.clipboard.writeText(groceryListToText(shown, title));
             onCopied(true);
         } catch {
             onCopied(false);
@@ -174,7 +205,15 @@ export default function GroceryListCard({
                         {extraActions}
                     </div>
 
-                    {list.sections.map(section => (
+                    {onExtrasChange && (
+                        <AddGroceryItem
+                            extras={{ list: extras }}
+                            clients={[{ label: 'list', dot: '' }]}
+                            onChange={(_, next) => onExtrasChange(next)}
+                        />
+                    )}
+
+                    {shown.sections.map(section => (
                         <div key={section.name} className="space-y-1.5">
                             <h4
                                 className={`text-[11px] font-black uppercase tracking-wider px-1 ${
@@ -188,10 +227,12 @@ export default function GroceryListCard({
                                     const isChecked = checked.includes(item.key);
                                     return (
                                         <li key={item.key}>
-                                            <button
-                                                type="button"
+                                            <div
+                                                role="button"
+                                                tabIndex={0}
                                                 onClick={() => toggle(item.key)}
-                                                className={`w-full flex items-start gap-3 px-3 py-2.5 text-left transition-colors ${
+                                                onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggle(item.key); } }}
+                                                className={`w-full flex items-start gap-3 px-3 py-2.5 text-left transition-colors cursor-pointer ${
                                                     isChecked ? 'bg-emerald-50/50' : 'hover:bg-stone-50'
                                                 }`}
                                             >
@@ -205,11 +246,13 @@ export default function GroceryListCard({
                                                         <span className={`text-sm font-semibold ${isChecked ? 'line-through text-stone-400' : 'text-stone-900'}`}>
                                                             {item.name}
                                                         </span>
-                                                        {item.total && (
-                                                            <span className={`shrink-0 text-sm font-bold tabular-nums text-right ${isChecked ? 'text-stone-400' : 'text-stone-900'}`}>
-                                                                {item.total}
-                                                            </span>
-                                                        )}
+                                                        <QuantityEdit
+                                                            value={item.total}
+                                                            calculated={item.edited ? item.calculated ?? null : item.total}
+                                                            edited={Boolean(item.edited)}
+                                                            muted={isChecked}
+                                                            onChange={amount => setEdit(item.key, amount)}
+                                                        />
                                                     </span>
                                                     {item.details.length > 0 && (
                                                         <span className="block text-[11px] text-stone-500 italic">{item.details.join(' · ')}</span>
@@ -241,7 +284,7 @@ export default function GroceryListCard({
                                                         </span>
                                                     )}
                                                 </span>
-                                            </button>
+                                            </div>
                                         </li>
                                     );
                                 })}
