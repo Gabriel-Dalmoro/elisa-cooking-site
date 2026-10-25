@@ -32,6 +32,12 @@ export function effectiveRecipe(
         return { ...base, adapted: false };
     }
     if (override.ingredients !== undefined) {
+        // An empty ingredient box next to a full recipe (e.g. a past dish copied in one piece):
+        // read the ingredients out of the recipe so the grocery list still works
+        if (!override.ingredients.trim() && override.recipe?.trim()) {
+            const split = fromOneBox(override.recipe);
+            if (split.autoSplit) return { ...split, adapted: true };
+        }
         return { ingredients: override.ingredients, steps: override.recipe ?? base.steps, adapted: true, autoSplit: false };
     }
     // Adapted before ingredients had their own box: one text

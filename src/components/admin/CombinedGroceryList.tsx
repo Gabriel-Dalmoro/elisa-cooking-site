@@ -2,7 +2,8 @@
 
 import React, { useEffect, useMemo, useState } from 'react';
 import { Check, Copy, Eye, EyeOff, Save } from 'lucide-react';
-import { combinedListToText, GroceryItem, GroceryList } from '@/lib/grocery/list';
+import { applyCombinedEdits, combinedListToText, GroceryItem, GroceryList } from '@/lib/grocery/list';
+import QuantityEdit from './QuantityEdit';
 import { UNSORTED } from '@/lib/grocery/parse';
 
 // One colour per client, same order as the columns (left side of the trolley, right side…)
@@ -15,15 +16,19 @@ const COLORS = [
 const colorOf = (i: number) => COLORS[i % COLORS.length];
 
 type Ticks = Record<string, string[]>; // client label → ticked item keys
+type Edits = Record<string, Record<string, string>>; // client label → item key → amount corrected by hand
 
 interface Props {
     list: GroceryList; // built with buildMergedGroceryList (has clients + byClient)
     saved: Ticks; // each client's saved ticks (their whole own list, not only these items)
-    onSave: (next: Ticks) => Promise<boolean>;
+    savedEdits: Edits; // each client's corrected quantities (their whole own list)
+    onSave: (next: Ticks, edits: Edits) => Promise<boolean>;
     onCopied: (ok: boolean) => void;
 }
 
 const sameKeys = (a: string[], b: string[]) => a.length === b.length && a.every(k => b.includes(k));
+const sameEdits = (a: Record<string, string> = {}, b: Record<string, string> = {}) =>
+    Object.keys(a).length === Object.keys(b).length && Object.entries(a).every(([k, v]) => b[k] === v);
 const firstName = (label: string) => label.split(/\s+/)[0];
 
 /**
@@ -32,7 +37,7 @@ const firstName = (label: string) => label.split(/\s+/)[0];
  * each client always in the same column and colour, so each trolley side / invoice stays separate.
  * A tick here is the same tick as on that client's own list (saved with « Enregistrer »).
  */
-export default function CombinedGroceryList({ list, saved, onSave, onCopied }: Props) {
+export default function CombinedGroceryList({ list, saved, savedEdits, onSave, onCopied }: Props) {
     const clients = useMemo(() => list.clients || [], [list]);
     const [ticks, setTicks] = useState<Ticks>(saved);
     const [lastSaved, setLastSaved] = useState<Ticks>(saved);
@@ -46,9 +51,29 @@ export default function CombinedGroceryList({ list, saved, onSave, onCopied }: P
         setLastSaved(saved);
         setTicks(saved);
     }
+    // Quantities corrected by hand, per client (same saving as the ticks)
+    const [edits, setEdits] = useState<Edits>(savedEdits);
+    const [lastSavedEdits, setLastSavedEdits] = useState<Edits>(savedEdits);
+    if (clients.some(c => !sameEdits(savedEdits[c.label], lastSavedEdits[c.label]))) {
+        setLastSavedEdits(savedEdits);
+        setEdits(savedEdits);
+    }
+    const shown = useMemo(() => applyCombinedEdits(list, edits), [list, edits]);
+    const calculatedShare = (key: string, client: string) =>
+        list.sections.flatMap(sec => sec.items).find(i => i.key === key)?.byClient?.find(b => b.client === client)?.amount ?? null;
+    const setEdit = (client: string, key: string, amount: string | null) => {
+        setEdits(prev => {
+            const own = { ...(prev[client] || {}) };
+            if (amount) own[key] = amount;
+            else delete own[key];
+            return { ...prev, [client]: own };
+        });
+    };
 
     const isDone = (client: string, key: string) => (ticks[client] || []).includes(key);
-    const isDirty = clients.some(c => !sameKeys(ticks[c.label] || [], saved[c.label] || []));
+    const isDirty = clients.some(c =>
+        !sameKeys(ticks[c.label] || [], saved[c.label] || []) || !sameEdits(edits[c.label], savedEdits[c.label])
+    );
 
     useEffect(() => {
         if (!isDirty) return;
@@ -67,7 +92,7 @@ export default function CombinedGroceryList({ list, saved, onSave, onCopied }: P
     const save = async () => {
         setSaving(true);
         try {
-            await onSave(ticks);
+            await onSave(ticks, edits);
         } finally {
             setSaving(false);
         }
@@ -75,7 +100,7 @@ export default function CombinedGroceryList({ list, saved, onSave, onCopied }: P
 
     const copy = async () => {
         try {
-            await navigator.clipboard.writeText(combinedListToText(list, isDone));
+            await navigator.clipboard.writeText(combinedListToText(shown, isDone));
             onCopied(true);
         } catch {
             onCopied(false);
@@ -152,7 +177,7 @@ export default function CombinedGroceryList({ list, saved, onSave, onCopied }: P
             </div>
 
             {/* The list, by aisle */}
-            {list.sections.map(section => {
+            {shown.sections.map(section => {
                 const items = section.items.filter(item => needsVisible(item) && !(hideDone && allVisibleDone(item)));
                 if (items.length === 0) return null;
                 return (
@@ -201,12 +226,14 @@ export default function CombinedGroceryList({ list, saved, onSave, onCopied }: P
                                                 const ticked = isDone(c.label, item.key);
                                                 const lines = item.sources.filter(s => s.client === c.label);
                                                 return (
-                                                    <button
+                                                    <div
                                                         key={c.label}
-                                                        type="button"
+                                                        role="button"
+                                                        tabIndex={0}
                                                         onClick={() => toggle(c.label, item.key)}
+                                                        onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggle(c.label, item.key); } }}
                                                         aria-pressed={ticked}
-                                                        className={`flex flex-col justify-start text-left rounded-xl border-2 p-2.5 transition-all active:scale-[0.98] ${
+                                                        className={`cursor-pointer flex flex-col justify-start text-left rounded-xl border-2 p-2.5 transition-all active:scale-[0.98] ${
                                                             ticked ? 'bg-emerald-50 border-emerald-400' : `${colorOf(ci).tile}`
                                                         }`}
                                                     >
@@ -220,8 +247,15 @@ export default function CombinedGroceryList({ list, saved, onSave, onCopied }: P
                                                                 {firstName(c.label)}
                                                             </span>
                                                         </span>
-                                                        <span className={`block text-lg font-black tabular-nums leading-tight mt-1 ${ticked ? 'line-through text-stone-400' : 'text-stone-900'}`}>
-                                                            {share.amount || 'selon recette'}
+                                                        <span className="block mt-1 leading-tight">
+                                                            <QuantityEdit
+                                                                large
+                                                                value={share.amount}
+                                                                calculated={calculatedShare(item.key, c.label)}
+                                                                edited={Boolean(share.edited)}
+                                                                muted={ticked}
+                                                                onChange={amount => setEdit(c.label, item.key, amount)}
+                                                            />
                                                         </span>
                                                         {lines.length > 0 && (
                                                             <span className="block mt-1 space-y-0.5">
@@ -233,7 +267,7 @@ export default function CombinedGroceryList({ list, saved, onSave, onCopied }: P
                                                                 ))}
                                                             </span>
                                                         )}
-                                                    </button>
+                                                    </div>
                                                 );
                                             })}
                                         </div>

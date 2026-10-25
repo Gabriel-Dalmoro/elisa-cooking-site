@@ -5,6 +5,7 @@ import { getSelection, setRecipeOverride, upsertSelection, CUSTOM_DISH_RECIPE_ID
 import { sendSelectionEmail } from '@/lib/selectionEmail';
 import { ClientProfile, WeeklyDish } from '@/lib/types/cooking-ops';
 import { getStaffMember } from '@/lib/db/staff';
+import { effectiveRecipe } from '@/lib/grocery/recipe';
 import { getWeekBoundsForStart, getWeekOffsetForDate, isMondayIso, seasonOf, SEASON_OF_PHRASE, SEASON_PHRASE } from '@/lib/dateUtils';
 
 /**
@@ -196,8 +197,10 @@ export async function POST(req: NextRequest) {
         // Picked from an earlier menu: Elisa's recipe for it is copied onto this client's custom dish,
         // so the kitchen sheet and the grocery list are ready without retyping anything
         if (picked) {
-            const steps = (picked.instructions || []).join('\n').trim();
-            const ingredients = (picked.ingredients || '').trim();
+            // Same split as the « Séparer » button: older recipes keep their ingredients inside the text
+            const split = effectiveRecipe(picked.ingredients || '', (picked.instructions || []).join('\n'));
+            const steps = split.steps.trim();
+            const ingredients = split.ingredients.trim();
             if (steps || ingredients) {
                 try {
                     selection = await setRecipeOverride(client.id, weekStart, CUSTOM_DISH_RECIPE_ID, steps, ingredients);

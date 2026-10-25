@@ -310,13 +310,51 @@ export function splitRecipe(text: string): { ingredients: string; steps: string;
         (inIngredients ? ingredientLines : stepLines).push(line);
     }
 
-    if (!found) return { ingredients: '', steps: text, found: false };
+    if (!found) {
+        // No « Ingrédients » heading: maybe the recipe simply starts with its list of quantities
+        const loose = splitLeadingIngredients(text);
+        return loose ? { ...loose, found: true } : { ingredients: '', steps: text, found: false };
+    }
     const trimBlank = (arr: string[]) => arr.join('\n').replace(/^\s*\n+/, '').replace(/\n{3,}/g, '\n\n').trim();
     return {
         ingredients: [servingsLine, trimBlank(ingredientLines)].filter(Boolean).join('\n\n'),
         steps: trimBlank(stepLines),
         found: true
     };
+}
+
+/**
+ * A recipe without an « Ingrédients » heading that starts with a block of quantities
+ * (« Pour 4 personnes / 600 g de poulet / 2 poivrons / Sel, poivre / … then the steps »).
+ * Needs at least 2 lines with a quantity; stops at the first sentence or step.
+ */
+function splitLeadingIngredients(text: string): { ingredients: string; steps: string } | null {
+    const lines = text.split('\n');
+    let withQty = 0;
+    let lastIngredient = -1;
+    for (let i = 0; i < lines.length; i++) {
+        const line = lines[i];
+        if (!line.trim()) continue;
+        if (STEPS_HEADING.test(line) || FIRST_STEP.test(line)) break;
+        const parsed = parseLine(line);
+        if (parsed.kind === 'servings') continue;
+        if (parsed.kind === 'item' && parsed.qty) {
+            withQty++;
+            lastIngredient = i;
+            continue;
+        }
+        // « Purée : » (sub-recipe title) or « Sel, poivre » (short, no quantity) still belong to the list
+        if (parsed.kind === 'heading' && line.trim().length <= 40) continue;
+        if (parsed.kind === 'item' && line.trim().split(/\s+/).length <= 4) {
+            lastIngredient = i;
+            continue;
+        }
+        break;
+    }
+    if (withQty < 2 || lastIngredient < 0) return null;
+    const tidy = (arr: string[]) => arr.join('\n').replace(/\n{3,}/g, '\n\n').trim();
+    const steps = tidy(lines.slice(lastIngredient + 1));
+    return { ingredients: tidy(lines.slice(0, lastIngredient + 1)), steps };
 }
 
 // « Sel et poivre » / « Sel, poivre, huile d'olive » → one line each

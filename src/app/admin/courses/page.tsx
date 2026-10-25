@@ -135,18 +135,26 @@ export default function CombinedGroceryPage() {
         () => Object.fromEntries(chosen.map(c => [c.label, c.sheet.selection?.groceryChecked || []])),
         [chosen]
     );
+    const savedEdits = useMemo(
+        () => Object.fromEntries(chosen.map(c => [c.label, c.sheet.selection?.groceryEdits || {}])),
+        [chosen]
+    );
 
     // A tick on a client's tile is a tick on that client's own list: save each client whose ticks changed
-    const saveTicks = useCallback(async (next: Record<string, string[]>) => {
+    const saveTicks = useCallback(async (next: Record<string, string[]>, nextEdits: Record<string, Record<string, string>>) => {
         try {
             const updates = chosen.map(async ({ sheet, label }) => {
                 const before = sheet.selection?.groceryChecked || [];
                 const after = next[label] || [];
-                if (sameKeys(before, after)) return null;
+                const editsBefore = sheet.selection?.groceryEdits || {};
+                const editsAfter = nextEdits[label] || {};
+                const editsSame = Object.keys(editsBefore).length === Object.keys(editsAfter).length
+                    && Object.entries(editsAfter).every(([k, v]) => editsBefore[k] === v);
+                if (sameKeys(before, after) && editsSame) return null;
                 const res = await fetch(`/api/cooking-ops/session/${encodeURIComponent(sheet.session.id)}`, {
                     method: 'PATCH',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ groceryChecked: after })
+                    body: JSON.stringify({ groceryChecked: after, groceryEdits: editsAfter })
                 });
                 const data = await res.json().catch(() => ({}));
                 if (!res.ok) throw new Error(data.error || `Enregistrement impossible pour ${label}`);
@@ -251,6 +259,7 @@ export default function CombinedGroceryPage() {
                         <CombinedGroceryList
                             list={list}
                             saved={savedTicks}
+                            savedEdits={savedEdits}
                             onSave={saveTicks}
                             onCopied={ok => showToast(ok ? 'Listes copiées (une par client) — collez-les dans WhatsApp ou Notes' : 'Copie impossible sur cet appareil', ok ? 'check' : 'error')}
                         />

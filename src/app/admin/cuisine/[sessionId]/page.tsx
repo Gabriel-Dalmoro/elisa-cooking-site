@@ -145,12 +145,12 @@ export default function ChefCookingModePage({ params }: { params: Promise<{ sess
     }, [sheet, recipes, persons]);
 
     // Saves the ticked grocery items for this client's week (still ticked next time, on any device)
-    const saveGroceryTicks = async (checkedKeys: string[]) => {
+    const saveGroceryTicks = async (checkedKeys: string[], edits: Record<string, string>) => {
         try {
             const res = await fetch(`/api/cooking-ops/session/${encodeURIComponent(sessionId)}`, {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ groceryChecked: checkedKeys })
+                body: JSON.stringify({ groceryChecked: checkedKeys, groceryEdits: edits })
             });
             const data = await res.json().catch(() => ({}));
             if (!res.ok) throw new Error(data.error || 'Enregistrement impossible');
@@ -435,6 +435,7 @@ export default function ChefCookingModePage({ params }: { params: Promise<{ sess
                         list={groceryList}
                         title={`Liste de courses — ${displayName}`}
                         savedChecked={selection?.groceryChecked || NO_TICKS}
+                        savedEdits={selection?.groceryEdits}
                         onSave={saveGroceryTicks}
                         extraActions={
                             <Link

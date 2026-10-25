@@ -3,7 +3,7 @@ import { getSession, setSessionIgnored, deleteSession, rescheduleAppSession, set
 import { getStaffMember } from '@/lib/db/staff';
 import { deleteGoogleCalendarEvent } from '@/lib/googleCalendar';
 import { getClientById } from '@/lib/db/clients';
-import { getSelection, setRecipeOverride, setGroceryChecked, CUSTOM_DISH_RECIPE_ID } from '@/lib/db/selections';
+import { getSelection, setRecipeOverride, setGroceryState, CUSTOM_DISH_RECIPE_ID } from '@/lib/db/selections';
 import { getMenu } from '@/lib/db/menus';
 import { getWeekStartForDate } from '@/lib/dateUtils';
 import { requireStaff } from '@/lib/auth';
@@ -61,7 +61,8 @@ export async function GET(_req: NextRequest, { params }: Params) {
  * PATCH { ignored: boolean } → hide a calendar event that isn't a cooking session (kept hidden across syncs)
  * PATCH { dishId, recipe, ingredients? } → Elisa's recipe for one dish, adapted for THIS client only
  *   (the week's menu and the recipe bank stay unchanged; both empty goes back to the menu one)
- * PATCH { groceryChecked: string[] } → saves the ticked grocery items for this client's week
+ * PATCH { groceryChecked?: string[], groceryEdits?: { itemKey: amount } } → saves this client's grocery list
+ *   for the week (ticked items, quantities corrected by hand; an empty amount goes back to the calculated one)
  * PATCH { dateIso, timeSlot } → moves a session created in the app (Google ones move in Google Calendar)
  * PATCH { assignedTo: chefId | null } → who cooks it (Elisa only; null = Elisa)
  * A chef can do all of this on their own sessions, except hiding events and reassigning.
@@ -116,16 +117,26 @@ export async function PATCH(req: NextRequest, { params }: Params) {
             return NextResponse.json({ success: true, selection: updated });
         }
 
-        if (Array.isArray(body.groceryChecked)) {
+        const hasEdits = body.groceryEdits && typeof body.groceryEdits === 'object' && !Array.isArray(body.groceryEdits);
+        if (Array.isArray(body.groceryChecked) || hasEdits) {
             const session = await getSession(id);
             if (!session?.clientId) {
                 return NextResponse.json({ error: 'Aucune fiche client liée à cette séance' }, { status: 404 });
             }
-            const keys = body.groceryChecked
-                .filter((k: unknown): k is string => typeof k === 'string' && k.length > 0)
-                .slice(0, 1000)
-                .map((k: string) => k.slice(0, 200));
-            const updated = await setGroceryChecked(session.clientId, getWeekStartForDate(session.dateIso), keys);
+            const checked = Array.isArray(body.groceryChecked)
+                ? body.groceryChecked
+                    .filter((k: unknown): k is string => typeof k === 'string' && k.length > 0)
+                    .slice(0, 1000)
+                    .map((k: string) => k.slice(0, 200))
+                : undefined;
+            let edits: Record<string, string> | undefined;
+            if (hasEdits) {
+                edits = {};
+                for (const [key, value] of Object.entries(body.groceryEdits as Record<string, unknown>).slice(0, 500)) {
+                    if (typeof value === 'string' && value.trim() && key) edits[key.slice(0, 200)] = value.trim().slice(0, 60);
+                }
+            }
+            const updated = await setGroceryState(session.clientId, getWeekStartForDate(session.dateIso), { checked, edits });
             return NextResponse.json({ success: true, selection: updated });
         }
 

@@ -29,6 +29,7 @@ export interface GroceryClientInput extends GroceryInput {
 export interface GroceryClientShare {
     client: string;
     amount: string | null; // this client's part, null if the recipe gives no amount
+    edited?: boolean; // amount corrected by hand
 }
 
 export interface GrocerySource {
@@ -46,6 +47,8 @@ export interface GroceryItem {
     sources: GrocerySource[];
     warnings: string[];
     byClient?: GroceryClientShare[]; // combined lists only: each client's part
+    edited?: boolean; // total corrected by hand
+    calculated?: string | null; // the computed amount, kept when it was corrected by hand
 }
 
 export interface GrocerySection {
@@ -298,6 +301,47 @@ function buildLists(clients: GroceryClientInput[], merged: boolean): GroceryList
         dishesWithoutIngredients,
         unsortedCount: bySection.get(UNSORTED)?.length || 0,
         ...(merged ? { clients: clients.map(c => ({ label: c.label, persons: personsOf(c) })) } : {})
+    };
+}
+
+/**
+ * One client's list with the quantities Elisa corrected by hand (item key → amount as typed).
+ */
+export function applyGroceryEdits(list: GroceryList, edits: Record<string, string> | undefined): GroceryList {
+    if (!edits || Object.keys(edits).length === 0) return list;
+    return {
+        ...list,
+        sections: list.sections.map(section => ({
+            ...section,
+            items: section.items.map(item =>
+                edits[item.key] ? { ...item, total: edits[item.key], edited: true, calculated: item.total } : item
+            )
+        }))
+    };
+}
+
+/**
+ * Combined list with each client's corrected quantities (client label → item key → amount).
+ * When a part was corrected, the total can't be added up any more: it's hidden for that item.
+ */
+export function applyCombinedEdits(list: GroceryList, editsByClient: Record<string, Record<string, string>>): GroceryList {
+    return {
+        ...list,
+        sections: list.sections.map(section => ({
+            ...section,
+            items: section.items.map(item => {
+                if (!item.byClient?.some(b => editsByClient[b.client]?.[item.key])) return item;
+                return {
+                    ...item,
+                    total: null,
+                    edited: true,
+                    byClient: item.byClient.map(b => {
+                        const edit = editsByClient[b.client]?.[item.key];
+                        return edit ? { ...b, amount: edit, edited: true } : b;
+                    })
+                };
+            })
+        }))
     };
 }
 
