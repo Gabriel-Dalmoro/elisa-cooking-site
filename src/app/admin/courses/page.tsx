@@ -135,6 +135,31 @@ export default function CombinedGroceryPage() {
         () => Object.fromEntries(chosen.map(c => [c.label, c.sheet.selection?.groceryChecked || []])),
         [chosen]
     );
+    const savedExtras = useMemo(
+        () => Object.fromEntries(chosen.map(c => [c.label, c.sheet.selection?.groceryExtras || []])),
+        [chosen]
+    );
+
+    // Something added for one client: saved right away on that client's list (the list is rebuilt)
+    const saveExtras = useCallback(async (label: string, next: string[]) => {
+        const target = chosen.find(c => c.label === label);
+        if (!target) return false;
+        try {
+            const res = await fetch(`/api/cooking-ops/session/${encodeURIComponent(target.sheet.session.id)}`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ groceryExtras: next })
+            });
+            const data = await res.json().catch(() => ({}));
+            if (!res.ok) throw new Error(data.error || 'Ajout impossible');
+            setSheets(prev => ({ ...prev, [target.sheet.session.id]: { ...prev[target.sheet.session.id], selection: data.selection } }));
+            return true;
+        } catch (e) {
+            showToast(e instanceof Error ? e.message : 'Ajout impossible', 'error');
+            return false;
+        }
+    }, [chosen, showToast]);
+
     const savedEdits = useMemo(
         () => Object.fromEntries(chosen.map(c => [c.label, c.sheet.selection?.groceryEdits || {}])),
         [chosen]
@@ -260,6 +285,8 @@ export default function CombinedGroceryPage() {
                             list={list}
                             saved={savedTicks}
                             savedEdits={savedEdits}
+                            extras={savedExtras}
+                            onExtrasChange={saveExtras}
                             onSave={saveTicks}
                             onCopied={ok => showToast(ok ? 'Listes copiées (une par client) — collez-les dans WhatsApp ou Notes' : 'Copie impossible sur cet appareil', ok ? 'check' : 'error')}
                         />

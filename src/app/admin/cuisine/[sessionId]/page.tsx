@@ -144,6 +144,24 @@ export default function ChefCookingModePage({ params }: { params: Promise<{ sess
         return input ? buildGroceryList(input) : null;
     }, [sheet, recipes, persons]);
 
+    // Items added by hand on the list: saved right away (the list is rebuilt with them)
+    const saveGroceryExtras = async (next: string[]) => {
+        try {
+            const res = await fetch(`/api/cooking-ops/session/${encodeURIComponent(sessionId)}`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ groceryExtras: next })
+            });
+            const data = await res.json().catch(() => ({}));
+            if (!res.ok) throw new Error(data.error || 'Ajout impossible');
+            setSheet(prev => (prev ? { ...prev, selection: data.selection } : prev));
+            return true;
+        } catch (e) {
+            showToast(e instanceof Error ? e.message : 'Ajout impossible', 'error');
+            return false;
+        }
+    };
+
     // Saves the ticked grocery items for this client's week (still ticked next time, on any device)
     const saveGroceryTicks = async (checkedKeys: string[], edits: Record<string, string>) => {
         try {
@@ -436,6 +454,8 @@ export default function ChefCookingModePage({ params }: { params: Promise<{ sess
                         title={`Liste de courses — ${displayName}`}
                         savedChecked={selection?.groceryChecked || NO_TICKS}
                         savedEdits={selection?.groceryEdits}
+                        extras={selection?.groceryExtras}
+                        onExtrasChange={saveGroceryExtras}
                         onSave={saveGroceryTicks}
                         extraActions={
                             <Link

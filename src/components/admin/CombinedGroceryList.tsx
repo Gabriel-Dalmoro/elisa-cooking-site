@@ -4,6 +4,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Check, Copy, Eye, EyeOff, Save } from 'lucide-react';
 import { applyCombinedEdits, combinedListToText, GroceryItem, GroceryList } from '@/lib/grocery/list';
 import QuantityEdit from './QuantityEdit';
+import AddGroceryItem from './AddGroceryItem';
 import { UNSORTED } from '@/lib/grocery/parse';
 
 // One colour per client, same order as the columns (left side of the trolley, right side…)
@@ -22,6 +23,8 @@ interface Props {
     list: GroceryList; // built with buildMergedGroceryList (has clients + byClient)
     saved: Ticks; // each client's saved ticks (their whole own list, not only these items)
     savedEdits: Edits; // each client's corrected quantities (their whole own list)
+    extras: Record<string, string[]>; // each client's items added by hand
+    onExtrasChange: (client: string, next: string[]) => Promise<boolean>; // saved right away
     onSave: (next: Ticks, edits: Edits) => Promise<boolean>;
     onCopied: (ok: boolean) => void;
 }
@@ -37,7 +40,7 @@ const firstName = (label: string) => label.split(/\s+/)[0];
  * each client always in the same column and colour, so each trolley side / invoice stays separate.
  * A tick here is the same tick as on that client's own list (saved with « Enregistrer »).
  */
-export default function CombinedGroceryList({ list, saved, savedEdits, onSave, onCopied }: Props) {
+export default function CombinedGroceryList({ list, saved, savedEdits, extras, onExtrasChange, onSave, onCopied }: Props) {
     const clients = useMemo(() => list.clients || [], [list]);
     const [ticks, setTicks] = useState<Ticks>(saved);
     const [lastSaved, setLastSaved] = useState<Ticks>(saved);
@@ -168,6 +171,12 @@ export default function CombinedGroceryList({ list, saved, savedEdits, onSave, o
                         {hideDone ? 'Voir les cochés' : 'Cacher les cochés'}
                     </button>
                 </div>
+
+                <AddGroceryItem
+                    extras={extras}
+                    clients={clients.map((c, i) => ({ label: c.label, dot: colorOf(i).dot }))}
+                    onChange={onExtrasChange}
+                />
 
                 {list.dishesWithoutIngredients.length > 0 && (
                     <p className="text-[11px] bg-amber-50 border border-amber-300 rounded-xl p-2.5 text-amber-900">

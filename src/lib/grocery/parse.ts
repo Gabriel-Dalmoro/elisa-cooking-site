@@ -373,13 +373,21 @@ export interface ParsedIngredients {
     items: { line: IngredientLine; part: string | null }[];
 }
 
-export function parseIngredients(text: string): ParsedIngredients {
+/**
+ * headingsAsItems: every line is something to buy (items typed straight on the shopping list),
+ * so a short line without quantity (« sacs congélation ») is an item, not a sub-recipe title.
+ */
+export function parseIngredients(text: string, options: { headingsAsItems?: boolean } = {}): ParsedIngredients {
     let servings: number | null = null;
     let part: string | null = null;
     const items: ParsedIngredients['items'] = [];
     for (const raw of splitSeasoningLines(text)) {
         const parsed = parseLine(raw);
         if (parsed.kind === 'servings') servings ??= parsed.count;
+        else if (parsed.kind === 'heading' && options.headingsAsItems) {
+            const clean = cleanLine(raw);
+            items.push({ line: withEntry(clean, clean, null, 'piece', false), part: null });
+        }
         else if (parsed.kind === 'heading') part = parsed.text;
         else if (parsed.kind === 'item') items.push({ line: parsed, part });
     }

@@ -5,6 +5,7 @@ import { CheckSquare, ChevronDown, Copy, Save, ShoppingCart, Square } from 'luci
 import { Button } from '@/components/ui/button';
 import { applyGroceryEdits, GroceryList, groceryListToText } from '@/lib/grocery/list';
 import QuantityEdit from './QuantityEdit';
+import AddGroceryItem from './AddGroceryItem';
 import { UNSORTED } from '@/lib/grocery/parse';
 
 interface Props {
@@ -17,6 +18,8 @@ interface Props {
     heading?: string;
     defaultOpen?: boolean;
     extraActions?: React.ReactNode; // e.g. « Combiner avec un autre client »
+    extras?: string[]; // items added by hand on the list
+    onExtrasChange?: (next: string[]) => Promise<boolean>; // saved right away
 }
 
 const sameKeys = (a: string[], b: string[]) => a.length === b.length && a.every(k => b.includes(k));
@@ -39,7 +42,9 @@ export default function GroceryListCard({
     onCopied,
     heading = 'Liste de courses',
     defaultOpen = false,
-    extraActions
+    extraActions,
+    extras = [],
+    onExtrasChange
 }: Props) {
     const [open, setOpen] = useState(defaultOpen);
     const [checked, setChecked] = useState<string[]>(savedChecked);
@@ -199,6 +204,14 @@ export default function GroceryListCard({
                         )}
                         {extraActions}
                     </div>
+
+                    {onExtrasChange && (
+                        <AddGroceryItem
+                            extras={{ list: extras }}
+                            clients={[{ label: 'list', dot: '' }]}
+                            onChange={(_, next) => onExtrasChange(next)}
+                        />
+                    )}
 
                     {shown.sections.map(section => (
                         <div key={section.name} className="space-y-1.5">

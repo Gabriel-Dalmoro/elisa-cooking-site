@@ -73,6 +73,7 @@ export interface ClientSelection {
     ingredientOverrides: Record<string, string>; // Same, for the ingredient list (feeds this client's grocery list). Staff only.
     groceryChecked: string[]; // Grocery list items ticked off and saved by Elisa (item keys). Staff only.
     groceryEdits: Record<string, string>; // Quantities corrected by hand on the grocery list (item key → amount). Staff only.
+    groceryExtras: string[]; // Items added by hand on the grocery list, one line each (« 2 citrons »). Staff only.
     generalNote?: string;
     submittedAt: string;
     allergiesAtSubmission: string[];

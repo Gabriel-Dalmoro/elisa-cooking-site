@@ -12,6 +12,7 @@ export interface GroceryDishInput {
     ingredients: string; // the dish's ingredient text for this client
     recipeText?: string; // the rest of the recipe, only read to find « Pour N personnes »
     clientNote?: string; // the client's note on this dish
+    handAdded?: boolean; // items typed straight on the shopping list: every line is something to buy
 }
 
 export interface GroceryInput {
@@ -180,7 +181,7 @@ function buildLists(clients: GroceryClientInput[], merged: boolean): GroceryList
     clients.forEach((client, clientIdx) => {
         const persons = personsOf(client);
         for (const dish of client.dishes) {
-            const parsed = parseIngredients(dish.ingredients || '');
+            const parsed = parseIngredients(dish.ingredients || '', { headingsAsItems: dish.handAdded });
             if (parsed.items.length === 0) {
                 dishesWithoutIngredients.push(withClient(client, dish.name));
                 continue;

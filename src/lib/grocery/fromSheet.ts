@@ -1,9 +1,12 @@
-import { ClientProfile, ClientSelection, WeeklyDish } from '../types/cooking-ops';
-import { DishRecipe, effectiveRecipe } from './recipe';
+import type { ClientProfile, ClientSelection, WeeklyDish } from '../types/cooking-ops';
+import { effectiveRecipe, type DishRecipe } from './recipe';
 import type { GroceryInput } from './list';
 
 // Recipe-override key for the client's custom dish (mirrors CUSTOM_DISH_RECIPE_ID in lib/db/selections)
 export const CUSTOM_DISH_RECIPE_ID = '__custom__';
+
+/** Where items added by hand on the shopping list show they come from. */
+export const EXTRAS_LABEL = 'Ajouté à la main';
 
 /** What the kitchen sheet API returns that the grocery list needs. */
 export interface GrocerySheet {
@@ -47,6 +50,10 @@ export function sheetGroceryInput(
                     ingredients: recipes[CUSTOM_DISH_RECIPE_ID]?.ingredients || '',
                     recipeText: recipes[CUSTOM_DISH_RECIPE_ID]?.steps || ''
                 }]
+                : []),
+            // Added by hand on the list: read like recipe lines (aisle, adding up), never scaled
+            ...(selection.groceryExtras?.length
+                ? [{ name: EXTRAS_LABEL, ingredients: [`Pour ${persons} personnes`, ...selection.groceryExtras].join('\n'), handAdded: true }]
                 : [])
         ],
         allergies: client.allergies,
