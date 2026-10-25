@@ -10,13 +10,14 @@ interface Props {
     onChange: (amount: string | null) => void; // null = back to the calculated amount
     muted?: boolean; // item ticked: greyed out
     large?: boolean;
+    emptyLabel?: string; // shown when there is no amount
 }
 
 /**
  * An amount on the shopping list that Elisa can correct on the spot (« 750 g » → « 800 g », « 2 bottes »…).
  * Clicks never reach the row underneath (which ticks the item).
  */
-export default function QuantityEdit({ value, calculated, edited, onChange, muted, large }: Props) {
+export default function QuantityEdit({ value, calculated, edited, onChange, muted, large, emptyLabel }: Props) {
     const [draft, setDraft] = useState<string | null>(null);
     const stop = (e: React.SyntheticEvent) => e.stopPropagation();
 
@@ -59,7 +60,7 @@ export default function QuantityEdit({ value, calculated, edited, onChange, mute
                 }`}
                 title={edited && calculated ? `Calculé : ${calculated}` : undefined}
             >
-                {value || (large ? 'selon recette' : '')}
+                {value || emptyLabel || (large ? 'selon recette' : '')}
             </span>
             <button
                 type="button"

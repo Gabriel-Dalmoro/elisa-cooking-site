@@ -263,6 +263,7 @@ export default function CombinedGroceryList({ list, saved, savedEdits, extras, o
                                                                 calculated={calculatedShare(item.key, c.label)}
                                                                 edited={Boolean(share.edited)}
                                                                 muted={ticked}
+                                                                emptyLabel={item.handAdded ? 'à acheter' : undefined}
                                                                 onChange={amount => setEdit(c.label, item.key, amount)}
                                                             />
                                                         </span>
