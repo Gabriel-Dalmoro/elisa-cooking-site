@@ -10,7 +10,7 @@
  *
  * Patch (1.0.1) = fix or small change · Minor (1.1.0) = new capability · Major (2.0.0) = big change in how it works.
  */
-export const APP_VERSION = '1.0.3';
+export const APP_VERSION = '1.0.4';
 
 /**
  * Where this build is running. Vercel fills these in at build time when
