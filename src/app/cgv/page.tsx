@@ -122,6 +122,9 @@ export default function CGVPage() {
                             <p className="text-lg">
                                 Le Prestataire dispose de l'agrément "Service à la Personne" (SAP). Ce dispositif permet au Client de bénéficier d'un crédit d'impôt égal à 50% des dépenses engagées pour les prestations de chef à domicile.
                             </p>
+                            <p className="text-lg">
+                                Le Prestataire est habilité à l'Avance Immédiate de crédit d'impôt (dispositif URSSAF / DGFiP). Le Client qui y adhère ne règle que son reste à charge, soit 50% de la prestation ; l'URSSAF verse directement l'autre moitié au Prestataire. Ce service est gratuit et optionnel : le Client peut choisir de régler la totalité et de bénéficier du crédit d'impôt lors de sa déclaration annuelle.
+                            </p>
                             <p className="text-sm bg-stone-50 p-4 rounded-xl border border-stone-100 italic text-stone-500">
                                 Note : La matière première (le coût des courses) n'est pas éligible à l'avantage fiscal. Le Prestataire fournit annuellement l'attestation fiscale nécessaire à votre déclaration.
                             </p>
