@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getSession, setSessionIgnored, deleteSession, rescheduleAppSession, setSessionAssignee } from '@/lib/db/sessions';
+import { getSession, setSessionIgnored, deleteSession, rescheduleAppSession, setSessionAssignee, listClientSessionsInSlot } from '@/lib/db/sessions';
 import { getStaffMember } from '@/lib/db/staff';
 import { deleteGoogleCalendarEvent } from '@/lib/googleCalendar';
 import { getClientById } from '@/lib/db/clients';
@@ -65,6 +65,8 @@ export async function GET(_req: NextRequest, { params }: Params) {
  *   for the week (ticked items, quantities corrected by hand; an empty amount goes back to the calculated one)
  * PATCH { dateIso, timeSlot } → moves a session created in the app (Google ones move in Google Calendar)
  * PATCH { assignedTo: chefId | null } → who cooks it (Elisa only; null = Elisa)
+ * PATCH { mergeDuplicates: true } → the same client booked twice on this day and slot becomes one session
+ *   (Elisa only): the Google Calendar one is kept, cooked by the chef of the other copy, the copy is removed
  * A chef can do all of this on their own sessions, except hiding events and reassigning.
  */
 export async function PATCH(req: NextRequest, { params }: Params) {
@@ -77,6 +79,31 @@ export async function PATCH(req: NextRequest, { params }: Params) {
         const current = await getSession(id);
         if (!current) return NextResponse.json({ error: 'Séance introuvable' }, { status: 404 });
         if (!canAccessSession(staff, current)) return forbidden('Cette séance ne vous est pas attribuée');
+
+        if (body.mergeDuplicates === true) {
+            if (!isOwner(staff)) return forbidden('Seule Elisa peut fusionner des séances');
+            if (!current.clientId) return NextResponse.json({ error: 'Aucune fiche client liée à cette séance' }, { status: 400 });
+            const copies = await listClientSessionsInSlot(current.clientId, current.dateIso, current.timeSlot);
+            if (copies.length < 2) return NextResponse.json({ success: true, session: current });
+            const fromGoogle = copies.filter(s => s.gcalEventId);
+            if (fromGoogle.length > 1) {
+                return NextResponse.json(
+                    { error: 'Ce client a deux événements dans votre Google Calendar ce jour-là : supprimez-en un dans votre agenda.' },
+                    { status: 409 }
+                );
+            }
+            // Google Calendar stays the reference; otherwise the oldest copy is kept
+            const keep = fromGoogle[0] || copies[0];
+            const cook = copies.find(s => s.assignedTo)?.assignedTo ?? null;
+            for (const copy of copies) {
+                if (copy.id === keep.id) continue;
+                // A week of a series is kept as cancelled so it isn't planned again
+                if (copy.seriesId) await setSessionIgnored(copy.id, true);
+                else await deleteSession(copy.id);
+            }
+            const session = cook !== keep.assignedTo ? await setSessionAssignee(keep.id, cook) : keep;
+            return NextResponse.json({ success: true, session });
+        }
 
         if ('assignedTo' in body) {
             if (!isOwner(staff)) return forbidden('Seule Elisa attribue les séances');

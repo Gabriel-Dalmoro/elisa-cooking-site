@@ -104,6 +104,20 @@ export async function getSession(id: string): Promise<BookingSession | null> {
     return data ? rowToSession(data as SessionRow) : null;
 }
 
+/** A client's sessions on one day and slot (normally zero or one). */
+export async function listClientSessionsInSlot(clientId: string, dateIso: string, timeSlot: TimeSlot): Promise<BookingSession[]> {
+    const { data, error } = await getSupabaseAdmin()
+        .from('cooking_sessions')
+        .select('*')
+        .eq('client_id', clientId)
+        .eq('date', dateIso)
+        .eq('time_slot', timeSlot)
+        .eq('ignored', false)
+        .order('created_at', { ascending: true });
+    if (error) throw new Error(`Lecture des séances impossible : ${error.message}`);
+    return (data as SessionRow[]).map(rowToSession);
+}
+
 export async function upsertSession(input: SessionInput): Promise<void> {
     const { error } = await getSupabaseAdmin()
         .from('cooking_sessions')

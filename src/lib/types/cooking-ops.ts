@@ -88,6 +88,9 @@ export interface SlotSessionStatus {
     selection: ClientSelection | null;
     isSubmitted: boolean;
     selectedCount: number;
+    // Other sessions of the same client on the same day and slot (e.g. Elisa's Google booking
+    // and a session created again for a chef): almost always one booking entered twice
+    duplicateSessionIds?: string[];
 }
 
 export interface VaultRecipe {

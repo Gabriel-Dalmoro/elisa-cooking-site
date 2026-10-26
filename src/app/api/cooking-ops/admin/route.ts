@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { loadWeekOverview } from '@/lib/cookingOps';
 import { listClients, getClientById, createClient, updateClient, deleteClient, ClientInput, CHEF_EDITABLE_FIELDS } from '@/lib/db/clients';
-import { createAppSession, upsertSession } from '@/lib/db/sessions';
+import { createAppSession, listClientSessionsInSlot, upsertSession } from '@/lib/db/sessions';
 import { getStaffMember } from '@/lib/db/staff';
 import { addDaysIso, createSeries, ensureSeriesSessions } from '@/lib/db/series';
 import { createGoogleCalendarEvent } from '@/lib/googleCalendar';
@@ -133,6 +133,16 @@ export async function POST(req: NextRequest) {
             if (!/^\d{4}-\d{2}-\d{2}$/.test(String(body.bookingDateIso)) || !['Matin', 'Après-midi'].includes(body.timeSlot)) {
                 return NextResponse.json({ error: 'Créneau invalide' }, { status: 400 });
             }
+            // Same client already booked on this slot (often Elisa's Google booking): give that one to the chef instead
+            const existing = await listClientSessionsInSlot(savedClient.id, body.bookingDateIso, body.timeSlot);
+            if (existing.length > 0) {
+                const where = existing[0].gcalEventId ? 'dans votre Google Calendar' : 'dans le planning';
+                return NextResponse.json(
+                    { error: `${savedClient.name} a déjà une séance ${where} à ce créneau. Ouvrez-la et choisissez « Cuisiné par » plutôt que d’en créer une deuxième.` },
+                    { status: 409 }
+                );
+            }
+
             // Elisa: the same slot every 1, 2 or 4 weeks (sessions are created ahead of time)
             const everyWeeks = Number(body.repeatEveryWeeks);
             if (owner && [1, 2, 4].includes(everyWeeks)) {

@@ -435,6 +435,27 @@ export default function WeeklyOpsAdminDashboard() {
         await updateSeries({ id: seriesId, stopFrom: fromIso }, `Récurrence de ${name} arrêtée`);
     };
 
+    // Same client booked twice on one slot (Elisa's Google booking + a copy for a chef): keep one
+    const mergeDuplicates = async (sessionId: string, name: string) => {
+        try {
+            setIsUpdatingSession(true);
+            const res = await fetch(`/api/cooking-ops/session/${encodeURIComponent(sessionId)}`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ mergeDuplicates: true })
+            });
+            const data = await res.json().catch(() => ({}));
+            if (!res.ok) throw new Error(data.error || 'Fusion impossible');
+            setDetailSessionId(null);
+            await loadWeekOverview(weekOffset);
+            showToast(`Une seule séance pour ${name}, cuisinée par ${chefName(chefs, data.session?.assignedTo ?? null)}`, 'check');
+        } catch (err) {
+            showToast(err instanceof Error ? err.message : 'Fusion impossible', 'error');
+        } finally {
+            setIsUpdatingSession(false);
+        }
+    };
+
     // Moves a session created in the app (Google Calendar sessions are moved in Google Calendar)
     const moveSession = async (sessionId: string) => {
         if (!moveDraft) return;
@@ -781,7 +802,7 @@ export default function WeeklyOpsAdminDashboard() {
                                                         </div>
 
                                                         {/* Who cooks it (Elisa's view, once she has chefs) */}
-                                                        {(isOwner && chefs.length > 0) || session.seriesId ? (
+                                                        {(isOwner && chefs.length > 0) || session.seriesId || status.duplicateSessionIds ? (
                                                             <div className="flex flex-wrap items-center gap-1">
                                                                 {isOwner && chefs.length > 0 && (
                                                                     <span className={`inline-flex items-center gap-1.5 text-[10px] font-bold rounded-full border px-2 py-0.5 ${cook.pill}`}>
@@ -792,6 +813,11 @@ export default function WeeklyOpsAdminDashboard() {
                                                                 {session.seriesId && (
                                                                     <span className="inline-flex items-center gap-1 text-[10px] font-bold rounded-full border border-rose-200 bg-rose-50 text-[#c94567] px-2 py-0.5" title="Séance récurrente">
                                                                         <Repeat className="w-3 h-3" /> Récurrent
+                                                                    </span>
+                                                                )}
+                                                                {status.duplicateSessionIds && (
+                                                                    <span className="inline-flex items-center gap-1 text-[10px] font-bold rounded-full border border-amber-300 bg-amber-50 text-amber-800 px-2 py-0.5" title="Ce client est réservé deux fois sur ce créneau">
+                                                                        <AlertCircle className="w-3 h-3" /> Doublon
                                                                     </span>
                                                                 )}
                                                             </div>
@@ -974,7 +1000,7 @@ export default function WeeklyOpsAdminDashboard() {
                                 Aucun client réservé pour cette semaine.
                             </div>
                         ) : (
-                            visibleStatuses.map(({ client, isSubmitted, selectedCount, session, isUnmatchedClient, selection }) => {
+                            visibleStatuses.map(({ client, isSubmitted, selectedCount, session, isUnmatchedClient, selection, duplicateSessionIds }) => {
                                 const isMissingPhone = !isUnmatchedClient && (!client.phone || client.phone.trim().length === 0);
 
                                 return (
@@ -1027,6 +1053,11 @@ export default function WeeklyOpsAdminDashboard() {
                                                     {session.seriesId && (
                                                         <span className="text-[11px] font-bold rounded-full border border-rose-200 bg-rose-50 text-[#c94567] px-2.5 py-0.5 flex items-center gap-1">
                                                             <Repeat className="w-3 h-3" /> Récurrent
+                                                        </span>
+                                                    )}
+                                                    {duplicateSessionIds && (
+                                                        <span className="text-[11px] font-bold rounded-full border border-amber-300 bg-amber-50 text-amber-800 px-2.5 py-0.5 flex items-center gap-1">
+                                                            <AlertCircle className="w-3 h-3" /> Doublon
                                                         </span>
                                                     )}
 
@@ -1289,6 +1320,29 @@ export default function WeeklyOpsAdminDashboard() {
                                             )}
                                         </div>
                                     ) : null}
+
+                                    {/* Booked twice on this slot */}
+                                    {detailStatus.duplicateSessionIds && (
+                                        <div className="bg-amber-50 border border-amber-300 rounded-2xl p-3 space-y-2 text-amber-900">
+                                            <p className="font-bold flex items-center gap-1.5">
+                                                <AlertCircle className="w-3.5 h-3.5" /> {client.name} est réservé deux fois sur ce créneau
+                                            </p>
+                                            <p className="text-[11px]">
+                                                Souvent : la réservation de votre Google Calendar + une séance recréée pour un chef.
+                                                Une seule liste de courses et une seule fiche cuisine suffisent.
+                                            </p>
+                                            {isOwner && (
+                                                <Button
+                                                    size="sm"
+                                                    disabled={isUpdatingSession}
+                                                    onClick={() => mergeDuplicates(session.id, client.name)}
+                                                    className="rounded-full text-xs h-8 bg-amber-600 hover:bg-amber-700 text-white"
+                                                >
+                                                    Garder une seule séance
+                                                </Button>
+                                            )}
+                                        </div>
+                                    )}
 
                                     {/* Recurring series behind this session */}
                                     {session.seriesId && (() => {

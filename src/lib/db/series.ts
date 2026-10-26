@@ -134,9 +134,23 @@ export async function ensureSeriesSessions(untilIso: string, clients: ClientProf
     });
     if (rows.length === 0) return;
 
+    // A week where the client is already booked on that slot (e.g. Elisa's Google booking) gets no second session
+    const { data: booked, error: bookedError } = await getSupabaseAdmin()
+        .from('cooking_sessions')
+        .select('client_id, date, time_slot')
+        .in('client_id', [...new Set(rows.map(r => r.client_id))])
+        .gte('date', rows.reduce((min, r) => (r.date < min ? r.date : min), rows[0].date))
+        .lte('date', untilIso)
+        .is('series_id', null)
+        .eq('ignored', false);
+    if (bookedError) throw new Error(`Lecture des séances impossible : ${bookedError.message}`);
+    const taken = new Set((booked || []).map(b => `${b.client_id}|${b.date}|${b.time_slot}`));
+    const toCreate = rows.filter(r => !taken.has(`${r.client_id}|${r.date}|${r.time_slot}`));
+    if (toCreate.length === 0) return;
+
     const { error } = await getSupabaseAdmin()
         .from('cooking_sessions')
-        .upsert(rows, { onConflict: 'series_id,series_date', ignoreDuplicates: true });
+        .upsert(toCreate, { onConflict: 'series_id,series_date', ignoreDuplicates: true });
     if (error) throw new Error(`Création des séances récurrentes impossible : ${error.message}`);
 }
 

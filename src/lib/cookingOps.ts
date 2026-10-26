@@ -32,6 +32,18 @@ export function buildSlotStatuses(
 ): SlotSessionStatus[] {
     const clientById = new Map(clients.map(c => [c.id, c]));
     const selectionByClient = new Map(selections.map(s => [s.clientId, s]));
+    // Same client, same day, same slot → flagged on each copy
+    const bySlot = new Map<string, string[]>();
+    for (const s of sessions) {
+        if (!s.clientId) continue;
+        const key = `${s.clientId}|${s.dateIso}|${s.timeSlot}`;
+        bySlot.set(key, [...(bySlot.get(key) || []), s.id]);
+    }
+    const duplicatesOf = (session: BookingSession) => {
+        const ids = session.clientId ? bySlot.get(`${session.clientId}|${session.dateIso}|${session.timeSlot}`) || [] : [];
+        const others = ids.filter(id => id !== session.id);
+        return others.length > 0 ? { duplicateSessionIds: others } : {};
+    };
 
     return sessions.map(session => {
         const client = session.clientId ? clientById.get(session.clientId) : undefined;
@@ -42,7 +54,7 @@ export function buildSlotStatuses(
         const selection = selectionByClient.get(client.id) || null;
         // A custom dish the client wrote counts as one of their dishes
         const selectedCount = selection ? selection.selectedDishIds.length + (selection.customDish ? 1 : 0) : 0;
-        return { session, client, selection, isSubmitted: selectedCount > 0, selectedCount };
+        return { session, client, selection, isSubmitted: selectedCount > 0, selectedCount, ...duplicatesOf(session) };
     });
 }
 
