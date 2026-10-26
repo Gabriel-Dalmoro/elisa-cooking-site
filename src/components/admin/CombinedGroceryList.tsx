@@ -2,7 +2,7 @@
 
 import React, { useEffect, useMemo, useState } from 'react';
 import { Check, Copy, Eye, EyeOff, Save } from 'lucide-react';
-import { applyCombinedEdits, combinedListToText, GroceryItem, GroceryList } from '@/lib/grocery/list';
+import { applyCombinedEdits, combinedListToText, GroceryItem, GroceryList, nameEditKey } from '@/lib/grocery/list';
 import QuantityEdit from './QuantityEdit';
 import AddGroceryItem from './AddGroceryItem';
 import { UNSORTED } from '@/lib/grocery/parse';
@@ -71,6 +71,11 @@ export default function CombinedGroceryList({ list, saved, savedEdits, extras, o
             else delete own[key];
             return { ...prev, [client]: own };
         });
+    };
+
+    // A new name applies to everyone who needs the item (stored in each client's own list)
+    const renameItem = (item: GroceryItem, name: string | null) => {
+        for (const share of item.byClient || []) setEdit(share.client, nameEditKey(item.key), name);
     };
 
     const isDone = (client: string, key: string) => (ticks[client] || []).includes(key);
@@ -200,8 +205,11 @@ export default function CombinedGroceryList({ list, saved, savedEdits, extras, o
                                 return (
                                     <li key={item.key} className={`rounded-2xl border p-3 transition-colors ${done ? 'bg-emerald-50/60 border-emerald-200' : 'bg-white border-stone-200'}`}>
                                         <div className="flex items-baseline justify-between gap-2 px-0.5">
-                                            <span className={`text-base font-bold leading-tight ${done ? 'line-through text-stone-400' : 'text-stone-900'}`}>
+                                            <span className={`text-base font-bold leading-tight ${done ? 'line-through text-stone-400' : item.originalName ? 'text-[#c94567]' : 'text-stone-900'}`}>
                                                 {item.name}
+                                                {item.originalName && (
+                                                    <span className="block text-[11px] font-normal text-stone-400">au lieu de « {item.originalName} »</span>
+                                                )}
                                             </span>
                                             {visibleClients.length > 1 && (item.byClient?.length || 0) > 1 && item.total && (
                                                 <span className="text-[11px] text-stone-400 tabular-nums shrink-0">total {item.total}</span>
@@ -265,6 +273,9 @@ export default function CombinedGroceryList({ list, saved, savedEdits, extras, o
                                                                 muted={ticked}
                                                                 emptyLabel={item.handAdded ? 'à acheter' : undefined}
                                                                 onChange={amount => setEdit(c.label, item.key, amount)}
+                                                                name={item.name}
+                                                                originalName={item.originalName}
+                                                                onRename={name => renameItem(item, name)}
                                                             />
                                                         </span>
                                                         {lines.length > 0 && (

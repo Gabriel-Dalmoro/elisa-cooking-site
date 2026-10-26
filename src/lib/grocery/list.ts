@@ -51,6 +51,18 @@ export interface GroceryItem {
     edited?: boolean; // total corrected by hand
     handAdded?: boolean; // only typed on the list (not from a recipe)
     calculated?: string | null; // the computed amount, kept when it was corrected by hand
+    originalName?: string; // the name from the recipes, kept when it was renamed by hand
+}
+
+/**
+ * Hand corrections share one record per client (item key → amount). A renamed item is stored
+ * next to its amount under this prefix (« ~name:<item key> » → new name), so older saves stay valid.
+ */
+const NAME_EDIT_PREFIX = '~name:';
+export const nameEditKey = (itemKey: string) => `${NAME_EDIT_PREFIX}${itemKey}`;
+
+function renamed(item: GroceryItem, name: string | undefined): GroceryItem {
+    return name && name !== item.name ? { ...item, name, originalName: item.name } : item;
 }
 
 export interface GrocerySection {
@@ -341,7 +353,8 @@ function buildLists(clients: GroceryClientInput[], merged: boolean): GroceryList
 }
 
 /**
- * One client's list with the quantities Elisa corrected by hand (item key → amount as typed).
+ * One client's list with what Elisa corrected by hand: amounts (item key → amount as typed)
+ * and names (last-minute swaps, « Crème fraîche » → « Crème de soja »).
  */
 export function applyGroceryEdits(list: GroceryList, edits: Record<string, string> | undefined): GroceryList {
     if (!edits || Object.keys(edits).length === 0) return list;
@@ -349,9 +362,10 @@ export function applyGroceryEdits(list: GroceryList, edits: Record<string, strin
         ...list,
         sections: list.sections.map(section => ({
             ...section,
-            items: section.items.map(item =>
-                edits[item.key] ? { ...item, total: edits[item.key], edited: true, calculated: item.total } : item
-            )
+            items: section.items.map(item => {
+                const withAmount = edits[item.key] ? { ...item, total: edits[item.key], edited: true, calculated: item.total } : item;
+                return renamed(withAmount, edits[nameEditKey(item.key)]);
+            })
         }))
     };
 }
@@ -365,7 +379,10 @@ export function applyCombinedEdits(list: GroceryList, editsByClient: Record<stri
         ...list,
         sections: list.sections.map(section => ({
             ...section,
-            items: section.items.map(item => {
+            items: section.items.map(original => {
+                // A rename is shared by everyone who needs the item
+                const newName = original.byClient?.map(b => editsByClient[b.client]?.[nameEditKey(original.key)]).find(Boolean);
+                const item = renamed(original, newName);
                 if (!item.byClient?.some(b => editsByClient[b.client]?.[item.key])) return item;
                 return {
                     ...item,

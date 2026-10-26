@@ -3,7 +3,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { CheckSquare, ChevronDown, Copy, Save, ShoppingCart, Square } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { applyGroceryEdits, GroceryList, groceryListToText } from '@/lib/grocery/list';
+import { applyGroceryEdits, GroceryList, groceryListToText, nameEditKey } from '@/lib/grocery/list';
 import QuantityEdit from './QuantityEdit';
 import AddGroceryItem from './AddGroceryItem';
 import { UNSORTED } from '@/lib/grocery/parse';
@@ -243,7 +243,7 @@ export default function GroceryListCard({
                                                 </span>
                                                 <span className="flex-1 min-w-0 space-y-0.5">
                                                     <span className="flex items-baseline justify-between gap-3">
-                                                        <span className={`text-sm font-semibold ${isChecked ? 'line-through text-stone-400' : 'text-stone-900'}`}>
+                                                        <span className={`text-sm font-semibold ${isChecked ? 'line-through text-stone-400' : item.originalName ? 'text-[#c94567]' : 'text-stone-900'}`}>
                                                             {item.name}
                                                         </span>
                                                         <QuantityEdit
@@ -252,8 +252,14 @@ export default function GroceryListCard({
                                                             edited={Boolean(item.edited)}
                                                             muted={isChecked}
                                                             onChange={amount => setEdit(item.key, amount)}
+                                                            name={item.name}
+                                                            originalName={item.originalName}
+                                                            onRename={name => setEdit(nameEditKey(item.key), name)}
                                                         />
                                                     </span>
+                                                    {item.originalName && (
+                                                        <span className="block text-[11px] text-stone-400">au lieu de « {item.originalName} »</span>
+                                                    )}
                                                     {item.details.length > 0 && (
                                                         <span className="block text-[11px] text-stone-500 italic">{item.details.join(' · ')}</span>
                                                     )}
