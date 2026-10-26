@@ -1,6 +1,7 @@
 import { BookingSession, ClientProfile, ClientSelection, WeeklyMenuData } from './types/cooking-ops';
 import { getWeekBoundsForStart } from './dateUtils';
 import { listSessions } from './db/sessions';
+import { ensureSeriesSessions } from './db/series';
 import { getStaffMember } from './db/staff';
 
 /**
@@ -153,6 +154,8 @@ export async function sendSelectionEmail(input: {
 
     try {
         const { startIso, endIso } = getWeekBoundsForStart(input.selection.weekStart);
+        // A recurring client's session may not be created yet if nobody opened that week
+        await ensureSeriesSessions(endIso, [input.client]).catch(() => undefined);
         const sessions = (await listSessions(startIso, endIso)).filter(s => s.clientId === input.client.id);
         const email = buildSelectionEmail({ ...input, sessions });
 

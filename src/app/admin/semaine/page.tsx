@@ -33,7 +33,8 @@ import {
     X,
     Mail,
     Share2,
-    RotateCcw
+    RotateCcw,
+    Repeat
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -48,6 +49,9 @@ import CustomAllergyInput from '@/components/CustomAllergyInput';
 import { chefColor, chefName, useStaff } from '@/components/admin/StaffContext';
 
 const SLOTS: ('Matin' | 'Après-midi')[] = ['Matin', 'Après-midi'];
+
+interface SeriesInfo { id: string; everyWeeks: 1 | 2 | 4; startDate: string; endDate: string | null; assignedTo: string | null }
+const REPEAT_LABEL: Record<number, string> = { 1: 'Chaque semaine', 2: 'Toutes les 2 semaines', 4: 'Toutes les 4 semaines' };
 
 export default function WeeklyOpsAdminDashboard() {
     const [loading, setLoading] = useState(true);
@@ -86,6 +90,10 @@ export default function WeeklyOpsAdminDashboard() {
     // Who cooks the booked session ('' = Elisa, her Google Calendar) and which chef a client belongs to
     const [bookingAssignee, setBookingAssignee] = useState<string>('');
     const [clientFormChefId, setClientFormChefId] = useState<string>('');
+    // Recurring booking for a chef: '' = once, otherwise every 1, 2 or 4 weeks (optional end date)
+    const [bookingRepeat, setBookingRepeat] = useState<'' | '1' | '2' | '4'>('');
+    const [bookingRepeatUntil, setBookingRepeatUntil] = useState('');
+    const [seriesList, setSeriesList] = useState<SeriesInfo[]>([]);
 
     // Team: Elisa sees every chef's sessions and can filter; a chef only ever gets their own
     const { isOwner, isChef, chefs } = useStaff();
@@ -109,6 +117,7 @@ export default function WeeklyOpsAdminDashboard() {
             setWeekMenu(data.weekMenu);
             setSlotStatuses(data.slotStatuses || []);
             setAllClients(data.clients || []);
+            setSeriesList(data.series || []);
         } catch (e) {
             console.error('Error loading admin ops overview:', e);
         } finally {
@@ -125,6 +134,7 @@ export default function WeeklyOpsAdminDashboard() {
                 // Google unreachable: the server still returns the last stored sessions
                 if (data.slotStatuses) {
                     setSlotStatuses(data.slotStatuses);
+                    setSeriesList(data.series || []);
                     setWeekMenu(data.weekMenu);
                     setAllClients(data.clients || []);
                 } else {
@@ -136,6 +146,7 @@ export default function WeeklyOpsAdminDashboard() {
             setSlotStatuses(data.slotStatuses || []);
             setWeekMenu(data.weekMenu);
             setAllClients(data.clients || []);
+            setSeriesList(data.series || []);
             if (data.chefView) return; // a chef has no Google Calendar: nothing was synced
 
             const validCount = data.validBookingsCount || 0;
@@ -284,6 +295,8 @@ export default function WeeklyOpsAdminDashboard() {
         const filterChef = chefFilter !== 'all' && chefFilter !== 'elisa' ? chefFilter : '';
         setBookingAssignee(filterChef);
         setClientFormChefId(filterChef);
+        setBookingRepeat('');
+        setBookingRepeatUntil('');
         setIsAddClientOpen(true);
     };
 
@@ -301,6 +314,10 @@ export default function WeeklyOpsAdminDashboard() {
         try {
             setIsSavingClient(true);
             const bookingOnly = !editingClient && bookingExistingClientId && slotTargetDateIso;
+            // Only a chef's session can repeat (Elisa's own repeat in her Google Calendar)
+            const repeatFields = isOwner && bookingAssignee && bookingRepeat && slotTargetDateIso
+                ? { repeatEveryWeeks: Number(bookingRepeat), repeatUntil: bookingRepeatUntil || null }
+                : {};
             const res = await fetch('/api/cooking-ops/admin', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -309,7 +326,8 @@ export default function WeeklyOpsAdminDashboard() {
                     bookingDateIso: slotTargetDateIso,
                     dayName: slotTargetDayName,
                     timeSlot: slotTargetTimeSlot,
-                    assignedTo: bookingAssignee || null
+                    assignedTo: bookingAssignee || null,
+                    ...repeatFields
                 } : {
                     id: editingClient ? editingClient.id : undefined,
                     name: clientFormName,
@@ -325,7 +343,8 @@ export default function WeeklyOpsAdminDashboard() {
                     bookingDateIso: slotTargetDateIso || undefined,
                     dayName: slotTargetDayName,
                     timeSlot: slotTargetTimeSlot,
-                    assignedTo: bookingAssignee || null
+                    assignedTo: bookingAssignee || null,
+                    ...repeatFields
                 })
             });
 
@@ -334,7 +353,9 @@ export default function WeeklyOpsAdminDashboard() {
 
             setIsAddClientOpen(false);
             await handleCalendarSync(weekOffset);
-            showToast(`Fiche / séance de ${data.client?.name || clientFormName} enregistrée !`, 'calendar');
+            showToast(data.series
+                ? `${REPEAT_LABEL[data.series.everyWeeks]} : séances de ${data.client?.name || clientFormName} planifiées pour ${chefName(chefs, data.series.assignedTo)}`
+                : `Fiche / séance de ${data.client?.name || clientFormName} enregistrée !`, 'calendar');
 
             if (data.gcalSyncResult && !data.gcalSyncResult.success) {
                 showToast(`Google Calendar: ${data.gcalSyncResult.error || 'Erreur synchronisation'}`, 'calendar');
@@ -381,6 +402,37 @@ export default function WeeklyOpsAdminDashboard() {
         } finally {
             setIsUpdatingSession(false);
         }
+    };
+
+    // Recurring series: stop from a date (earlier sessions stay) or hand the next ones to another chef
+    const updateSeries = async (payload: Record<string, unknown>, done: string) => {
+        try {
+            setIsUpdatingSession(true);
+            const res = await fetch('/api/cooking-ops/admin/series', {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            const data = await res.json().catch(() => ({}));
+            if (!res.ok) throw new Error(data.error || 'Modification impossible');
+            setDetailSessionId(null);
+            await loadWeekOverview(weekOffset);
+            showToast(done, 'calendar');
+        } catch (err) {
+            showToast(err instanceof Error ? err.message : 'Modification impossible', 'error');
+        } finally {
+            setIsUpdatingSession(false);
+        }
+    };
+
+    const stopSeriesFrom = async (seriesId: string, fromIso: string, name: string) => {
+        if (!(await confirm({
+            title: `Arrêter les séances récurrentes de ${name} ?`,
+            description: `Plus aucune séance à partir du ${fromIso.split('-').reverse().join('/')} (celle-ci comprise). Les séances passées restent dans le planning.`,
+            confirmLabel: 'Arrêter la récurrence',
+            tone: 'danger'
+        }))) return;
+        await updateSeries({ id: seriesId, stopFrom: fromIso }, `Récurrence de ${name} arrêtée`);
     };
 
     // Moves a session created in the app (Google Calendar sessions are moved in Google Calendar)
@@ -432,10 +484,14 @@ export default function WeeklyOpsAdminDashboard() {
 
     // Cancels the booking: removes the Google Calendar event, then the session here
     const handleDeleteSession = async (sessionId: string, name: string, dateIso: string, slot: string) => {
-        const fromGoogle = Boolean(slotStatuses.find(s => s.session.id === sessionId)?.session.gcalEventId);
+        const target = slotStatuses.find(s => s.session.id === sessionId)?.session;
+        const fromGoogle = Boolean(target?.gcalEventId);
+        const recurring = Boolean(target?.seriesId);
         if (!(await confirm({
-            title: `Supprimer la séance de ${name} ?`,
-            description: `${slot} du ${dateIso.split('-').reverse().join('/')} — ${fromGoogle ? 'l’événement sera aussi supprimé de votre Google Calendar. ' : ''}La fiche client et ses choix ne sont pas touchés.`,
+            title: recurring ? `Annuler la séance de ${name} cette semaine ?` : `Supprimer la séance de ${name} ?`,
+            description: recurring
+                ? `${slot} du ${dateIso.split('-').reverse().join('/')} seulement — les séances des autres semaines restent prévues. Pour tout arrêter, ouvrez la séance.`
+                : `${slot} du ${dateIso.split('-').reverse().join('/')} — ${fromGoogle ? 'l’événement sera aussi supprimé de votre Google Calendar. ' : ''}La fiche client et ses choix ne sont pas touchés.`,
             confirmLabel: 'Supprimer la séance',
             tone: 'danger'
         }))) return;
@@ -725,12 +781,21 @@ export default function WeeklyOpsAdminDashboard() {
                                                         </div>
 
                                                         {/* Who cooks it (Elisa's view, once she has chefs) */}
-                                                        {isOwner && chefs.length > 0 && (
-                                                            <span className={`inline-flex items-center gap-1.5 text-[10px] font-bold rounded-full border px-2 py-0.5 ${cook.pill}`}>
-                                                                <span className={`w-1.5 h-1.5 rounded-full ${cook.dot}`} />
-                                                                {chefName(chefs, session.assignedTo)}
-                                                            </span>
-                                                        )}
+                                                        {(isOwner && chefs.length > 0) || session.seriesId ? (
+                                                            <div className="flex flex-wrap items-center gap-1">
+                                                                {isOwner && chefs.length > 0 && (
+                                                                    <span className={`inline-flex items-center gap-1.5 text-[10px] font-bold rounded-full border px-2 py-0.5 ${cook.pill}`}>
+                                                                        <span className={`w-1.5 h-1.5 rounded-full ${cook.dot}`} />
+                                                                        {chefName(chefs, session.assignedTo)}
+                                                                    </span>
+                                                                )}
+                                                                {session.seriesId && (
+                                                                    <span className="inline-flex items-center gap-1 text-[10px] font-bold rounded-full border border-rose-200 bg-rose-50 text-[#c94567] px-2 py-0.5" title="Séance récurrente">
+                                                                        <Repeat className="w-3 h-3" /> Récurrent
+                                                                    </span>
+                                                                )}
+                                                            </div>
+                                                        ) : null}
 
                                                         {isUnmatchedClient && (
                                                             <div className="space-y-1">
@@ -957,6 +1022,11 @@ export default function WeeklyOpsAdminDashboard() {
                                                         <span className={`text-[11px] font-bold rounded-full border px-2.5 py-0.5 flex items-center gap-1.5 ${chefColor(chefs, session.assignedTo).pill}`}>
                                                             <span className={`w-1.5 h-1.5 rounded-full ${chefColor(chefs, session.assignedTo).dot}`} />
                                                             {chefName(chefs, session.assignedTo)}
+                                                        </span>
+                                                    )}
+                                                    {session.seriesId && (
+                                                        <span className="text-[11px] font-bold rounded-full border border-rose-200 bg-rose-50 text-[#c94567] px-2.5 py-0.5 flex items-center gap-1">
+                                                            <Repeat className="w-3 h-3" /> Récurrent
                                                         </span>
                                                     )}
 
@@ -1220,6 +1290,49 @@ export default function WeeklyOpsAdminDashboard() {
                                         </div>
                                     ) : null}
 
+                                    {/* Recurring series behind this session */}
+                                    {session.seriesId && (() => {
+                                        const series = seriesList.find(sr => sr.id === session.seriesId);
+                                        return (
+                                            <div className="bg-rose-50/60 border border-rose-200 rounded-2xl p-3 space-y-2.5">
+                                                <p className="font-bold text-stone-800 flex items-center gap-1.5">
+                                                    <Repeat className="w-3.5 h-3.5 text-[#E1567A]" />
+                                                    {series ? REPEAT_LABEL[series.everyWeeks] : 'Séance récurrente'} · {session.dayName.toLowerCase()} {session.timeSlot.toLowerCase()}
+                                                    {series?.endDate && <span className="font-normal text-stone-500">· jusqu&apos;au {series.endDate.split('-').reverse().join('/')}</span>}
+                                                </p>
+                                                {isOwner && (
+                                                    <div className="flex flex-wrap items-center gap-2">
+                                                        {activeChefs.length > 1 && (
+                                                            <select
+                                                                value=""
+                                                                disabled={isUpdatingSession}
+                                                                onChange={e => e.target.value && updateSeries(
+                                                                    { id: session.seriesId, assignedTo: e.target.value, from: session.dateIso },
+                                                                    `Les prochaines séances de ${client.name} passent à ${chefName(chefs, e.target.value)}`
+                                                                )}
+                                                                className="p-1.5 rounded-xl border border-stone-300 bg-white font-semibold"
+                                                            >
+                                                                <option value="">Confier les suivantes à…</option>
+                                                                {activeChefs.filter(c => c.userId !== series?.assignedTo).map(c => (
+                                                                    <option key={c.userId} value={c.userId}>{c.displayName}</option>
+                                                                ))}
+                                                            </select>
+                                                        )}
+                                                        <button
+                                                            type="button"
+                                                            disabled={isUpdatingSession}
+                                                            onClick={() => stopSeriesFrom(session.seriesId!, session.dateIso, client.name)}
+                                                            className="text-[11px] font-semibold text-red-600 hover:underline"
+                                                        >
+                                                            Arrêter à partir de cette séance
+                                                        </button>
+                                                    </div>
+                                                )}
+                                                <p className="text-[11px] text-stone-500">Pour sauter une seule semaine, supprimez juste cette séance (corbeille sur la carte).</p>
+                                            </div>
+                                        );
+                                    })()}
+
                                     {/* Choices */}
                                     {selection ? (
                                         <div className="space-y-2">
@@ -1397,6 +1510,47 @@ export default function WeeklyOpsAdminDashboard() {
                                 )}
                             </div>
                         )}
+                        {/* Elisa: a chef's client who comes back every week — booked once, planned automatically */}
+                        {isOwner && bookingAssignee && !editingClient && slotTargetDateIso && (
+                            <div className="bg-stone-50 border border-stone-200 rounded-2xl p-3 space-y-2">
+                                <label className="font-semibold flex items-center gap-1.5 text-stone-700">
+                                    <Repeat className="w-3.5 h-3.5 text-[#E1567A]" /> Répéter
+                                </label>
+                                <div className="grid grid-cols-2 gap-1.5">
+                                    {([['', 'Une seule fois'], ['1', 'Chaque semaine'], ['2', 'Toutes les 2 sem.'], ['4', 'Toutes les 4 sem.']] as const).map(([value, label]) => (
+                                        <button
+                                            key={value}
+                                            type="button"
+                                            onClick={() => setBookingRepeat(value)}
+                                            className={`py-2 px-2 rounded-xl border text-[11px] font-semibold transition-colors ${
+                                                bookingRepeat === value ? 'bg-[#E1567A] border-[#E1567A] text-white' : 'bg-white border-stone-200 text-stone-600 hover:border-stone-300'
+                                            }`}
+                                        >
+                                            {label}
+                                        </button>
+                                    ))}
+                                </div>
+                                {bookingRepeat && (
+                                    <>
+                                        <label className="flex items-center justify-between gap-2 text-stone-600">
+                                            <span>Jusqu&apos;au <span className="text-stone-400">(optionnel)</span></span>
+                                            <input
+                                                type="date"
+                                                value={bookingRepeatUntil}
+                                                min={slotTargetDateIso}
+                                                onChange={e => setBookingRepeatUntil(e.target.value)}
+                                                className="p-1.5 rounded-lg border border-stone-300 bg-white"
+                                            />
+                                        </label>
+                                        <p className="text-[11px] text-stone-500">
+                                            Chaque {slotTargetDayName.toLowerCase()} {slotTargetTimeSlot.toLowerCase()}, à partir du {slotTargetDateIso.split('-').reverse().join('/')}
+                                            {bookingRepeatUntil ? ` jusqu'au ${bookingRepeatUntil.split('-').reverse().join('/')}` : ', sans date de fin'}.
+                                            {' '}Vous pourrez annuler une semaine ou tout arrêter depuis la séance.
+                                        </p>
+                                    </>
+                                )}
+                            </div>
+                        )}
                         {/* Elisa: which chef this client belongs to */}
                         {isOwner && activeChefs.length > 0 && editingClient && (
                             <div>
@@ -1535,6 +1689,8 @@ export default function WeeklyOpsAdminDashboard() {
                                     ? 'Mettre à jour la fiche'
                                     : !slotTargetDateIso
                                         ? 'Créer la fiche client'
+                                        : bookingRepeat && bookingAssignee && isOwner
+                                            ? `Planifier ${REPEAT_LABEL[Number(bookingRepeat)].toLowerCase()} pour ${chefName(chefs, bookingAssignee)}`
                                         : bookingAssignee || isChef
                                             ? (bookingExistingClientId ? `Réserver ce créneau${isOwner ? ` pour ${chefName(chefs, bookingAssignee)}` : ''}` : `Créer le client & la séance de ${chefName(chefs, bookingAssignee)}`)
                                             : bookingExistingClientId

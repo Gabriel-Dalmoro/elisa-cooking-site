@@ -23,6 +23,8 @@ interface SessionRow {
     person_count: number;
     assigned_to: string | null;
     ignored: boolean;
+    series_id?: string | null; // migration 007
+    series_date?: string | null;
     created_at: string;
 }
 
@@ -41,6 +43,7 @@ function rowToSession(row: SessionRow): BookingSession {
         gcalEventId: row.gcal_event_id || undefined,
         notes: row.calendar_title || undefined,
         assignedTo: row.assigned_to,
+        seriesId: row.series_id || undefined,
         createdAt: row.created_at
     };
 }
@@ -154,7 +157,7 @@ export async function deleteSession(id: string): Promise<void> {
 }
 
 // Same hours as Elisa's Google Calendar events (09:00–12:00 / 14:00–17:00, Paris)
-function slotTimes(dateIso: string, timeSlot: TimeSlot) {
+export function slotTimes(dateIso: string, timeSlot: TimeSlot) {
     const offset = getParisUtcOffset(dateIso);
     const [startHour, endHour] = timeSlot === 'Matin' ? ['09:00', '12:00'] : ['14:00', '17:00'];
     return { starts_at: `${dateIso}T${startHour}:00${offset}`, ends_at: `${dateIso}T${endHour}:00${offset}` };

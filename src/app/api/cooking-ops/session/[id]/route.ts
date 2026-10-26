@@ -180,6 +180,12 @@ export async function DELETE(_req: NextRequest, { params }: Params) {
             if (session.gcalEventId) return forbidden('Cette séance vient de l’agenda d’Elisa : demandez-lui de l’annuler.');
         }
 
+        // A week of a recurring series: kept as cancelled so it isn't planned again
+        if (session.seriesId) {
+            await setSessionIgnored(id, true);
+            return NextResponse.json({ success: true });
+        }
+
         if (session.gcalEventId) {
             const gcalRes = await deleteGoogleCalendarEvent(session.gcalEventId);
             if (!gcalRes.success) {

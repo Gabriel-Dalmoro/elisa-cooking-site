@@ -4,6 +4,7 @@ import { listClients } from './db/clients';
 import { getMenu } from './db/menus';
 import { getSelectionsForWeek } from './db/selections';
 import { listSessions, replaceSessionsForRange, SessionInput } from './db/sessions';
+import { ensureSeriesSessions, listSeries, SessionSeries } from './db/series';
 import { getUpcomingCalendarBookings, matchEventToClient } from './googleCalendar';
 
 /**
@@ -53,8 +54,16 @@ export function buildSlotStatuses(
  */
 export async function loadWeekOverview(offsetWeeks: number, chefId?: string) {
     const { startIso, endIso, weekLabel } = getWeekBounds(offsetWeeks);
-    const [allClients, sessions, selections, weekMenu] = await Promise.all([
-        listClients(),
+    const allClients = await listClients();
+    // Recurring sessions are created up to the week being looked at (never blocks the planning)
+    let series: SessionSeries[] = [];
+    try {
+        await ensureSeriesSessions(endIso, allClients);
+        series = await listSeries(false);
+    } catch (error) {
+        console.warn('Recurring sessions unavailable:', error instanceof Error ? error.message : error);
+    }
+    const [sessions, selections, weekMenu] = await Promise.all([
         listSessions(startIso, endIso, chefId),
         getSelectionsForWeek(startIso),
         getMenu(startIso)
@@ -76,6 +85,8 @@ export async function loadWeekOverview(offsetWeeks: number, chefId?: string) {
         endIso,
         weekMenu,
         clients,
+        // The series behind this week's sessions (how often, until when)
+        series: series.filter(sr => sessions.some(s => s.seriesId === sr.id)),
         slotStatuses: buildSlotStatuses(sessions, clients, selections.filter(s => visibleIds.has(s.clientId)))
     };
 }

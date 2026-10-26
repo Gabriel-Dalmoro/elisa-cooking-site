@@ -36,6 +36,7 @@ export interface BookingSession {
     gcalEventId?: string;
     notes?: string; // Google Calendar event title
     assignedTo?: string | null; // Staff user id of the chef cooking this session (null = Elisa)
+    seriesId?: string; // Set when the session comes from a recurring series
     createdAt: string;
 }
 
