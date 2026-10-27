@@ -295,6 +295,7 @@ export default function CombinedGroceryPage() {
                 ) : list ? (
                     <>
                         <CombinedGroceryList
+                            foldKey={[...selectedIds].sort().join(',')}
                             list={list}
                             saved={savedTicks}
                             savedEdits={savedEdits}

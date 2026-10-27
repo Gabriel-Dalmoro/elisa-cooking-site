@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { applyGroceryEdits, GroceryList, groceryListToText, nameEditKey } from '@/lib/grocery/list';
 import QuantityEdit from './QuantityEdit';
 import AddGroceryItem from './AddGroceryItem';
+import AisleSection, { FoldAllButton, useFoldedAisles } from './AisleSection';
 import { UNSORTED } from '@/lib/grocery/parse';
 
 interface Props {
@@ -20,6 +21,7 @@ interface Props {
     extraActions?: React.ReactNode; // e.g. « Combiner avec un autre client »
     extras?: string[]; // items added by hand on the list
     onExtrasChange?: (next: string[]) => Promise<boolean>; // saved right away
+    foldKey?: string; // remembers folded aisles on this device for this list
 }
 
 const sameKeys = (a: string[], b: string[]) => a.length === b.length && a.every(k => b.includes(k));
@@ -44,7 +46,8 @@ export default function GroceryListCard({
     defaultOpen = false,
     extraActions,
     extras = [],
-    onExtrasChange
+    onExtrasChange,
+    foldKey = title
 }: Props) {
     const [open, setOpen] = useState(defaultOpen);
     const [checked, setChecked] = useState<string[]>(savedChecked);
@@ -113,6 +116,16 @@ export default function GroceryListCard({
         }
     };
 
+    const aisles = useMemo(
+        () => list.sections.map(section => ({
+            name: section.name,
+            done: section.items.filter(i => checked.includes(i.key)).length,
+            total: section.items.length
+        })),
+        [list, checked]
+    );
+    const folds = useFoldedAisles(`folds:${foldKey}`, aisles);
+
     const allItems = list.sections.flatMap(s => s.items);
     const itemCount = allItems.length;
     const tickedCount = allItems.filter(i => checked.includes(i.key)).length;
@@ -123,7 +136,7 @@ export default function GroceryListCard({
     if (itemCount === 0 && list.dishesWithoutIngredients.length === 0) return null;
 
     return (
-        <div className="bg-white rounded-3xl border border-stone-200 shadow-sm overflow-hidden">
+        <div className="bg-white rounded-3xl border border-stone-200 shadow-sm overflow-clip">
             <button
                 type="button"
                 onClick={() => setOpen(o => !o)}
@@ -202,6 +215,7 @@ export default function GroceryListCard({
                                 Tout décocher
                             </Button>
                         )}
+                        <FoldAllButton allFolded={folds.allFolded} onFold={folds.foldAll} onUnfold={folds.unfoldAll} />
                         {extraActions}
                     </div>
 
@@ -213,15 +227,16 @@ export default function GroceryListCard({
                         />
                     )}
 
-                    {shown.sections.map(section => (
-                        <div key={section.name} className="space-y-1.5">
-                            <h4
-                                className={`text-[11px] font-black uppercase tracking-wider px-1 ${
-                                    section.name === UNSORTED ? 'text-amber-700' : 'text-stone-500'
-                                }`}
-                            >
-                                {section.name === UNSORTED ? '❓ À classer (rayon inconnu)' : section.name}
-                            </h4>
+                    {shown.sections.map((section, sectionIndex) => (
+                        <AisleSection
+                            key={section.name}
+                            title={section.name === UNSORTED ? 'À classer (rayon inconnu)' : section.name}
+                            warning={section.name === UNSORTED}
+                            done={aisles[sectionIndex]?.done ?? 0}
+                            total={aisles[sectionIndex]?.total ?? section.items.length}
+                            folded={folds.isFolded(section.name)}
+                            onToggle={() => folds.toggle(section.name)}
+                        >
                             <ul className="divide-y divide-stone-100 rounded-2xl border border-stone-200">
                                 {section.items.map(item => {
                                     const isChecked = checked.includes(item.key);
@@ -232,18 +247,18 @@ export default function GroceryListCard({
                                                 tabIndex={0}
                                                 onClick={() => toggle(item.key)}
                                                 onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggle(item.key); } }}
-                                                className={`w-full flex items-start gap-3 px-3 py-2.5 text-left transition-colors cursor-pointer ${
+                                                className={`w-full flex items-start gap-3 px-3.5 py-3 text-left transition-colors cursor-pointer ${
                                                     isChecked ? 'bg-emerald-50/50' : 'hover:bg-stone-50'
                                                 }`}
                                             >
                                                 <span className="pt-0.5 shrink-0">
                                                     {isChecked
-                                                        ? <CheckSquare className="w-4 h-4 text-emerald-600" />
-                                                        : <Square className="w-4 h-4 text-stone-400" />}
+                                                        ? <CheckSquare className="w-6 h-6 text-emerald-600" />
+                                                        : <Square className="w-6 h-6 text-stone-400" />}
                                                 </span>
                                                 <span className="flex-1 min-w-0 space-y-0.5">
                                                     <span className="flex items-baseline justify-between gap-3">
-                                                        <span className={`text-sm font-semibold ${isChecked ? 'line-through text-stone-400' : item.originalName ? 'text-[#c94567]' : 'text-stone-900'}`}>
+                                                        <span className={`text-base font-bold leading-snug ${isChecked ? 'line-through text-stone-400' : item.originalName ? 'text-[#c94567]' : 'text-stone-900'}`}>
                                                             {item.name}
                                                         </span>
                                                         <QuantityEdit
@@ -295,7 +310,7 @@ export default function GroceryListCard({
                                     );
                                 })}
                             </ul>
-                        </div>
+                        </AisleSection>
                     ))}
                 </div>
             )}
