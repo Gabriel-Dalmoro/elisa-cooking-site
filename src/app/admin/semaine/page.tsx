@@ -94,6 +94,8 @@ export default function WeeklyOpsAdminDashboard() {
     const [bookingRepeat, setBookingRepeat] = useState<'' | '1' | '2' | '4'>('');
     const [bookingRepeatUntil, setBookingRepeatUntil] = useState('');
     const [seriesList, setSeriesList] = useState<SeriesInfo[]>([]);
+    // Making an already booked chef session recurring (from its details)
+    const [recurDraft, setRecurDraft] = useState<{ everyWeeks: '1' | '2' | '4'; until: string } | null>(null);
 
     // Team: Elisa sees every chef's sessions and can filter; a chef only ever gets their own
     const { isOwner, isChef, chefs } = useStaff();
@@ -420,6 +422,28 @@ export default function WeeklyOpsAdminDashboard() {
             showToast(done, 'calendar');
         } catch (err) {
             showToast(err instanceof Error ? err.message : 'Modification impossible', 'error');
+        } finally {
+            setIsUpdatingSession(false);
+        }
+    };
+
+    const makeRecurring = async (sessionId: string, name: string) => {
+        if (!recurDraft) return;
+        try {
+            setIsUpdatingSession(true);
+            const res = await fetch('/api/cooking-ops/admin/series', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ sessionId, everyWeeks: Number(recurDraft.everyWeeks), until: recurDraft.until || null })
+            });
+            const data = await res.json().catch(() => ({}));
+            if (!res.ok) throw new Error(data.error || 'Impossible de rendre la séance récurrente');
+            setRecurDraft(null);
+            setDetailSessionId(null);
+            await loadWeekOverview(weekOffset);
+            showToast(`${REPEAT_LABEL[Number(recurDraft.everyWeeks)]} : séances de ${name} planifiées`, 'calendar');
+        } catch (err) {
+            showToast(err instanceof Error ? err.message : 'Impossible de rendre la séance récurrente', 'error');
         } finally {
             setIsUpdatingSession(false);
         }
@@ -1243,7 +1267,7 @@ export default function WeeklyOpsAdminDashboard() {
             {toastElement}
 
             {/* Booking details: what the client chose + ways to send their link */}
-            <Dialog open={!!detailStatus} onOpenChange={open => { if (!open) { setDetailSessionId(null); setMoveDraft(null); } }}>
+            <Dialog open={!!detailStatus} onOpenChange={open => { if (!open) { setDetailSessionId(null); setMoveDraft(null); setRecurDraft(null); } }}>
                 <DialogContent className="sm:max-w-lg bg-white rounded-3xl p-6 max-h-[90vh] overflow-y-auto">
                     {detailStatus && (() => {
                         const { client, session, selection } = detailStatus;
@@ -1320,6 +1344,69 @@ export default function WeeklyOpsAdminDashboard() {
                                             )}
                                             {session.gcalEventId && isOwner && session.assignedTo && (
                                                 <p className="text-[11px] text-stone-500">Séance de votre Google Calendar : pour la déplacer, changez l&apos;événement dans votre agenda.</p>
+                                            )}
+                                            {/* Elisa: a chef's session that should come back every week */}
+                                            {isOwner && !session.seriesId && !detailStatus.isUnmatchedClient && (
+                                                !session.assignedTo ? (
+                                                    activeChefs.length > 0 && (
+                                                        <p className="text-[11px] text-stone-500 flex items-center gap-1.5">
+                                                            <Repeat className="w-3.5 h-3.5" /> Pour la rendre récurrente, confiez-la d&apos;abord à un chef.
+                                                        </p>
+                                                    )
+                                                ) : recurDraft ? (
+                                                    <div className="space-y-2 pt-1">
+                                                        <p className="font-bold text-stone-700 flex items-center gap-1.5">
+                                                            <Repeat className="w-3.5 h-3.5 text-[#E1567A]" /> Répéter cette séance
+                                                        </p>
+                                                        <div className="grid grid-cols-3 gap-1.5">
+                                                            {(['1', '2', '4'] as const).map(value => (
+                                                                <button
+                                                                    key={value}
+                                                                    type="button"
+                                                                    onClick={() => setRecurDraft({ ...recurDraft, everyWeeks: value })}
+                                                                    className={`py-2 px-1 rounded-xl border text-[11px] font-semibold ${
+                                                                        recurDraft.everyWeeks === value ? 'bg-[#E1567A] border-[#E1567A] text-white' : 'bg-white border-stone-200 text-stone-600'
+                                                                    }`}
+                                                                >
+                                                                    {value === '1' ? 'Chaque semaine' : `Toutes les ${value} sem.`}
+                                                                </button>
+                                                            ))}
+                                                        </div>
+                                                        <label className="flex items-center justify-between gap-2 text-stone-600">
+                                                            <span>Jusqu&apos;au <span className="text-stone-400">(optionnel)</span></span>
+                                                            <input
+                                                                type="date"
+                                                                value={recurDraft.until}
+                                                                min={session.dateIso}
+                                                                onChange={e => setRecurDraft({ ...recurDraft, until: e.target.value })}
+                                                                className="p-1.5 rounded-lg border border-stone-300 bg-white"
+                                                            />
+                                                        </label>
+                                                        <p className="text-[11px] text-stone-500">
+                                                            Chaque {session.dayName.toLowerCase()} {session.timeSlot.toLowerCase()} avec {chefName(chefs, session.assignedTo)}, à partir de cette séance
+                                                            {recurDraft.until ? ` jusqu'au ${recurDraft.until.split('-').reverse().join('/')}` : ', sans date de fin'}.
+                                                        </p>
+                                                        <div className="flex items-center gap-2">
+                                                            <Button
+                                                                size="sm"
+                                                                disabled={isUpdatingSession}
+                                                                onClick={() => makeRecurring(session.id, client.name)}
+                                                                className="rounded-full text-xs h-8 bg-[#E1567A] hover:bg-[#c94567] text-white"
+                                                            >
+                                                                Planifier {REPEAT_LABEL[Number(recurDraft.everyWeeks)].toLowerCase()}
+                                                            </Button>
+                                                            <button type="button" onClick={() => setRecurDraft(null)} className="text-stone-500 underline">Annuler</button>
+                                                        </div>
+                                                    </div>
+                                                ) : (
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => setRecurDraft({ everyWeeks: '1', until: '' })}
+                                                        className="flex items-center gap-1.5 font-semibold text-stone-700 hover:text-[#E1567A]"
+                                                    >
+                                                        <Repeat className="w-3.5 h-3.5" /> Rendre récurrente (chaque semaine, toutes les 2 ou 4 semaines)
+                                                    </button>
+                                                )
                                             )}
                                         </div>
                                     ) : null}

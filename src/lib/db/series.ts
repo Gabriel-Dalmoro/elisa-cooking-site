@@ -155,6 +155,19 @@ export async function ensureSeriesSessions(untilIso: string, clients: ClientProf
 }
 
 /**
+ * Makes an app session (already booked for a chef) the first of a series: it joins the series
+ * as its first week, and the next weeks are planned from it.
+ */
+export async function linkSessionToSeries(sessionId: string, seriesId: string, dateIso: string): Promise<void> {
+    const { error } = await getSupabaseAdmin()
+        .from('cooking_sessions')
+        .update({ series_id: seriesId, series_date: dateIso, updated_at: new Date().toISOString() })
+        .eq('id', sessionId)
+        .is('gcal_event_id', null);
+    if (error) throw new Error(`Rattachement de la séance impossible : ${error.message}`);
+}
+
+/**
  * Stops a series from a date on: no session is planned from that date, and the ones already
  * created from that date are removed. Earlier sessions are kept.
  */
