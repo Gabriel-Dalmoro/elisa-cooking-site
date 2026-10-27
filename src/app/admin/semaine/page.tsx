@@ -749,13 +749,13 @@ export default function WeeklyOpsAdminDashboard() {
                     /* ========================================================================= */
                     /* CALENDAR GRID VIEW: Monday to Friday (With Light Pink Border on Today)    */
                     /* ========================================================================= */
-                    <div className="grid grid-cols-1 md:grid-cols-5 md:grid-rows-[auto_auto_auto] gap-4 md:gap-y-3">
+                    <div className="grid grid-cols-1 md:grid-cols-5 gap-4 items-start">
                         {weekInfo.daysWithDates.map(({ dayName, dateNumber, monthName, isoDate, isToday }) => (
                             <div 
                                 key={dayName} 
-                                // Each day spans the 3 rows (header, morning, afternoon) of the week grid, so the
-                                // morning cells of every day share one height, and so do the afternoons
-                                className={`flex flex-col gap-3 md:row-span-3 md:grid md:grid-rows-subgrid transition-all rounded-3xl ${
+                                // Each day stacks on its own: every card and free slot has the same height, so the
+                                // week lines up, and a slot with two sessions only pushes that day's next slot down
+                                className={`flex flex-col gap-3 transition-all rounded-3xl ${
                                     isToday 
                                         ? 'bg-rose-50/50 p-2.5 -m-2.5 rounded-3xl border-2 border-[#E1567A]/30 shadow-xs' 
                                         : ''
@@ -793,7 +793,7 @@ export default function WeeklyOpsAdminDashboard() {
                                                 <div 
                                                     key={session.id}
                                                     onClick={e => !isUnmatchedClient && openDetailsFromCard(e, session.id)}
-                                                    className={`bg-white rounded-3xl p-4 border border-rose-200 shadow-xs hover:shadow-md transition-all relative group ring-1 ring-[#E1567A]/20 flex-1 min-h-[220px] md:min-h-[300px] flex flex-col justify-between ${isUnmatchedClient ? '' : 'cursor-pointer'}`}
+                                                    className={`bg-white rounded-3xl p-4 border border-rose-200 shadow-xs hover:shadow-md transition-all relative group ring-1 ring-[#E1567A]/20 min-h-[220px] md:min-h-[300px] flex flex-col justify-between ${isUnmatchedClient ? '' : 'cursor-pointer'}`}
                                                 >
                                                     <div className="space-y-2.5">
                                                         {/* Slot Header */}
