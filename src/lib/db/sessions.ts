@@ -23,6 +23,8 @@ interface SessionRow {
     person_count: number;
     assigned_to: string | null;
     ignored: boolean;
+    series_id?: string | null; // migration 007
+    series_date?: string | null;
     created_at: string;
 }
 
@@ -41,6 +43,7 @@ function rowToSession(row: SessionRow): BookingSession {
         gcalEventId: row.gcal_event_id || undefined,
         notes: row.calendar_title || undefined,
         assignedTo: row.assigned_to,
+        seriesId: row.series_id || undefined,
         createdAt: row.created_at
     };
 }
@@ -101,6 +104,20 @@ export async function getSession(id: string): Promise<BookingSession | null> {
     return data ? rowToSession(data as SessionRow) : null;
 }
 
+/** A client's sessions on one day and slot (normally zero or one). */
+export async function listClientSessionsInSlot(clientId: string, dateIso: string, timeSlot: TimeSlot): Promise<BookingSession[]> {
+    const { data, error } = await getSupabaseAdmin()
+        .from('cooking_sessions')
+        .select('*')
+        .eq('client_id', clientId)
+        .eq('date', dateIso)
+        .eq('time_slot', timeSlot)
+        .eq('ignored', false)
+        .order('created_at', { ascending: true });
+    if (error) throw new Error(`Lecture des séances impossible : ${error.message}`);
+    return (data as SessionRow[]).map(rowToSession);
+}
+
 export async function upsertSession(input: SessionInput): Promise<void> {
     const { error } = await getSupabaseAdmin()
         .from('cooking_sessions')
@@ -154,7 +171,7 @@ export async function deleteSession(id: string): Promise<void> {
 }
 
 // Same hours as Elisa's Google Calendar events (09:00–12:00 / 14:00–17:00, Paris)
-function slotTimes(dateIso: string, timeSlot: TimeSlot) {
+export function slotTimes(dateIso: string, timeSlot: TimeSlot) {
     const offset = getParisUtcOffset(dateIso);
     const [startHour, endHour] = timeSlot === 'Matin' ? ['09:00', '12:00'] : ['14:00', '17:00'];
     return { starts_at: `${dateIso}T${startHour}:00${offset}`, ends_at: `${dateIso}T${endHour}:00${offset}` };

@@ -7,7 +7,7 @@ import AdminPageHeader from '@/components/admin/AdminPageHeader';
 import CombinedGroceryList from '@/components/admin/CombinedGroceryList';
 import { useToast } from '@/components/admin/useToast';
 import { BookingSession, SlotSessionStatus } from '@/lib/types/cooking-ops';
-import { getParisDateTimeInfo } from '@/lib/dateUtils';
+import { getParisDateTimeInfo, getWeekStartForDate } from '@/lib/dateUtils';
 import { GrocerySheet, sheetGroceryInput } from '@/lib/grocery/fromSheet';
 import { buildMergedGroceryList, GroceryClientInput } from '@/lib/grocery/list';
 
@@ -59,7 +59,20 @@ export default function CombinedGroceryPage() {
                         a.session.dateIso.localeCompare(b.session.dateIso) ||
                         (a.session.timeSlot === b.session.timeSlot ? 0 : a.session.timeSlot === 'Matin' ? -1 : 1)
                     );
-                setSlots(upcoming);
+                // A client has ONE shopping list per week: the same client booked twice in a week
+                // (e.g. Elisa's Google booking + a copy for a chef) is listed once, or it would be bought twice
+                const seen = new Set<string>();
+                const onePerWeek = [...upcoming]
+                    .sort((a, b) => Number(fromUrl.includes(b.session.id)) - Number(fromUrl.includes(a.session.id)))
+                    .filter(s => {
+                        const key = `${s.client.id}|${getWeekStartForDate(s.session.dateIso)}`;
+                        if (seen.has(key)) return false;
+                        seen.add(key);
+                        return true;
+                    });
+                setSlots(upcoming.filter(s => onePerWeek.includes(s)));
+                // Drop a second copy that was already in the address
+                setSelectedIds(fromUrl.filter(id => onePerWeek.some(s => s.session.id === id) || !upcoming.some(s => s.session.id === id)));
             } catch (e) {
                 setLoadError(e instanceof Error ? e.message : 'Erreur de chargement');
             } finally {
@@ -282,6 +295,7 @@ export default function CombinedGroceryPage() {
                 ) : list ? (
                     <>
                         <CombinedGroceryList
+                            foldKey={[...selectedIds].sort().join(',')}
                             list={list}
                             saved={savedTicks}
                             savedEdits={savedEdits}

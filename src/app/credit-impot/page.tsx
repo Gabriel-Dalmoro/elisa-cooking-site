@@ -39,20 +39,21 @@ export default function CreditImpotPage() {
                             animate={{ opacity: 1, x: 0 }}
                             transition={{ duration: 0.6 }}
                         >
+                            <span className="inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 py-1 pl-1 pr-3 text-xs font-semibold text-emerald-800 mb-6">
+                                <span className="rounded-full bg-emerald-600 px-2 py-0.5 text-[10px] font-black uppercase tracking-widest text-white">Nouveau</span>
+                                Avance immédiate désormais active
+                            </span>
                             <h1 className="text-4xl font-extrabold tracking-tight text-stone-900 sm:text-5xl lg:text-6xl mb-6">
                                 Offrez-vous un Chef à domicile. <br />
-                                <span className="text-brand-rose">L'État finance la moitié.</span>
+                                <span className="text-brand-rose">Ne payez que la moitié.</span>
                             </h1>
                             <p className="text-xl text-stone-600 mb-8 leading-relaxed">
-                                Mes prestations de cuisine à domicile sont éligibles au crédit d'impôt de 50%.
-                                Une solution premium devenue accessible à tous.
+                                Grâce à l'Avance immédiate de crédit d'impôt, l'URSSAF règle directement 50% de chaque prestation.
+                                Vous ne payez que votre part, dès la facture — sans attendre votre déclaration.
                             </p>
                             <p className="text-sm text-stone-500 italic mb-8">
                                 <span className="text-brand-gold not-italic">✦</span>{" "}
-                                Sous réserve d'éligibilité, vous pouvez bénéficier de l'Avance immédiate du crédit d'impôt.{" "}
-                                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-widest bg-stone-800 text-brand-gold not-italic align-middle animate-pulse">
-                                    Bientôt
-                                </span>
+                                Sous réserve d'éligibilité. Service gratuit et optionnel : le crédit d'impôt classique reste possible.
                             </p>
                             <Image
                                 src="/images/service-personne-logo.png"
@@ -91,8 +92,8 @@ export default function CreditImpotPage() {
                                         </div>
                                         <div className="flex justify-between items-end border-t border-stone-100 pt-8">
                                             <div>
-                                                <span className="block text-sm font-bold uppercase tracking-wider text-brand-gold mb-1">Après Crédit d'Impôt</span>
-                                                <span className="text-lg font-medium text-stone-900">Votre coût réel final</span>
+                                                <span className="block text-sm font-bold uppercase tracking-wider text-brand-gold mb-1">Avec l'avance immédiate</span>
+                                                <span className="text-lg font-medium text-stone-900">Ce que vous payez</span>
                                             </div>
                                             <div className="text-right">
                                                 <span className="block text-5xl font-black text-brand-rose tracking-tight">100 €</span>
@@ -100,7 +101,7 @@ export default function CreditImpotPage() {
                                         </div>
                                         <div className="bg-stone-50 rounded-2xl p-4 flex items-center gap-3 text-stone-600 text-sm">
                                             <ShieldCheck className="h-5 w-5 text-brand-gold shrink-0" />
-                                            <p>Dispositif officiel encadré par la Direction Générale des Entreprises.</p>
+                                            <p>L'URSSAF règle directement les 100 € restants. Dispositif officiel, sans avance de frais.</p>
                                         </div>
                                     </div>
                                 </div>
@@ -110,67 +111,8 @@ export default function CreditImpotPage() {
                 </div>
             </section>
 
-            {/* 2. Process Section */}
-            <section className="py-24 bg-white">
-                <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-                    <div className="mb-16">
-                        <h2 className="text-3xl font-extrabold text-stone-900 mb-4">Le crédit d'impôt classique — comment ça marche ?</h2>
-                        <p className="text-stone-600 max-w-2xl">
-                            Vous payez la totalité de la prestation, et l'État vous rembourse 50% chaque année via votre déclaration de revenus.
-                        </p>
-                    </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-8 relative">
-                        {/* Steps */}
-                        {[
-                            {
-                                icon: Euro,
-                                title: "Réservation & Règlement",
-                                desc: "Vous réservez votre créneau et réglez la totalité de la prestation après mon passage.",
-                                badge: "Actif dès maintenant"
-                            },
-                            {
-                                icon: FileText,
-                                title: "Attestation Fiscale",
-                                desc: "En début d'année, je vous transmets une attestation récapitulant toutes les prestations de l'année précédente.",
-                                badge: null
-                            },
-                            {
-                                icon: TrendingDown,
-                                title: "Remboursement de 50%",
-                                desc: "Le Trésor Public vous rembourse ou déduit 50% des sommes engagées lors de votre déclaration de revenus.",
-                                badge: null
-                            }
-                        ].map((step, i) => (
-                            <motion.div
-                                key={i}
-                                initial={{ opacity: 0, y: 20 }}
-                                whileInView={{ opacity: 1, y: 0 }}
-                                viewport={{ once: true }}
-                                transition={{ delay: i * 0.2 }}
-                                className="relative bg-stone-50 rounded-3xl p-8 border border-stone-100 group hover:border-brand-gold/30 transition-colors"
-                            >
-                                {step.badge && (
-                                    <Badge className="absolute -top-3 left-8 bg-emerald-500 hover:bg-emerald-600 text-white border-none">
-                                        {step.badge}
-                                    </Badge>
-                                )}
-                                <div className="mb-6 flex h-14 w-14 items-center justify-center rounded-2xl bg-brand-gold/10 text-brand-gold group-hover:bg-brand-gold group-hover:text-white transition-all duration-300">
-                                    <step.icon className="h-7 w-7" />
-                                </div>
-                                <h3 className="text-xl font-bold text-stone-900 mb-4">{step.title}</h3>
-                                <p className="text-stone-600 text-sm leading-relaxed">{step.desc}</p>
-                                <div className="absolute top-1/2 -translate-y-1/2 -right-4 hidden lg:block text-stone-300">
-                                    {i < 2 && <ArrowRight className="h-8 w-8" />}
-                                </div>
-                            </motion.div>
-                        ))}
-                    </div>
-                </div>
-            </section>
-
-            {/* 3. Avance Immédiate — URSSAF Compliant Section */}
-            <section className="py-24 bg-stone-50 relative overflow-hidden">
+            {/* 2. Avance Immédiate — URSSAF Compliant Section */}
+            <section className="py-24 bg-white relative overflow-hidden">
                 <div className="absolute -right-40 top-20 h-96 w-96 rounded-full bg-brand-rose/5 blur-3xl" />
                 <div className="container mx-auto px-4 sm:px-6 lg:px-8">
                     <div className="max-w-4xl mx-auto">
@@ -183,15 +125,15 @@ export default function CreditImpotPage() {
                             className="text-center mb-12"
                         >
                             <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-stone-800 text-brand-gold text-xs font-bold uppercase tracking-widest mb-6 shadow-lg">
-                                <Clock className="h-4 w-4" />
-                                En cours d'activation
+                                <CheckCircle2 className="h-4 w-4" />
+                                Active dès maintenant
                             </div>
                             <h2 className="text-3xl md:text-4xl font-extrabold text-stone-900 mb-4">
-                                Bientôt : votre 50% déduit <span className="text-brand-rose">à la source</span>.
+                                Votre 50% déduit <span className="text-brand-rose">immédiatement</span>.
                             </h2>
                             <p className="text-stone-600 text-lg max-w-2xl mx-auto leading-relaxed">
-                                Je suis en cours d'habilitation pour l'Avance Immédiate de crédit d'impôt. D'ici peu,
-                                vous ne paierez plus que votre reste à charge dès la réception de la facture — sans attendre la déclaration de revenus.
+                                Je suis habilitée à l'Avance Immédiate de crédit d'impôt. Vous ne payez plus que votre reste à charge
+                                dès la réception de la facture — sans attendre la déclaration de revenus.
                             </p>
                         </motion.div>
 
@@ -219,7 +161,7 @@ export default function CreditImpotPage() {
                             <HelpCircle className="h-5 w-5 text-brand-gold shrink-0 mt-0.5" />
                             <p className="text-stone-700 text-sm leading-relaxed">
                                 <span className="font-bold text-stone-900">Service entièrement optionnel et gratuit.</span>{" "}
-                                L'Avance Immédiate ne sera pas obligatoire. Vous choisirez librement d'y adhérer ou de rester
+                                L'Avance Immédiate n'est pas obligatoire. Vous choisissez librement d'y adhérer ou de rester
                                 sur le remboursement classique annuel.
                             </p>
                         </motion.div>
@@ -244,28 +186,28 @@ export default function CreditImpotPage() {
                         </motion.div>
 
                         {/* ③④ Activation flow + 48h — obligations #3 & #4 */}
-                        <p className="text-sm font-semibold text-stone-500 uppercase tracking-wider mb-4">Comment ça fonctionnera pour vous</p>
+                        <p className="text-sm font-semibold text-stone-500 uppercase tracking-wider mb-4">Comment ça fonctionne pour vous</p>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             {[
                                 {
                                     num: "1",
                                     icon: ShieldCheck,
                                     title: "Activation de votre compte",
-                                    desc: "Elisa Batch Cooking procède à votre inscription au service. Vous recevrez un e-mail vous invitant à activer votre compte personnel sur particulier.urssaf.fr (lien valable 7 jours).",
+                                    desc: "Elisa Batch Cooking procède à votre inscription au service. Vous recevez un e-mail vous invitant à activer votre compte personnel sur particulier.urssaf.fr (lien valable 7 jours).",
                                     color: "gold"
                                 },
                                 {
                                     num: "2",
                                     icon: Clock,
                                     title: "48h pour valider ou contester",
-                                    desc: "Vous recevrez sur votre compte la demande de paiement émise par votre Organisme de services à la personne. Vous aurez 48 heures pour la valider ou la contester. Sans réponse, elle sera validée automatiquement.",
+                                    desc: "Vous recevez sur votre compte la demande de paiement émise par votre Organisme de services à la personne. Vous avez 48 heures pour la valider ou la contester. Sans réponse, elle est validée automatiquement.",
                                     color: "gold"
                                 },
                                 {
                                     num: "3",
                                     icon: TrendingDown,
-                                    title: "Vous ne paierez que 50%",
-                                    desc: "Seul votre reste à charge (50%) sera prélevé. L'URSSAF réglera les 50% restants directement à votre prestataire. Aucune avance de fonds de votre côté.",
+                                    title: "Vous ne payez que 50%",
+                                    desc: "Seul votre reste à charge (50%) est prélevé. L'URSSAF règle les 50% restants directement à votre prestataire. Aucune avance de fonds de votre côté.",
                                     color: "rose"
                                 }
                             ].map((step, i) => (
@@ -324,8 +266,67 @@ export default function CreditImpotPage() {
                 </div>
             </section>
 
-            {/* 4. Financial Simulator (Static) */}
+            {/* 3. Classic tax credit (the alternative) */}
             <section className="py-24 bg-stone-50">
+                <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+                    <div className="mb-16">
+                        <h2 className="text-3xl font-extrabold text-stone-900 mb-4">Vous préférez le crédit d'impôt classique ?</h2>
+                        <p className="text-stone-600 max-w-2xl">
+                            C'est toujours possible : vous payez la totalité de la prestation, et l'État vous rembourse 50% l'année suivante via votre déclaration de revenus.
+                        </p>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-8 relative">
+                        {/* Steps */}
+                        {[
+                            {
+                                icon: Euro,
+                                title: "Réservation & Règlement",
+                                desc: "Vous réservez votre créneau et réglez la totalité de la prestation après mon passage.",
+                                badge: null
+                            },
+                            {
+                                icon: FileText,
+                                title: "Attestation Fiscale",
+                                desc: "En début d'année, je vous transmets une attestation récapitulant toutes les prestations de l'année précédente.",
+                                badge: null
+                            },
+                            {
+                                icon: TrendingDown,
+                                title: "Remboursement de 50%",
+                                desc: "Le Trésor Public vous rembourse ou déduit 50% des sommes engagées lors de votre déclaration de revenus.",
+                                badge: null
+                            }
+                        ].map((step, i) => (
+                            <motion.div
+                                key={i}
+                                initial={{ opacity: 0, y: 20 }}
+                                whileInView={{ opacity: 1, y: 0 }}
+                                viewport={{ once: true }}
+                                transition={{ delay: i * 0.2 }}
+                                className="relative bg-white rounded-3xl p-8 border border-stone-100 group hover:border-brand-gold/30 transition-colors"
+                            >
+                                {step.badge && (
+                                    <Badge className="absolute -top-3 left-8 bg-emerald-500 hover:bg-emerald-600 text-white border-none">
+                                        {step.badge}
+                                    </Badge>
+                                )}
+                                <div className="mb-6 flex h-14 w-14 items-center justify-center rounded-2xl bg-brand-gold/10 text-brand-gold group-hover:bg-brand-gold group-hover:text-white transition-all duration-300">
+                                    <step.icon className="h-7 w-7" />
+                                </div>
+                                <h3 className="text-xl font-bold text-stone-900 mb-4">{step.title}</h3>
+                                <p className="text-stone-600 text-sm leading-relaxed">{step.desc}</p>
+                                <div className="absolute top-1/2 -translate-y-1/2 -right-4 hidden lg:block text-stone-300">
+                                    {i < 2 && <ArrowRight className="h-8 w-8" />}
+                                </div>
+                            </motion.div>
+                        ))}
+                    </div>
+                </div>
+            </section>
+
+            {/* 4. Financial Simulator (Static) */}
+            <section className="py-24 bg-white">
                 <div className="container mx-auto px-4">
                     <div className="text-center mb-16">
                         <h2 className="text-3xl font-extrabold text-stone-900 mb-3">Un exemple concret</h2>
@@ -339,19 +340,15 @@ export default function CreditImpotPage() {
                                 <span>Service cuisine — main d'œuvre</span>
                                 <span className="font-bold">270 €</span>
                             </div>
-                            <div className="flex justify-between text-stone-900 font-bold pt-4 border-t border-stone-100">
-                                <span>Total réglé au chef</span>
-                                <span>270 €</span>
-                            </div>
                             <div className="flex justify-between text-emerald-600 bg-emerald-50 p-4 rounded-xl font-medium">
                                 <span className="flex items-center gap-2">
                                     <CheckCircle2 className="h-4 w-4" />
-                                    Crédit d'impôt (50% de la main d'œuvre)
+                                    Réglé directement par l'URSSAF (50%)
                                 </span>
                                 <span>−135 €</span>
                             </div>
                             <div className="flex justify-between items-center bg-brand-rose text-white p-6 rounded-2xl">
-                                <span className="text-lg font-bold">Votre coût réel de service :</span>
+                                <span className="text-lg font-bold">Vous payez, dès la facture :</span>
                                 <span className="text-3xl font-black">135 €</span>
                             </div>
                             <p className="text-center text-stone-400 text-xs mt-6 italic">
@@ -364,7 +361,7 @@ export default function CreditImpotPage() {
 
 
             {/* 5. FAQ Section */}
-            <section className="py-24 bg-white">
+            <section className="py-24 bg-stone-50">
                 <div className="container mx-auto px-4 max-w-3xl">
                     <div className="flex items-center gap-3 mb-12">
                         <div className="p-3 bg-brand-gold/10 rounded-2xl">
@@ -388,12 +385,13 @@ export default function CreditImpotPage() {
 
                         <AccordionItem value="item-2" className="border-stone-100">
                             <AccordionTrigger className="text-left font-bold text-stone-900 hover:text-brand-rose">
-                                Quand l'Avance Immédiate sera-t-elle prête ?
+                                Comment profiter de l'Avance Immédiate ?
                             </AccordionTrigger>
                             <AccordionContent className="text-stone-600 leading-relaxed">
-                                Je suis actuellement en phase d'habilitation administrative auprès de l'URSSAF.
-                                C'est une étape obligatoire pour garantir la sécurité de vos données et paiements.
-                                Le dossier est en cours de traitement, et je vous informerai dès son activation (prévue d'ici quelques semaines).
+                                C'est actif dès maintenant. Lors de votre réservation, je vous inscris au service :
+                                vous recevez un e-mail pour activer votre espace sur particulier.urssaf.fr (une seule fois).
+                                Ensuite, à chaque prestation, vous validez la demande de paiement et seuls 50% vous sont prélevés.
+                                Vous êtes déjà client ? Dites-le-moi et je vous inscris pour vos prochaines séances.
                             </AccordionContent>
                         </AccordionItem>
 

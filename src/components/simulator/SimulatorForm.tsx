@@ -3,7 +3,7 @@
 import React, { useState, useMemo } from "react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowLeft, ArrowRight, Briefcase, Car, Check, Clock, Flame, Info, Lightbulb, ListTodo, PackageOpen, Search, Utensils } from "lucide-react";
+import { ArrowLeft, ArrowRight, Car, Check, Clock, Flame, Lightbulb, ListTodo, PackageOpen, Search, Utensils } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { PRICING_CONFIG, usePricingCalculation, getGroceryUnitCost } from "@/components/simulator/usePricingLogic";
 import { AddressAutocomplete } from "@/components/booking/AddressAutocomplete";
@@ -19,8 +19,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import TimeSavingsVisualizer, { TimeSavingsBreakdown } from "@/components/simulator/TimeSavingsVisualizer";
-import CountUp from "@/components/ui/CountUp";
+import TimeSavingsVisualizer from "@/components/simulator/TimeSavingsVisualizer";
 import { SiteConfig } from "@/lib/googleSheets";
 import type { LeadMenuFields } from "@/lib/leadMenu";
 
@@ -28,6 +27,12 @@ interface SimulatorFormProps {
     promoConfig: SiteConfig | null;
     leadMenu?: LeadMenuFields | null; // The week's menu, sent with the lead so n8n can put it in the email
 }
+
+const formatMinutes = (minutes: number) => {
+    const h = Math.floor(minutes / 60);
+    const m = minutes % 60;
+    return h > 0 ? `${h}h${m > 0 ? ` ${String(m).padStart(2, "0")}` : ""}` : `${m} min`;
+};
 
 const formatPrice = (price: number) => {
     return price % 1 === 0 ? price.toString() : price.toFixed(2);
@@ -194,6 +199,91 @@ export function SimulatorForm({ promoConfig, leadMenu }: SimulatorFormProps) {
     // Whether a given tier should show the bonus badge (subscription-aware)
     const tierShowsBonus = (tierMeals: number) => isBonusQtyPromo && !isSubscribed && tierMeals === bonusTierMeals;
 
+    const [isGiftCodeOpen, setIsGiftCodeOpen] = useState(false);
+    const frequencyLabels: Record<string, string> = { weekly: "chaque semaine", biweekly: "toutes les 2 semaines", monthly: "chaque mois" };
+    const selectionSummary = [
+        `${calculation.tier.meals} recettes`,
+        `${people} personnes`,
+        appliedGiftCard ? "bon cadeau" : isSubscribed ? `abonnement ${frequencyLabels[frequency]}` : "une fois"
+    ].join(" · ");
+
+    // Price block, same in the sidebar and on the result page: what the service costs,
+    // what the URSSAF pays directly (avance immédiate), and what the client really pays.
+    const renderPriceSummary = (large = false) => {
+        const row = cn("flex justify-between items-baseline gap-3", large ? "text-base" : "text-sm");
+        const amount = cn("font-bold tabular-nums flex items-center", large ? "text-lg" : "text-sm");
+        return (
+            <div className="space-y-3">
+                {(!isBonusQtyPromo || appliedGiftCard) && (
+                    <div className={row}>
+                        <span className="text-stone-500">Prestation</span>
+                        <span className={cn(amount, "text-stone-400", appliedGiftCard && "line-through decoration-stone-300")}>
+                            <PriceDisplay amount={calculation.originalServicePrice} />
+                        </span>
+                    </div>
+                )}
+                {appliedGiftCard && (
+                    <div className={row}>
+                        <span className="text-emerald-600">Offert par {appliedGiftCard.giver}</span>
+                        <span className={cn(amount, "text-emerald-600")}>−<PriceDisplay amount={calculation.originalServicePrice} /></span>
+                    </div>
+                )}
+                {isSubscribed && calculation.serviceDiscount > 0 && (
+                    <div className={row}>
+                        <span className="text-stone-500">Abonnement −15 %</span>
+                        <span className={cn(amount, "text-stone-500")}>−<PriceDisplay amount={calculation.serviceDiscount} /></span>
+                    </div>
+                )}
+                {!isSubscribed && calculation.flashSaleAmount > 0 && (
+                    <div className={row}>
+                        <span className="text-brand-rose">{promoConfig?.promoLabel || "Offre"} −{activeDiscount} %</span>
+                        <span className={cn(amount, "text-brand-rose")}>−<PriceDisplay amount={calculation.flashSaleAmount} /></span>
+                    </div>
+                )}
+                {hasActiveBonus && (
+                    <div className={cn(row, "text-brand-rose font-semibold")}>
+                        <span>🎁 +{bonusExtra} recette offerte</span>
+                    </div>
+                )}
+                {calculation.taxCredit > 0 && (
+                    <div className={row}>
+                        <span className="text-emerald-600">Réglé par l&apos;URSSAF <span className="text-emerald-600/70">(50 %)</span></span>
+                        <span className={cn(amount, "text-emerald-600")}>−<PriceDisplay amount={calculation.taxCredit} /></span>
+                    </div>
+                )}
+
+                <div className="flex items-end justify-between gap-3 pt-4 border-t border-dashed border-stone-200">
+                    <div>
+                        <p className={cn("font-bold text-stone-900", large ? "text-lg" : "text-base")}>Vous payez</p>
+                        <p className="text-xs text-stone-400">par séance</p>
+                    </div>
+                    <span className={cn("font-black text-brand-rose tracking-tight leading-none flex items-center", large ? "text-6xl" : "text-5xl")}>
+                        <PriceDisplay amount={calculation.finalPocketCost} large={large} />
+                    </span>
+                </div>
+
+                <div className="flex justify-between items-baseline gap-3 rounded-xl bg-stone-50 px-3 py-2.5 text-xs">
+                    <span className="text-stone-500">Courses, réglées à part sur ticket</span>
+                    {appliedGiftCard?.includeGroceries ? (
+                        <span className="font-bold text-emerald-600">Prépayées</span>
+                    ) : (
+                        <span className="font-bold text-stone-600 tabular-nums flex items-center gap-1">
+                            ~<PriceDisplay amount={calculation.groceryRange.min} /> – <PriceDisplay amount={calculation.groceryRange.max} />
+                        </span>
+                    )}
+                </div>
+
+                {calculation.taxCredit > 0 && (
+                    <p className="text-[11px] leading-relaxed text-stone-400">
+                        Avec l&apos;avance immédiate, vous ne réglez que votre part. Vous préférez la méthode classique ? Vous réglez{" "}
+                        <PriceDisplay amount={calculation.amountToPayElisa} /> et récupérez 50 % à votre déclaration.{" "}
+                        <Link href="/credit-impot" target="_blank" className="underline underline-offset-2 hover:text-brand-rose">En savoir plus</Link>
+                    </p>
+                )}
+            </div>
+        );
+    };
+
     const handleFormSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         try {
@@ -219,6 +309,9 @@ export function SimulatorForm({ promoConfig, leadMenu }: SimulatorFormProps) {
                 engagement_type: engagementLabel,
                 total_price: appliedGiftCard ? "0€ (Cadeau)" : `${formatPrice(calculation.finalPocketCost)}€`,
                 billed_total: appliedGiftCard ? "0€ (Cadeau)" : `${formatPrice(calculation.amountToPayElisa)}€`,
+                // Avance immédiate: the client pays total_price, the URSSAF pays the rest of billed_total directly
+                avance_immediate: !appliedGiftCard,
+                urssaf_share: appliedGiftCard ? "0€" : `${formatPrice(calculation.taxCredit)}€`,
                 grocery_min: `${formatPrice(calculation.groceryRange.min)}€`,
                 grocery_max: `${formatPrice(calculation.groceryRange.max)}€`,
                 custom_message: appliedGiftCard 
@@ -311,14 +404,17 @@ export function SimulatorForm({ promoConfig, leadMenu }: SimulatorFormProps) {
                         </motion.div>
                     )}
 
-                    <motion.div
-                        initial={{ opacity: 0, y: -20 }}
-
-                        animate={{ opacity: 1, y: 0 }}
-                        className="inline-block px-4 py-1.5 bg-brand-rose/10 text-brand-rose text-[10px] font-bold uppercase tracking-widest rounded-full mb-3"
-                    >
-                        {step < 3 ? `Étape ${step + 1} sur 3` : "C'est prêt !"}
-                    </motion.div>
+                    {/* Progress: three quiet segments instead of a badge */}
+                    {step < 3 && (
+                        <div className="flex flex-col items-center gap-2 mb-5" aria-label={`Étape ${step + 1} sur 3`}>
+                            <div className="flex gap-1.5">
+                                {[0, 1, 2].map(i => (
+                                    <span key={i} className={cn("h-1.5 w-10 rounded-full transition-colors duration-500", i <= step ? "bg-brand-rose" : "bg-stone-200")} />
+                                ))}
+                            </div>
+                            <span className="text-[11px] font-semibold text-stone-400">Étape {step + 1} sur 3</span>
+                        </div>
+                    )}
                     <AnimatePresence mode="wait">
                         {step < 3 && (
                             <motion.div
@@ -333,13 +429,23 @@ export function SimulatorForm({ promoConfig, leadMenu }: SimulatorFormProps) {
                                     {step === 2 && "Votre Engagement"}
                                 </h1>
                                 <p className="text-stone-500 text-base md:text-lg max-w-xl mx-auto">
-                                    {step === 0 && "Sélectionnez le nombre de plats que je préparerai pour vous chaque semaine."}
+                                    {step === 0 && "Sélectionnez le nombre de plats que je préparerai pour vous à chaque séance."}
                                     {step === 1 && "Adaptez les quantités selon la taille de votre foyer."}
                                     {step === 2 && "Optez pour la régularité et profitez d'avantages exclusifs."}
                                 </p>
                             </motion.div>
                         )}
                     </AnimatePresence>
+                    {step < 3 && (
+                        <Link
+                            href="/credit-impot"
+                            target="_blank"
+                            className="mt-4 inline-flex items-center gap-2 whitespace-nowrap rounded-full border border-emerald-200 bg-emerald-50 py-1 pl-1 pr-3 text-[11px] sm:text-xs font-semibold text-emerald-800 hover:border-emerald-300 transition-colors"
+                        >
+                            <span className="rounded-full bg-emerald-600 px-2 py-0.5 text-[10px] font-black uppercase tracking-widest text-white">Nouveau</span>
+                            Avance immédiate : vous ne payez que 50 %
+                        </Link>
+                    )}
                 </header>
 
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start relative">
@@ -597,158 +703,50 @@ export function SimulatorForm({ promoConfig, leadMenu }: SimulatorFormProps) {
                         </div>
                     )}
 
-                    {/* Right Column: Live Summary (Steps 0-2) */}
+                    {/* Right Column: Live Summary (Steps 0-2) — the price first, then the time saved */}
                     {step < 3 && (
                         <div className="lg:col-span-5 lg:sticky lg:top-8">
                             <motion.div
                                 initial={{ opacity: 0, x: 20 }}
                                 animate={{ opacity: 1, x: 0 }}
-                                className="space-y-6"
+                                className="space-y-4"
                             >
-                                {/* Dynamic Meal Calculator Info Box */}
-                                <motion.div
-                                    initial={{ opacity: 0, y: 10 }}
-                                    animate={{ opacity: 1, y: 0 }}
-                                    className="bg-brand-rose/5 border border-brand-rose/20 rounded-[2rem] p-5 shadow-inner"
-                                >
-                                    <div className="flex items-start gap-4">
-                                        <div className="mt-1 h-8 w-8 shrink-0 rounded-full bg-brand-rose/20 flex items-center justify-center">
-                                            <Info className="h-4 w-4 text-brand-rose" />
+                                <div className="bg-white rounded-[2rem] shadow-xl shadow-stone-900/5 border border-stone-100 p-6 md:p-7 space-y-6">
+                                    <div className="flex items-start justify-between gap-3">
+                                        <div>
+                                            <p className="text-[11px] font-black uppercase tracking-widest text-stone-400">Votre estimation</p>
+                                            <p className="text-sm font-semibold text-stone-700 mt-1">{selectionSummary}</p>
                                         </div>
-                                        <div className="space-y-1">
-                                            <p className="text-sm font-bold text-stone-900 leading-tight">Détail de votre sélection</p>
-                                            <p className="text-xs text-stone-600 leading-relaxed">
-                                                Vous avez sélectionné un menu de <span className="font-bold text-brand-rose">{calculation.tier.meals} recettes</span>, cuisiné sur-mesure pour régaler <span className="font-bold text-brand-rose">{people} {people > 1 ? "personnes" : "personne"}</span>.
-                                            </p>
-                                            {hasActiveBonus ? (
-                                            <p className="text-[11px] text-brand-rose font-bold italic mt-2">
-                                                🎁 Grâce à l&apos;offre <span className="underline">{bonusDisplayMeals} pour le prix de {bonusTierMeals}</span>, vous recevrez en réalité <span className="font-black">{bonusDisplayMeals} recettes</span> — {bonusExtra} offerte !
-                                            </p>
-                                        ) : (
-                                            <p className="text-[11px] text-stone-500 italic mt-2">
-                                                🍽️ Cette formule couvrira <span className="font-bold text-stone-700">{calculation.tier.meals} repas complets</span> pour tout votre foyer. L&apos;idéal pour partager de délicieux dîners sans passer par la cuisine !
-                                            </p>
+                                        {!appliedGiftCard && (
+                                            <span className="shrink-0 inline-flex items-center gap-1 rounded-full bg-emerald-50 border border-emerald-100 px-2.5 py-1 text-[10px] font-bold text-emerald-700">
+                                                <Check className="h-3 w-3" /> Avance immédiate
+                                            </span>
                                         )}
-                                        </div>
-                                    </div>
-                                </motion.div>
-
-                                {/* Time Saved Highlight - PROMINENT and EXCITING during selection */}
-                                <motion.div
-                                    initial={{ scale: 0.95, opacity: 0 }}
-                                    animate={{ scale: 1, opacity: 1 }}
-                                    className="bg-gradient-to-br from-brand-rose/20 via-white to-brand-gold/20 p-6 rounded-[2.5rem] text-stone-900 relative overflow-hidden shadow-xl border-2 border-white"
-                                >
-                                    <div className="absolute top-0 right-0 w-32 h-32 bg-brand-rose/10 blur-[60px] rounded-full -mr-16 -mt-16 animate-pulse" />
-                                    <div className="relative z-10 flex items-center justify-between">
-                                        <div className="space-y-1">
-                                            <p className="text-brand-rose font-black text-[10px] md:text-xs uppercase tracking-[0.2em] leading-tight mb-1">Votre Temps de Vie Sauvé</p>
-                                            <p className="text-[9px] text-stone-400 font-medium leading-tight mb-2 italic">Ce n'est pas mon temps de travail, c'est <span className="font-bold text-brand-rose">votre temps libre.</span></p>
-                                            <div className="flex items-baseline gap-2">
-                                                <span className="text-5xl md:text-6xl font-black text-transparent bg-clip-text bg-gradient-to-r from-brand-rose to-brand-gold tracking-tighter leading-none">
-                                                    <CountUp
-                                                        to={parseFloat(calculation.tier.savings.total.split(' ')[0])}
-                                                        duration={1.5}
-                                                        separator=","
-                                                        className="tabular-nums"
-                                                    />
-                                                </span>
-                                                <span className="text-lg font-black text-stone-300 uppercase">Heures</span>
-                                            </div>
-                                        </div>
-                                        <div className="h-16 w-16 rounded-2xl bg-white border border-brand-rose/10 flex items-center justify-center shadow-xl">
-                                            <Clock className="h-8 w-8 text-brand-rose animate-bounce" />
-                                        </div>
                                     </div>
 
-                                    {/* Real-time Category Breakdown - Sorted by Dynamic Impact */}
-                                    <div className="mt-6 pt-6 border-t border-brand-rose/10 space-y-4">
-                                        {/* 1. Cuisine & Vaisselle (Most Dynamic) */}
-                                        <div className="flex items-center justify-between p-3 rounded-xl bg-white/70 border border-white shadow-sm hover:shadow-md transition-all duration-300 group">
-                                            <div className="flex items-center gap-3">
-                                                <div className="h-8 w-8 rounded-xl bg-stone-50 border border-stone-100 flex items-center justify-center text-stone-400 group-hover:bg-brand-rose/10 group-hover:text-brand-rose transition-all duration-300">
-                                                    <Utensils className="h-4 w-4" />
-                                                </div>
-                                                <p className="font-bold text-stone-700 uppercase tracking-widest leading-none text-[10px]">
-                                                    Cuisine & Vaisselle <span className="text-stone-400 text-[9px] lowercase italic normal-case block mt-0.5">(pour {calculation.tier.meals} recettes)</span>
-                                                </p>
-                                            </div>
-                                            <div className="font-black text-sm tabular-nums leading-none">
-                                                {Math.floor(calculation.tier.savings.cookingCleaning / 60) > 0 && <><CountUp to={Math.floor(calculation.tier.savings.cookingCleaning / 60)} duration={1} />h</>}
-                                                {(calculation.tier.savings.cookingCleaning % 60) > 0 && <><CountUp to={calculation.tier.savings.cookingCleaning % 60} duration={1} />min</>}
-                                            </div>
-                                        </div>
+                                    {renderPriceSummary()}
 
-                                        {/* 2. Recherche & Menus */}
-                                        <div className="flex items-center justify-between p-3 rounded-xl bg-white/70 border border-white shadow-sm hover:shadow-md transition-all duration-300 group">
-                                            <div className="flex items-center gap-3">
-                                                <div className="h-8 w-8 rounded-xl bg-stone-50 border border-stone-100 flex items-center justify-center text-stone-400 group-hover:bg-brand-rose/10 group-hover:text-brand-rose transition-all duration-300">
-                                                    <Search className="h-4 w-4" />
+                                    {/* Gift code: out of the way until asked for */}
+                                    <div className="pt-4 border-t border-stone-100">
+                                        {appliedGiftCard ? (
+                                            <div className="flex items-center justify-between bg-emerald-50 border border-emerald-100 p-3 rounded-xl">
+                                                <div className="flex flex-col text-left">
+                                                    <span className="text-[10px] font-black uppercase tracking-widest text-emerald-600">Bon cadeau appliqué</span>
+                                                    <span className="text-xs font-bold text-stone-900">{appliedGiftCard.code} · offert par {appliedGiftCard.giver}</span>
                                                 </div>
-                                                <p className="font-bold text-stone-700 uppercase tracking-widest leading-none text-[10px]">Recherche & Menus</p>
+                                                <button type="button" onClick={handleRemoveCode} className="text-xs font-bold text-red-500 hover:underline px-2">
+                                                    Retirer
+                                                </button>
                                             </div>
-                                            <div className="font-black text-sm tabular-nums leading-none">
-                                                {Math.floor(calculation.tier.savings.planning / 60) > 0 && <><CountUp to={Math.floor(calculation.tier.savings.planning / 60)} duration={1} />h</>}
-                                                {(calculation.tier.savings.planning % 60) > 0 && <><CountUp to={calculation.tier.savings.planning % 60} duration={1} />min</>}
-                                            </div>
-                                        </div>
-
-                                        {/* 3. Liste de courses */}
-                                        <div className="flex items-center justify-between p-3 rounded-xl bg-white/70 border border-white shadow-sm hover:shadow-md transition-all duration-300 group">
-                                            <div className="flex items-center gap-3">
-                                                <div className="h-8 w-8 rounded-xl bg-stone-50 border border-stone-100 flex items-center justify-center text-stone-400 group-hover:bg-brand-rose/10 group-hover:text-brand-rose transition-all duration-300">
-                                                    <ListTodo className="h-4 w-4" />
-                                                </div>
-                                                <p className="font-bold text-stone-700 uppercase tracking-widest leading-none text-[10px]">Liste de courses</p>
-                                            </div>
-                                            <div className="font-black text-sm tabular-nums leading-none">
-                                                {Math.floor(calculation.tier.savings.shoppingList / 60) > 0 && <><CountUp to={Math.floor(calculation.tier.savings.shoppingList / 60)} duration={1} />h</>}
-                                                {(calculation.tier.savings.shoppingList % 60) > 0 && <><CountUp to={calculation.tier.savings.shoppingList % 60} duration={1} />min</>}
-                                            </div>
-                                        </div>
-
-                                        {/* 4. Courses & Trajet */}
-                                        <div className="flex items-center justify-between p-3 rounded-xl bg-white/70 border border-white shadow-sm hover:shadow-md transition-all duration-300 group">
-                                            <div className="flex items-center gap-3">
-                                                <div className="h-8 w-8 rounded-xl bg-stone-50 border border-stone-100 flex items-center justify-center text-stone-400 group-hover:bg-brand-rose/10 group-hover:text-brand-rose transition-all duration-300">
-                                                    <Car className="h-4 w-4" />
-                                                </div>
-                                                <p className="font-bold text-stone-700 uppercase tracking-widest leading-none text-[10px]">Courses & Trajet</p>
-                                            </div>
-                                            <div className="font-black text-sm tabular-nums leading-none">
-                                                {Math.floor(calculation.tier.savings.groceryRun / 60) > 0 && <><CountUp to={Math.floor(calculation.tier.savings.groceryRun / 60)} duration={1} />h</>}
-                                                {(calculation.tier.savings.groceryRun % 60) > 0 && <><CountUp to={calculation.tier.savings.groceryRun % 60} duration={1} />min</>}
-                                            </div>
-                                        </div>
-
-                                        {/* 5. Rangement */}
-                                        <div className="flex items-center justify-between p-3 rounded-xl bg-white/70 border border-white shadow-sm hover:shadow-md transition-all duration-300 group">
-                                            <div className="flex items-center gap-3">
-                                                <div className="h-8 w-8 rounded-xl bg-stone-50 border border-stone-100 flex items-center justify-center text-stone-400 group-hover:bg-brand-rose/10 group-hover:text-brand-rose transition-all duration-300">
-                                                    <PackageOpen className="h-4 w-4" />
-                                                </div>
-                                                <p className="font-bold text-stone-700 uppercase tracking-widest leading-none text-[10px]">Rangement Courses</p>
-                                            </div>
-                                            <div className="font-black text-sm tabular-nums leading-none">
-                                                {Math.floor(calculation.tier.savings.packing / 60) > 0 && <><CountUp to={Math.floor(calculation.tier.savings.packing / 60)} duration={1} />h</>}
-                                                {(calculation.tier.savings.packing % 60) > 0 && <><CountUp to={calculation.tier.savings.packing % 60} duration={1} />min</>}
-                                            </div>
-                                        </div>
-                                    </div>
-                                </motion.div>
-
-                                <div className="bg-white rounded-[2.5rem] shadow-xl border border-stone-100 overflow-hidden">
-                                    <div className="p-8 space-y-8">
-                                        {/* Code Cadeau input */}
-                                        <div className="border-b border-stone-100/50 pb-6 space-y-3">
-                                            <Label className="text-[10px] font-black uppercase tracking-widest text-stone-400">Vous avez un bon cadeau ?</Label>
-                                            {!appliedGiftCard ? (
+                                        ) : isGiftCodeOpen ? (
+                                            <div className="space-y-2">
                                                 <div className="flex gap-2">
                                                     <Input
-                                                        placeholder="Ex: ELISA-GIFT-XXXX"
+                                                        autoFocus
+                                                        placeholder="Ex : ELISA-GIFT-XXXX"
                                                         value={giftCode}
                                                         onChange={(e) => setGiftCode(e.target.value.toUpperCase())}
-                                                        className="rounded-xl border-stone-100 bg-stone-50 h-10 text-xs text-stone-900 placeholder:text-stone-300 focus:ring-brand-rose"
+                                                        className="rounded-xl border-stone-200 bg-stone-50 h-10 text-xs text-stone-900 placeholder:text-stone-300 focus:ring-brand-rose"
                                                     />
                                                     <Button
                                                         disabled={isValidatingCode || !giftCode.trim()}
@@ -758,127 +756,57 @@ export function SimulatorForm({ promoConfig, leadMenu }: SimulatorFormProps) {
                                                         {isValidatingCode ? "Vérification..." : "Appliquer"}
                                                     </Button>
                                                 </div>
-                                            ) : (
-                                                <div className="flex items-center justify-between bg-emerald-50 border border-emerald-100 p-3 rounded-xl">
-                                                    <div className="flex flex-col text-left">
-                                                        <span className="text-[9px] font-black uppercase text-emerald-600">Bon Cadeau Appliqué</span>
-                                                        <span className="text-xs font-bold text-stone-900">{appliedGiftCard.code}</span>
-                                                        <span className="text-[10px] text-stone-500">Offert par {appliedGiftCard.giver}</span>
-                                                    </div>
-                                                    <button
-                                                        type="button"
-                                                        onClick={handleRemoveCode}
-                                                        className="text-xs font-bold text-red-500 hover:underline px-2"
-                                                    >
-                                                        Retirer
-                                                    </button>
-                                                </div>
-                                            )}
-                                            {giftCodeError && (
-                                                <p className="text-[10px] font-medium text-red-500 mt-1">{giftCodeError}</p>
-                                            )}
+                                                {giftCodeError && <p className="text-[11px] font-medium text-red-500">{giftCodeError}</p>}
+                                            </div>
+                                        ) : (
+                                            <button
+                                                type="button"
+                                                onClick={() => setIsGiftCodeOpen(true)}
+                                                className="text-xs font-semibold text-stone-500 hover:text-brand-rose underline-offset-4 hover:underline"
+                                            >
+                                                Vous avez un bon cadeau ?
+                                            </button>
+                                        )}
+                                    </div>
+                                </div>
+
+                                {/* Time given back: one number, details on demand */}
+                                <div className="bg-gradient-to-br from-brand-rose/10 via-white to-brand-gold/10 rounded-[2rem] border border-white shadow-lg shadow-stone-900/5 p-6">
+                                    <div className="flex items-center gap-4">
+                                        <div className="h-12 w-12 shrink-0 rounded-2xl bg-white border border-brand-rose/10 flex items-center justify-center shadow-sm">
+                                            <Clock className="h-6 w-6 text-brand-rose" />
                                         </div>
-
-                                        <div className="space-y-6">
-                                            {/* 1. Original Price at Top — show with strikethrough if discount or card applies */}
-                                            {(!isBonusQtyPromo || appliedGiftCard) && (
-                                                <div className="flex justify-between items-center px-1">
-                                                    <span className="text-sm text-stone-400">Prix de la prestation</span>
-                                                    <span className={cn("text-base font-bold text-stone-400 flex items-center", appliedGiftCard && "line-through decoration-stone-200")}>
-                                                        <PriceDisplay amount={calculation.originalServicePrice} />
-                                                    </span>
-                                                </div>
-                                            )}
-
-                                            {/* 2. Applicable Discounts / Bonus */}
-                                            {appliedGiftCard && (
-                                                <div className="flex justify-between items-center px-1">
-                                                    <span className="text-sm text-emerald-500 font-medium italic">Bon Cadeau Appliqué ({appliedGiftCard.code})</span>
-                                                    <span className="text-base font-bold text-emerald-500 flex items-center">-<PriceDisplay amount={calculation.originalServicePrice} /></span>
-                                                </div>
-                                            )}
-                                            {isSubscribed && calculation.serviceDiscount > 0 && (
-                                                <div className="flex justify-between items-center px-1">
-                                                    <span className="text-sm text-emerald-500 font-medium italic">Avantage Abonnement (-15%)</span>
-                                                    <span className="text-base font-bold text-emerald-500 flex items-center">-<PriceDisplay amount={calculation.serviceDiscount} /></span>
-                                                </div>
-                                            )}
-                                            {!isSubscribed && calculation.flashSaleAmount > 0 && (
-                                                <div className="flex justify-between items-center px-1">
-                                                    <span className="text-sm text-brand-rose font-medium italic">Offre exceptionnelle : {activeDiscount}% de réduction !</span>
-                                                    <span className="text-base font-bold text-brand-rose flex items-center">-<PriceDisplay amount={calculation.flashSaleAmount} /></span>
-                                                </div>
-                                            )}
-                                            {hasActiveBonus && (
-                                                <div className="flex items-center gap-2 px-3 py-2 bg-brand-rose/5 rounded-xl border border-brand-rose/10">
-                                                    <span className="text-base">🎁</span>
-                                                    <span className="text-sm text-brand-rose font-bold">+{bonusExtra} recette offerte !</span>
-                                                </div>
-                                            )}
-
-                                            {/* 3. À payer à Elisa */}
-                                            <div className="flex justify-between items-center px-1 pt-4 border-t border-stone-50">
-                                                <div className="flex flex-col">
-                                                    <span className="text-sm font-bold text-stone-900 leading-none">À payer à Elisa</span>
-                                                    <span className="text-9px text-stone-400 mt-1 uppercase tracking-widest font-bold">Lors de la prestation</span>
-                                                </div>
-                                                <span className="text-2xl font-black text-stone-900 flex items-center"><PriceDisplay amount={calculation.amountToPayElisa} /></span>
-                                            </div>
-
-                                            {/* 4. Tax Credit Deduction */}
-                                            <div className="flex justify-between items-center px-1">
-                                                <span className="text-sm text-emerald-500 font-medium italic">Économie fiscale (-50%)</span>
-                                                <span className="text-base font-bold text-emerald-500 flex items-center">-<PriceDisplay amount={calculation.taxCredit} /></span>
-                                            </div>
-
-                                            {/* 5. BIG PINK TOTAL - Final Real Cost */}
-                                            <div className="pt-6 border-t-2 border-dashed border-stone-100 text-center space-y-2">
-                                                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-stone-400">Votre coût réel de revient</p>
-                                                <div className="flex items-center justify-center gap-2">
-                                                    <span className="text-7xl font-black text-brand-rose tracking-tighter leading-none flex items-center"><PriceDisplay amount={calculation.finalPocketCost} large={true} /></span>
-                                                </div>
-                                                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-stone-400 italic">/ Visite de Chef</p>
-                                            </div>
-
-                                            {/* 6. Budget Ingredients - Separated below */}
-                                            <div className="pt-6 border-t border-stone-50">
-                                                <div className="flex justify-between items-center bg-stone-50/80 p-4 rounded-xl">
-                                                    <span className="text-xs font-bold text-stone-900 uppercase tracking-widest">Budget Ingrédients</span>
-                                                    {appliedGiftCard?.includeGroceries ? (
-                                                        <span className="text-xs font-bold text-emerald-500">Ingrédients prépayés par le donateur</span>
-                                                    ) : (
-                                                        <span className="text-sm text-stone-400 font-bold italic flex items-center gap-1">~<PriceDisplay amount={calculation.groceryRange.min} /> - <PriceDisplay amount={calculation.groceryRange.max} /></span>
-                                                    )}
-                                                </div>
-                                            </div>
-                                        </div>
-
-                                        <div className="p-5 rounded-2xl bg-brand-rose/5 border border-brand-rose/10">
-                                            <p className="text-[10px] leading-relaxed text-brand-rose/80 italic text-center font-medium">
-                                                "Le crédit d'impôt de 50% vous sera restitué par l'administration fiscale lors de votre déclaration annuelle (en attendant l'activation de l'avance immédiate). Le montant 'À payer à Elisa' correspond à votre règlement lors de la prestation."
+                                        <div>
+                                            <p className="text-[11px] font-black uppercase tracking-widest text-brand-rose">Temps libéré</p>
+                                            <p className="text-stone-900">
+                                                <span className="text-3xl font-black tracking-tight">{calculation.tier.savings.total}</span>
+                                                <span className="text-sm text-stone-500 font-medium"> par séance</span>
                                             </p>
                                         </div>
                                     </div>
-
-                                    {/* Gift Card Promo Callout */}
-                                    <div className="bg-gradient-to-br from-brand-rose/10 to-brand-gold/10 p-5 rounded-[2rem] border border-brand-rose/10 flex items-center justify-between gap-4 shadow-sm hover:shadow-md transition-all duration-300">
-                                        <div className="flex items-center gap-3">
-                                            <span className="text-2xl animate-pulse">🎁</span>
-                                            <div className="text-left">
-                                                <h4 className="text-xs font-bold text-stone-900 leading-tight">Envie de faire plaisir ?</h4>
-                                                <p className="text-[10px] text-stone-600 mt-1 leading-normal">
-                                                    Offrez une session de batch cooking sous forme de bon cadeau personnalisé en 2 clics.
-                                                </p>
-                                            </div>
-                                        </div>
-                                        <Link
-                                            href="/carte-cadeau"
-                                            className="shrink-0 bg-white hover:bg-brand-rose hover:text-white border border-stone-200 hover:border-brand-rose text-stone-850 px-3 py-1.5 rounded-xl text-[10px] font-bold shadow-sm transition-all flex items-center gap-1"
-                                        >
-                                            Offrir
-                                            <ArrowRight className="h-3 w-3" />
-                                        </Link>
-                                    </div>
+                                    <details className="group mt-4">
+                                        <summary className="cursor-pointer list-none text-xs font-semibold text-stone-500 hover:text-stone-800 flex items-center gap-1">
+                                            <ArrowRight className="h-3 w-3 transition-transform group-open:rotate-90" />
+                                            Voir le détail
+                                        </summary>
+                                        <ul className="mt-3 space-y-2 text-sm">
+                                            {[
+                                                { icon: Utensils, label: `Cuisine & vaisselle (${calculation.tier.meals} recettes)`, minutes: calculation.tier.savings.cookingCleaning },
+                                                { icon: Car, label: "Courses & trajet", minutes: calculation.tier.savings.groceryRun },
+                                                { icon: Search, label: "Recherche & menus", minutes: calculation.tier.savings.planning },
+                                                { icon: ListTodo, label: "Liste de courses", minutes: calculation.tier.savings.shoppingList },
+                                                { icon: PackageOpen, label: "Rangement des courses", minutes: calculation.tier.savings.packing },
+                                            ].map(({ icon: Icon, label, minutes }) => (
+                                                <li key={label} className="flex items-center justify-between gap-3 text-stone-600">
+                                                    <span className="flex items-center gap-2">
+                                                        <Icon className="h-4 w-4 text-stone-400" />
+                                                        {label}
+                                                    </span>
+                                                    <span className="font-bold text-stone-900 tabular-nums">{formatMinutes(minutes)}</span>
+                                                </li>
+                                            ))}
+                                        </ul>
+                                    </details>
                                 </div>
                             </motion.div>
                         </div>
@@ -900,37 +828,11 @@ export function SimulatorForm({ promoConfig, leadMenu }: SimulatorFormProps) {
                                     <div className="space-y-2">
                                         <h2 className="text-3xl md:text-5xl font-black text-stone-900 tracking-tight leading-none">C'est le moment de savourer.</h2>
                                         <p className="text-stone-500 text-sm md:text-base max-w-lg mx-auto">Votre Chef est prêt, votre cuisine n'attend plus que sa magie.</p>
+                                        <p className="text-sm font-semibold text-stone-700">
+                                            {selectionSummary}
+                                            {hasActiveBonus && <span className="text-brand-rose"> · 🎁 {bonusExtra} recette offerte</span>}
+                                        </p>
                                     </div>
-                                </div>
-
-                                {/* Dynamic Meal Calculator Info Box - Step 3 */}
-                                <div className="max-w-md mx-auto w-full mb-6">
-                                    <motion.div
-                                        initial={{ opacity: 0, y: 10 }}
-                                        animate={{ opacity: 1, y: 0 }}
-                                        className="bg-brand-rose/5 border border-brand-rose/20 rounded-[2rem] p-5 shadow-inner"
-                                    >
-                                        <div className="flex items-start gap-4">
-                                            <div className="mt-1 h-8 w-8 shrink-0 rounded-full bg-brand-rose/20 flex items-center justify-center">
-                                                <Info className="h-4 w-4 text-brand-rose" />
-                                            </div>
-                                            <div className="space-y-1 text-left">
-                                                <p className="text-sm font-bold text-stone-900 leading-tight">Détail de votre sélection</p>
-                                                <p className="text-xs text-stone-600 leading-relaxed">
-                                                    Vous avez sélectionné un menu de <span className="font-bold text-brand-rose">{calculation.tier.meals} recettes</span>, cuisiné sur-mesure pour régaler <span className="font-bold text-brand-rose">{people} {people > 1 ? "personnes" : "personne"}</span>.
-                                                </p>
-                                                {hasActiveBonus ? (
-                                                <p className="text-[11px] text-brand-rose font-bold italic mt-2">
-                                                    🎁 Grâce à l&apos;offre <span className="underline">{bonusDisplayMeals} pour le prix de {bonusTierMeals}</span>, vous recevrez en réalité <span className="font-black">{bonusDisplayMeals} recettes</span> — {bonusExtra} offerte !
-                                                </p>
-                                            ) : (
-                                                <p className="text-[11px] text-stone-500 italic mt-2">
-                                                    🍽️ Cette formule couvrira <span className="font-bold text-stone-700">{calculation.tier.meals} repas complets</span> pour tout votre foyer. L&apos;idéal pour partager de délicieux dîners sans passer par la cuisine !
-                                                </p>
-                                            )}
-                                            </div>
-                                        </div>
-                                    </motion.div>
                                 </div>
 
                                 {/* Time Savings Visualizer - FULL WIDTH AT TOP */}
@@ -949,88 +851,19 @@ export function SimulatorForm({ promoConfig, leadMenu }: SimulatorFormProps) {
 
                                 {/* Cost Summary - BELOW TIME */}
                                 <div className="max-w-md mx-auto w-full">
-                                    <div className="bg-white rounded-[3rem] shadow-xl border border-stone-100 overflow-hidden">
-                                        <div className="p-10 md:p-12 space-y-10">
-                                            <div className="space-y-8">
-                                                {/* 1. Original Price at Top — show with strikethrough if discount or card applies */}
-                                                {(!isBonusQtyPromo || appliedGiftCard) && (
-                                                    <div className="flex justify-between items-center px-2">
-                                                        <span className="text-stone-400 text-lg font-medium">Prix de la prestation</span>
-                                                        <span className={cn("text-2xl font-bold text-stone-300 flex items-center", appliedGiftCard && "line-through decoration-stone-200")}>
-                                                            <PriceDisplay amount={calculation.originalServicePrice} />
-                                                        </span>
-                                                    </div>
-                                                )}
-
-                                                {/* 2. Applicable Discounts / Bonus */}
-                                                {appliedGiftCard && (
-                                                    <div className="flex justify-between items-center px-2">
-                                                        <span className="text-emerald-500 font-bold text-xl italic">Bon Cadeau Appliqué ({appliedGiftCard.code})</span>
-                                                        <span className="text-2xl font-black text-emerald-500 flex items-center">-<PriceDisplay amount={calculation.originalServicePrice} /></span>
-                                                    </div>
-                                                )}
-                                                {isSubscribed && calculation.serviceDiscount > 0 && (
-                                                    <div className="flex justify-between items-center px-2">
-                                                        <span className="text-emerald-500 font-bold text-xl italic">Avantage Abonnement (-15%)</span>
-                                                        <span className="text-2xl font-black text-emerald-500 flex items-center">-<PriceDisplay amount={calculation.serviceDiscount} /></span>
-                                                    </div>
-                                                )}
-                                                {!isSubscribed && calculation.flashSaleAmount > 0 && (
-                                                    <div className="flex justify-between items-center px-2">
-                                                        <span className="text-brand-rose font-bold text-xl italic leading-tight">Offre exceptionnelle :<br />{activeDiscount}% de réduction !</span>
-                                                        <span className="text-base font-bold text-brand-rose flex items-center">-<PriceDisplay amount={calculation.flashSaleAmount} /></span>
-                                                    </div>
-                                                )}
-                                                {hasActiveBonus && (
-                                                    <div className="flex items-center gap-3 px-4 py-3 bg-brand-rose/5 rounded-2xl border border-brand-rose/10">
-                                                        <span className="text-2xl">🎁</span>
-                                                        <span className="text-brand-rose font-bold text-lg">+{bonusExtra} recette offerte !</span>
-                                                    </div>
-                                                )}
-
-                                                {/* 3. À payer à Elisa */}
-                                                <div className="flex justify-between items-center px-2 pt-8 border-t border-stone-100">
-                                                    <div className="flex flex-col">
-                                                        <span className="text-xl font-black text-stone-900 leading-none">À payer à Elisa</span>
-                                                        <span className="text-xs text-stone-400 mt-2 uppercase tracking-widest font-bold">Lors de la prestation</span>
-                                                    </div>
-                                                    <span className="text-4xl font-black text-stone-900 flex items-center"><PriceDisplay amount={calculation.amountToPayElisa} /></span>
-                                                </div>
-
-                                                {/* 4. Tax Credit Deduction */}
-                                                <div className="flex justify-between items-center px-2">
-                                                    <span className="text-emerald-500 font-bold text-xl italic">Économie fiscale (-50%)</span>
-                                                    <span className="text-2xl font-black text-emerald-500 flex items-center">-<PriceDisplay amount={calculation.taxCredit} /></span>
-                                                </div>
-
-                                                {/* 5. BIG PINK TOTAL - Final Real Cost */}
-                                                <div className="pt-10 border-t-2 border-dashed border-stone-100 text-center space-y-4">
-                                                    <p className="text-sm font-black uppercase tracking-[0.4em] text-stone-400">Votre coût réel de revient</p>
-                                                    <div className="flex items-center justify-center gap-3">
-                                                        <span className="text-8xl md:text-9xl font-black text-brand-rose tracking-tighter leading-none flex items-center"><PriceDisplay amount={calculation.finalPocketCost} large={true} /></span>
-                                                    </div>
-                                                    <p className="text-base font-black uppercase tracking-[0.3em] text-stone-400 italic">/ Visite de Chef</p>
-                                                </div>
-
-                                                {/* 6. Budget Ingredients - Separated below */}
-                                                <div className="pt-10 border-t border-stone-100">
-                                                    <div className="flex justify-between items-center bg-stone-50 p-6 rounded-[2rem] border border-stone-100">
-                                                        <span className="text-xl font-black text-stone-900 uppercase tracking-widest">Budget Ingrédients</span>
-                                                        {appliedGiftCard?.includeGroceries ? (
-                                                            <span className="text-lg font-bold text-emerald-500">Ingrédients prépayés par le donateur</span>
-                                                        ) : (
-                                                            <span className="text-xl text-stone-400 font-bold italic flex items-center gap-1">~<PriceDisplay amount={calculation.groceryRange.min} /> - <PriceDisplay amount={calculation.groceryRange.max} /></span>
-                                                        )}
-                                                    </div>
-                                                </div>
+                                    <div className="bg-white rounded-[2.5rem] shadow-xl border border-stone-100 p-8 md:p-10 space-y-6">
+                                        <div className="flex items-start justify-between gap-3">
+                                            <div>
+                                                <p className="text-[11px] font-black uppercase tracking-widest text-stone-400">Votre estimation</p>
+                                                <p className="text-base font-semibold text-stone-700 mt-1">{selectionSummary}</p>
                                             </div>
-
-                                            <div className="p-8 rounded-[2rem] bg-brand-rose/5 border border-brand-rose/10 shadow-sm shadow-brand-rose/5">
-                                                <p className="text-xs leading-relaxed text-brand-rose/70 italic text-center font-medium max-w-[280px] mx-auto">
-                                                    "Le crédit d'impôt de 50% vous sera restitué par l'administration fiscale lors de votre déclaration annuelle (en attendant l'activation de l'avance immédiate). Le montant 'À payer à Elisa' correspond à votre règlement lors de la prestation."
-                                                </p>
-                                            </div>
+                                            {!appliedGiftCard && (
+                                                <span className="shrink-0 inline-flex items-center gap-1 rounded-full bg-emerald-50 border border-emerald-100 px-2.5 py-1 text-[10px] font-bold text-emerald-700">
+                                                    <Check className="h-3 w-3" /> Avance immédiate
+                                                </span>
+                                            )}
                                         </div>
+                                        {renderPriceSummary(true)}
                                     </div>
                                 </div>
 
@@ -1087,7 +920,7 @@ export function SimulatorForm({ promoConfig, leadMenu }: SimulatorFormProps) {
                     >
                         <div className="container max-w-lg mx-auto flex items-center justify-between gap-4">
                             <div className="flex flex-col">
-                                <span className="text-[9px] font-black uppercase tracking-widest text-stone-400">Votre Coût Réel</span>
+                                <span className="text-[9px] font-black uppercase tracking-widest text-stone-400">Vous payez</span>
                                 <div className="flex items-baseline gap-1">
                                     {isPromoActive && (
                                         <span className="text-sm font-bold text-stone-200 line-through decoration-brand-rose/40 mr-1 flex items-center">
@@ -1095,7 +928,7 @@ export function SimulatorForm({ promoConfig, leadMenu }: SimulatorFormProps) {
                                         </span>
                                     )}
                                     <span className="text-3xl font-black text-brand-rose leading-none flex items-center"><PriceDisplay amount={calculation.finalPocketCost} /></span>
-                                    <span className="text-[10px] font-bold text-stone-400 uppercase tracking-widest">/ sem.</span>
+                                    <span className="text-[10px] font-bold text-stone-400 uppercase tracking-widest">/ séance</span>
                                 </div>
                             </div>
 

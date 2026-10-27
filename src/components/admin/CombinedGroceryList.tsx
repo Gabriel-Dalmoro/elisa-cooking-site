@@ -2,9 +2,10 @@
 
 import React, { useEffect, useMemo, useState } from 'react';
 import { Check, Copy, Eye, EyeOff, Save } from 'lucide-react';
-import { applyCombinedEdits, combinedListToText, GroceryItem, GroceryList } from '@/lib/grocery/list';
+import { applyCombinedEdits, combinedListToText, GroceryItem, GroceryList, nameEditKey } from '@/lib/grocery/list';
 import QuantityEdit from './QuantityEdit';
 import AddGroceryItem from './AddGroceryItem';
+import AisleSection, { FoldAllButton, useFoldedAisles } from './AisleSection';
 import { UNSORTED } from '@/lib/grocery/parse';
 
 // One colour per client, same order as the columns (left side of the trolley, right side…)
@@ -27,6 +28,7 @@ interface Props {
     onExtrasChange: (client: string, next: string[]) => Promise<boolean>; // saved right away
     onSave: (next: Ticks, edits: Edits) => Promise<boolean>;
     onCopied: (ok: boolean) => void;
+    foldKey?: string; // remembers folded aisles on this device for this list
 }
 
 const sameKeys = (a: string[], b: string[]) => a.length === b.length && a.every(k => b.includes(k));
@@ -40,7 +42,7 @@ const firstName = (label: string) => label.split(/\s+/)[0];
  * each client always in the same column and colour, so each trolley side / invoice stays separate.
  * A tick here is the same tick as on that client's own list (saved with « Enregistrer »).
  */
-export default function CombinedGroceryList({ list, saved, savedEdits, extras, onExtrasChange, onSave, onCopied }: Props) {
+export default function CombinedGroceryList({ list, saved, savedEdits, extras, onExtrasChange, onSave, onCopied, foldKey = 'courses-groupees' }: Props) {
     const clients = useMemo(() => list.clients || [], [list]);
     const [ticks, setTicks] = useState<Ticks>(saved);
     const [lastSaved, setLastSaved] = useState<Ticks>(saved);
@@ -71,6 +73,11 @@ export default function CombinedGroceryList({ list, saved, savedEdits, extras, o
             else delete own[key];
             return { ...prev, [client]: own };
         });
+    };
+
+    // A new name applies to everyone who needs the item (stored in each client's own list)
+    const renameItem = (item: GroceryItem, name: string | null) => {
+        for (const share of item.byClient || []) setEdit(share.client, nameEditKey(item.key), name);
     };
 
     const isDone = (client: string, key: string) => (ticks[client] || []).includes(key);
@@ -120,6 +127,14 @@ export default function CombinedGroceryList({ list, saved, savedEdits, extras, o
     const needsVisible = (item: GroceryItem) => visibleClients.some(c => item.byClient?.some(b => b.client === c.label));
     const allVisibleDone = (item: GroceryItem) =>
         visibleClients.every(c => !item.byClient?.some(b => b.client === c.label) || isDone(c.label, item.key));
+    // Each aisle: what the visible clients still need there
+    const aisles = useMemo(() => shown.sections.map(section => {
+        const needed = section.items.filter(needsVisible);
+        return { name: section.name, done: needed.filter(allVisibleDone).length, total: needed.length };
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }), [shown, ticks, only]);
+    const folds = useFoldedAisles(`folds:${foldKey}`, aisles);
+
     // Two clients side by side on a phone; three or more stacked (columns would be too narrow)
     const columns = visibleClients.length === 2 ? 'grid-cols-2' : 'grid-cols-1';
 
@@ -170,6 +185,7 @@ export default function CombinedGroceryList({ list, saved, savedEdits, extras, o
                         {hideDone ? <Eye className="w-3.5 h-3.5" /> : <EyeOff className="w-3.5 h-3.5" />}
                         {hideDone ? 'Voir les cochés' : 'Cacher les cochés'}
                     </button>
+                    <FoldAllButton allFolded={folds.allFolded} onFold={folds.foldAll} onUnfold={folds.unfoldAll} />
                 </div>
 
                 <AddGroceryItem
@@ -186,22 +202,34 @@ export default function CombinedGroceryList({ list, saved, savedEdits, extras, o
             </div>
 
             {/* The list, by aisle */}
-            {shown.sections.map(section => {
+            {shown.sections.map((section, sectionIndex) => {
+                const aisle = aisles[sectionIndex];
+                if (!aisle || aisle.total === 0) return null;
                 const items = section.items.filter(item => needsVisible(item) && !(hideDone && allVisibleDone(item)));
-                if (items.length === 0) return null;
                 return (
-                    <section key={section.name} className="space-y-2">
-                        <h3 className={`text-xs font-black uppercase tracking-wider px-1 ${section.name === UNSORTED ? 'text-amber-700' : 'text-stone-500'}`}>
-                            {section.name === UNSORTED ? '❓ À classer (rayon inconnu)' : section.name}
-                        </h3>
+                    <AisleSection
+                        key={section.name}
+                        title={section.name === UNSORTED ? 'À classer (rayon inconnu)' : section.name}
+                        warning={section.name === UNSORTED}
+                        done={aisle.done}
+                        total={aisle.total}
+                        folded={folds.isFolded(section.name)}
+                        onToggle={() => folds.toggle(section.name)}
+                    >
+                        {items.length === 0 && (
+                            <p className="text-sm text-stone-500 px-2">Tout est pris dans ce rayon (cochés cachés).</p>
+                        )}
                         <ul className="space-y-2">
                             {items.map(item => {
                                 const done = allVisibleDone(item);
                                 return (
                                     <li key={item.key} className={`rounded-2xl border p-3 transition-colors ${done ? 'bg-emerald-50/60 border-emerald-200' : 'bg-white border-stone-200'}`}>
                                         <div className="flex items-baseline justify-between gap-2 px-0.5">
-                                            <span className={`text-base font-bold leading-tight ${done ? 'line-through text-stone-400' : 'text-stone-900'}`}>
+                                            <span className={`text-base font-bold leading-tight ${done ? 'line-through text-stone-400' : item.originalName ? 'text-[#c94567]' : 'text-stone-900'}`}>
                                                 {item.name}
+                                                {item.originalName && (
+                                                    <span className="block text-[11px] font-normal text-stone-400">au lieu de « {item.originalName} »</span>
+                                                )}
                                             </span>
                                             {visibleClients.length > 1 && (item.byClient?.length || 0) > 1 && item.total && (
                                                 <span className="text-[11px] text-stone-400 tabular-nums shrink-0">total {item.total}</span>
@@ -265,6 +293,9 @@ export default function CombinedGroceryList({ list, saved, savedEdits, extras, o
                                                                 muted={ticked}
                                                                 emptyLabel={item.handAdded ? 'à acheter' : undefined}
                                                                 onChange={amount => setEdit(c.label, item.key, amount)}
+                                                                name={item.name}
+                                                                originalName={item.originalName}
+                                                                onRename={name => renameItem(item, name)}
                                                             />
                                                         </span>
                                                         {lines.length > 0 && (
@@ -285,7 +316,7 @@ export default function CombinedGroceryList({ list, saved, savedEdits, extras, o
                                 );
                             })}
                         </ul>
-                    </section>
+                    </AisleSection>
                 );
             })}
 

@@ -4,6 +4,7 @@ import { ValueProps } from "@/components/home/ValueProps";
 import { PhotoGallery } from "@/components/home/PhotoGallery";
 import { GiftCardSection } from "@/components/home/GiftCardSection";
 import { FinalCTA } from "@/components/home/FinalCTA";
+import { AvanceImmediateBand } from "@/components/home/AvanceImmediateBand";
 import { Suspense } from "react";
 import { getTestimonials } from "@/lib/googleSheets";
 import { TestimonialsSection } from "@/components/home/TestimonialsSection";
@@ -19,6 +20,7 @@ export default async function Home() {
       <Suspense fallback={<div className="h-[600px] bg-stone-50" />}>
         <HeroSection />
       </Suspense>
+      <AvanceImmediateBand />
       <ProcessSteps />
       <TestimonialsSection testimonials={testimonials} />
       <ValueProps />

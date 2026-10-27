@@ -120,7 +120,7 @@ export default function AbonnementPage() {
                                             </div>
                                             <div>
                                                 <h4 className="font-black text-stone-900 text-xs uppercase tracking-wider leading-tight">Avantage −50% sécurisé</h4>
-                                                <p className="text-[11px] text-stone-400 font-medium mt-0.5">Crédit d'impôt + −15% garantis.</p>
+                                                <p className="text-[11px] text-stone-400 font-medium mt-0.5">Avance immédiate + −15 % garantis.</p>
                                             </div>
                                         </div>
                                     </div>

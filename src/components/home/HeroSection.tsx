@@ -14,6 +14,14 @@ export async function HeroSection() {
                 <div className="grid grid-cols-1 items-center gap-12 lg:grid-cols-2 lg:gap-16">
                     {/* Left Content (Text) */}
                     <div className="py-12 lg:py-24 flex flex-col items-center lg:items-start text-center lg:text-left">
+                        <Link
+                            href="/credit-impot"
+                            className="mb-6 inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 py-1 pl-1 pr-3 text-xs font-semibold text-emerald-800 transition-colors hover:border-emerald-300"
+                        >
+                            <span className="rounded-full bg-emerald-600 px-2 py-0.5 text-[10px] font-black uppercase tracking-widest text-white">Nouveau</span>
+                            Avance immédiate active : ne payez que 50 %
+                            <ArrowRight className="h-3.5 w-3.5" />
+                        </Link>
                         <h1 className="text-4xl font-extrabold tracking-tight text-stone-900 sm:text-5xl lg:text-6xl flex flex-col gap-2">
                             <span className="sr-only">Elisa Batch Cooking : Votre Cheffe à Domicile à Annecy</span>
                             <span>Vous gagnez du <span className="text-brand-rose">temps</span>,</span>
@@ -23,7 +31,7 @@ export async function HeroSection() {
                         <div className="mt-8 flex items-center gap-3">
                             <CheckCircle2 className="h-6 w-6 flex-shrink-0 text-brand-gold" />
                             <p className="text-lg leading-relaxed text-stone-600 sm:text-xl">
-                                Savourez une cuisine d'exception chez vous, avec <Link href="/credit-impot" className="font-semibold text-stone-900 underline-offset-2 hover:text-brand-rose transition-colors">50% d'avantage fiscal</Link>.
+                                Savourez une cuisine d'exception chez vous, et <Link href="/credit-impot" className="font-semibold text-stone-900 underline-offset-2 hover:text-brand-rose transition-colors">ne payez que la moitié, dès la facture</Link>.
                             </p>
                         </div>
 

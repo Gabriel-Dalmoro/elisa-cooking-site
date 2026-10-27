@@ -22,6 +22,7 @@ import { useToast } from '@/components/admin/useToast';
 import RecipeBoxes from '@/components/admin/RecipeBoxes';
 import ScaledIngredients from '@/components/admin/ScaledIngredients';
 import GroceryListCard from '@/components/admin/GroceryListCard';
+import DishTitleEdit from '@/components/admin/DishTitleEdit';
 import { BookingSession, ClientProfile, ClientSelection, WeeklyDish } from '@/lib/types/cooking-ops';
 import { sheetRecipes, sheetGroceryInput, CUSTOM_DISH_RECIPE_ID } from '@/lib/grocery/fromSheet';
 import { buildGroceryList } from '@/lib/grocery/list';
@@ -200,6 +201,25 @@ export default function ChefCookingModePage({ params }: { params: Promise<{ sess
             showToast(e instanceof Error ? e.message : 'Enregistrement impossible', 'error');
         } finally {
             setSavingRecipe(false);
+        }
+    };
+
+    // A dish renamed for this client's week only ('' = back to the menu's title)
+    const saveTitle = async (dishId: string, title: string) => {
+        try {
+            const res = await fetch(`/api/cooking-ops/session/${encodeURIComponent(sessionId)}`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ dishId, title })
+            });
+            const data = await res.json().catch(() => ({}));
+            if (!res.ok) throw new Error(data.error || 'Enregistrement impossible');
+            setSheet(prev => (prev ? { ...prev, selection: data.selection } : prev));
+            showToast(title ? 'Titre modifié pour ce client' : 'Titre du menu rétabli', 'check');
+            return true;
+        } catch (e) {
+            showToast(e instanceof Error ? e.message : 'Enregistrement impossible', 'error');
+            return false;
         }
     };
 
@@ -450,6 +470,7 @@ export default function ChefCookingModePage({ params }: { params: Promise<{ sess
                 {/* 4. Grocery list, from the ingredients of the chosen dishes */}
                 {groceryList && (
                     <GroceryListCard
+                        foldKey={`session:${sessionId}`}
                         list={groceryList}
                         title={`Liste de courses — ${displayName}`}
                         savedChecked={selection?.groceryChecked || NO_TICKS}
@@ -491,7 +512,11 @@ export default function ChefCookingModePage({ params }: { params: Promise<{ sess
                                     <Badge variant="outline" className="bg-rose-50 text-[#E1567A] border-[#E1567A]/30 text-[11px] font-bold rounded-full">
                                         Plat #{dIdx + 1} • {dish.category}
                                     </Badge>
-                                    <h4 className="text-lg font-serif font-bold text-stone-900">{dish.name}</h4>
+                                    <DishTitleEdit
+                                        title={dish.name}
+                                        override={selection?.titleOverrides?.[dish.id]}
+                                        onSave={title => saveTitle(dish.id, title)}
+                                    />
                                 </div>
 
                                 {clientDishNote && (
@@ -516,7 +541,12 @@ export default function ChefCookingModePage({ params }: { params: Promise<{ sess
                             <Badge variant="outline" className="bg-rose-50 text-[#E1567A] border-[#E1567A]/30 text-[11px] font-bold rounded-full">
                                 Plat #{dishes.length + 1} • Demande sur mesure
                             </Badge>
-                            <p className="text-base font-serif font-bold text-stone-900 whitespace-pre-wrap">{selection.customDish}</p>
+                            <DishTitleEdit
+                                title={selection.customDish}
+                                override={selection.titleOverrides?.[CUSTOM_DISH_RECIPE_ID]}
+                                onSave={title => saveTitle(CUSTOM_DISH_RECIPE_ID, title)}
+                                className="text-base font-serif font-bold text-stone-900 whitespace-pre-wrap"
+                            />
                             {selection.customDishFrom && (
                                 <p className="text-xs text-stone-500">
                                     Repris par le client du menu de la {getWeekBoundsForStart(selection.customDishFrom).weekLabel.toLowerCase()} (votre recette a été recopiée ici).

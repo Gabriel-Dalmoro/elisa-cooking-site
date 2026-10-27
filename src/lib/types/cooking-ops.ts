@@ -36,6 +36,7 @@ export interface BookingSession {
     gcalEventId?: string;
     notes?: string; // Google Calendar event title
     assignedTo?: string | null; // Staff user id of the chef cooking this session (null = Elisa)
+    seriesId?: string; // Set when the session comes from a recurring series
     createdAt: string;
 }
 
@@ -69,6 +70,7 @@ export interface ClientSelection {
     dishNotes: Record<string, string>; // Keyed by dish id
     customDish?: string; // The one dish the client wrote themselves (replaces one menu dish)
     customDishFrom?: string; // Week (Monday) of the earlier menu the custom dish was picked from, if any
+    titleOverrides?: Record<string, string>; // Dish titles renamed for this client's week only, keyed by dish id. Staff only.
     recipeOverrides: Record<string, string>; // Elisa's recipe adapted for this client only, keyed by dish id ('__custom__' = custom dish). Staff only.
     ingredientOverrides: Record<string, string>; // Same, for the ingredient list (feeds this client's grocery list). Staff only.
     groceryChecked: string[]; // Grocery list items ticked off and saved by Elisa (item keys). Staff only.
@@ -87,6 +89,9 @@ export interface SlotSessionStatus {
     selection: ClientSelection | null;
     isSubmitted: boolean;
     selectedCount: number;
+    // Other sessions of the same client on the same day and slot (e.g. Elisa's Google booking
+    // and a session created again for a chef): almost always one booking entered twice
+    duplicateSessionIds?: string[];
 }
 
 export interface VaultRecipe {
