@@ -39,14 +39,14 @@ export function sheetGroceryInput(
         persons,
         dishes: [
             ...dishes.map(d => ({
-                name: d.name,
+                name: selection.titleOverrides?.[d.id] || d.name,
                 ingredients: recipes[d.id]?.ingredients || '',
                 recipeText: recipes[d.id]?.steps || '',
                 clientNote: selection.dishNotes?.[d.id]
             })),
             ...(selection.customDish
                 ? [{
-                    name: selection.customDish,
+                    name: selection.titleOverrides?.[CUSTOM_DISH_RECIPE_ID] || selection.customDish,
                     ingredients: recipes[CUSTOM_DISH_RECIPE_ID]?.ingredients || '',
                     recipeText: recipes[CUSTOM_DISH_RECIPE_ID]?.steps || ''
                 }]

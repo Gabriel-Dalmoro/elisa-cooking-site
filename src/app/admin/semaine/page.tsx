@@ -1111,7 +1111,10 @@ export default function WeeklyOpsAdminDashboard() {
 
                                                 {selection && (selection.selectedDishNames.length > 0 || selection.customDish) && (
                                                     <p className="text-[11px] text-stone-600">
-                                                        <span className="font-semibold">Choix :</span> {[...selection.selectedDishNames, ...(selection.customDish ? [`Sur mesure : ${selection.customDish}`] : [])].join(' • ')}
+                                                        <span className="font-semibold">Choix :</span> {[
+                                                            ...selection.selectedDishIds.map((id, i) => selection.titleOverrides?.[id] || selection.selectedDishNames[i] || id),
+                                                            ...(selection.customDish ? [`Sur mesure : ${selection.titleOverrides?.__custom__ || selection.customDish}`] : [])
+                                                        ].join(' • ')}
                                                     </p>
                                                 )}
 
@@ -1247,7 +1250,7 @@ export default function WeeklyOpsAdminDashboard() {
                         const chosen = selection
                             ? selection.selectedDishIds.map((id, i) => ({
                                 id,
-                                name: weekMenu?.recipes.find(d => d.id === id)?.name || selection.selectedDishNames[i] || id,
+                                name: selection.titleOverrides?.[id] || weekMenu?.recipes.find(d => d.id === id)?.name || selection.selectedDishNames[i] || id,
                                 note: selection.dishNotes[id] || ''
                             }))
                             : [];

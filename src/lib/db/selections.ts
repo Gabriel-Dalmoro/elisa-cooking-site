@@ -26,6 +26,8 @@ const CUSTOM_DISH_FROM_KEY = '__custom_dish_from__';
 const RECIPE_OVERRIDES_KEY = '__recipe_overrides__';
 // And their ingredient lists (dish id → ingredient text), read by the client's grocery list
 const INGREDIENT_OVERRIDES_KEY = '__ingredient_overrides__';
+// And dish titles renamed for this client only (dish id → title), e.g. « Curry de légumes, sans coco »
+const TITLE_OVERRIDES_KEY = '__title_overrides__';
 // And the grocery items Elisa ticked off (bought, or the client already has them), saved with the Save button
 const GROCERY_CHECKED_KEY = '__grocery_checked__';
 // And the quantities Elisa corrected by hand on the list (item key → amount as she typed it)
@@ -51,6 +53,7 @@ function rowToSelection(row: SelectionRow): ClientSelection {
     const customDishFrom = typeof notes[CUSTOM_DISH_FROM_KEY] === 'string' ? notes[CUSTOM_DISH_FROM_KEY] : undefined;
     const recipeOverrides = asStringRecord(notes[RECIPE_OVERRIDES_KEY]);
     const ingredientOverrides = asStringRecord(notes[INGREDIENT_OVERRIDES_KEY]);
+    const titleOverrides = asStringRecord(notes[TITLE_OVERRIDES_KEY]);
     const groceryChecked = asStringArray(notes[GROCERY_CHECKED_KEY]);
     const groceryEdits = asStringRecord(notes[GROCERY_EDITS_KEY]);
     const groceryExtras = asStringArray(notes[GROCERY_EXTRAS_KEY]);
@@ -58,6 +61,7 @@ function rowToSelection(row: SelectionRow): ClientSelection {
     delete notes[CUSTOM_DISH_FROM_KEY];
     delete notes[RECIPE_OVERRIDES_KEY];
     delete notes[INGREDIENT_OVERRIDES_KEY];
+    delete notes[TITLE_OVERRIDES_KEY];
     delete notes[GROCERY_CHECKED_KEY];
     delete notes[GROCERY_EDITS_KEY];
     delete notes[GROCERY_EXTRAS_KEY];
@@ -74,6 +78,7 @@ function rowToSelection(row: SelectionRow): ClientSelection {
         customDishFrom,
         recipeOverrides,
         ingredientOverrides,
+        titleOverrides,
         groceryChecked,
         groceryEdits,
         groceryExtras,
@@ -163,6 +168,38 @@ export async function upsertSelection(input: {
  * the steps and, when given, the ingredient list. Both empty removes the adaptation,
  * so the sheet falls back to the menu recipe.
  */
+/**
+ * A dish's title for this client's week only (the menu and the recipe bank keep theirs).
+ * An empty title goes back to the menu's.
+ */
+export async function setTitleOverride(clientId: string, weekStart: string, dishId: string, title: string): Promise<ClientSelection> {
+    const supabase = getSupabaseAdmin();
+    const { data: row, error: readError } = await supabase
+        .from('client_selections')
+        .select('dish_notes')
+        .eq('client_id', clientId)
+        .eq('week_start', weekStart)
+        .maybeSingle();
+    if (readError) throw new Error(`Lecture du choix client impossible : ${readError.message}`);
+    if (!row) throw new Error('Ce client n’a pas encore envoyé ses choix pour cette semaine.');
+
+    const notes = row.dish_notes && typeof row.dish_notes === 'object' ? { ...(row.dish_notes as Record<string, unknown>) } : {};
+    const titles = asStringRecord(notes[TITLE_OVERRIDES_KEY]);
+    if (title.trim()) titles[dishId] = title.trim();
+    else delete titles[dishId];
+    notes[TITLE_OVERRIDES_KEY] = titles;
+
+    const { data, error } = await supabase
+        .from('client_selections')
+        .update({ dish_notes: notes, updated_at: new Date().toISOString() })
+        .eq('client_id', clientId)
+        .eq('week_start', weekStart)
+        .select('*')
+        .single();
+    if (error) throw new Error(`Enregistrement du titre impossible : ${error.message}`);
+    return rowToSelection(data as SelectionRow);
+}
+
 export async function setRecipeOverride(
     clientId: string,
     weekStart: string,
