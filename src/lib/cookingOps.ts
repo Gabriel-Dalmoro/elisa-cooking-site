@@ -1,6 +1,6 @@
 import { BookingSession, ClientProfile, ClientSelection, SlotSessionStatus } from './types/cooking-ops';
 import { getWeekBounds } from './dateUtils';
-import { listClients } from './db/clients';
+import { listClients, withoutOwnerFields } from './db/clients';
 import { getMenu } from './db/menus';
 import { getSelectionsForWeek } from './db/selections';
 import { listSessions, replaceSessionsForRange, SessionInput } from './db/sessions';
@@ -86,8 +86,7 @@ export async function loadWeekOverview(offsetWeeks: number, chefId?: string) {
         const sessionClientIds = new Set(sessions.map(s => s.clientId).filter(Boolean));
         clients = allClients
             .filter(c => c.chefId === chefId || sessionClientIds.has(c.id))
-            // eslint-disable-next-line @typescript-eslint/no-unused-vars
-            .map(({ privateNotes, ...c }) => c);
+            .map(withoutOwnerFields);
     }
     const visibleIds = new Set(clients.map(c => c.id));
 

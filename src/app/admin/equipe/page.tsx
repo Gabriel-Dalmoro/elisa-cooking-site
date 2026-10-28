@@ -18,6 +18,8 @@ interface TeamMember {
     phone: string;
     city: string;
     active: boolean;
+    sapActiveSince: string | null;
+    urssafRate: number;
     clientCount: number;
 }
 
@@ -27,9 +29,12 @@ interface Form {
     email: string;
     phone: string;
     city: string;
+    sapActiveSince: string; // '' = still waiting for their SAP
+    urssafRate: string; // in %, « 21,2 »
 }
 
-const EMPTY: Form = { userId: null, displayName: '', email: '', phone: '', city: '' };
+const EMPTY: Form = { userId: null, displayName: '', email: '', phone: '', city: '', sapActiveSince: '', urssafRate: '21,2' };
+const ratePercent = (rate: number) => String(Math.round(rate * 1000) / 10).replace('.', ',');
 
 /**
  * Elisa's team: add a chef (their login is created here), see who has which clients,
@@ -78,7 +83,14 @@ export default function TeamPage() {
                 method: form.userId ? 'PATCH' : 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(form.userId
-                    ? { userId: form.userId, displayName: form.displayName, phone: form.phone, city: form.city }
+                    ? {
+                        userId: form.userId,
+                        displayName: form.displayName,
+                        phone: form.phone,
+                        city: form.city,
+                        sapActiveSince: form.sapActiveSince || null,
+                        urssafRate: form.urssafRate.trim() ? Number(form.urssafRate.replace(',', '.')) / 100 : undefined
+                    }
                     : { displayName: form.displayName, email: form.email, phone: form.phone, city: form.city })
             });
             const data = await res.json().catch(() => ({}));
@@ -230,6 +242,11 @@ export default function TeamPage() {
                                                         {chef.phone && <span className="flex items-center gap-1"><Phone className="w-3.5 h-3.5 text-stone-400" />{chef.phone}</span>}
                                                     </div>
                                                     <p className="text-xs text-stone-500 mt-1">{chef.clientCount} client{chef.clientCount > 1 ? 's' : ''} attribué{chef.clientCount > 1 ? 's' : ''}</p>
+                                                    <p className="text-xs mt-1">
+                                                        {chef.sapActiveSince
+                                                            ? <span className="font-bold text-emerald-700">SAP + Avance Immédiate actifs depuis le {chef.sapActiveSince.split('-').reverse().join('/')}</span>
+                                                            : <span className="font-bold text-amber-700">En attente de son SAP : Elisa facture ses clients</span>}
+                                                    </p>
                                                 </div>
                                             </div>
                                         </div>
@@ -240,7 +257,15 @@ export default function TeamPage() {
                                             <Link href={`/admin/clients?chef=${chef.userId}`}>
                                                 <Button size="sm" variant="outline" className="rounded-full text-xs h-8 gap-1.5 border-stone-300"><Users className="w-3.5 h-3.5" /> Ses clients</Button>
                                             </Link>
-                                            <Button size="sm" variant="outline" onClick={() => setForm({ userId: chef.userId, displayName: chef.displayName, email: chef.email, phone: chef.phone, city: chef.city })} className="rounded-full text-xs h-8 border-stone-300">
+                                            <Button size="sm" variant="outline" onClick={() => setForm({
+                                                    userId: chef.userId,
+                                                    displayName: chef.displayName,
+                                                    email: chef.email,
+                                                    phone: chef.phone,
+                                                    city: chef.city,
+                                                    sapActiveSince: chef.sapActiveSince || '',
+                                                    urssafRate: ratePercent(chef.urssafRate ?? 0.212)
+                                                })} className="rounded-full text-xs h-8 border-stone-300">
                                                 Modifier
                                             </Button>
                                             <Button size="sm" variant="outline" onClick={() => resetPassword(chef)} className="rounded-full text-xs h-8 gap-1.5 border-stone-300"><KeyRound className="w-3.5 h-3.5" /> Nouveau mot de passe</Button>
@@ -270,6 +295,7 @@ export default function TeamPage() {
                             <p className="font-bold text-stone-800">Ce qu’un chef peut faire</p>
                             <p>✓ Voir ses clients (coordonnées, allergies, notes cuisine), ses séances, les fiches cuisine et les listes de courses.</p>
                             <p>✓ Ajouter ou déplacer des séances pour ses clients, mettre à jour leurs allergies et notes cuisine.</p>
+                            <p>✓ Voir ses gains : ce que lui rapporte chaque séance et sa facture du mois (sans le prix client tant que vous facturez).</p>
                             <p>✗ Pas d’accès aux prix, cartes cadeaux, Instagram, fiches Airbnb, menu, équipe, ni à vos notes privées et aux autres clients.</p>
                         </div>
                     </>
@@ -310,6 +336,22 @@ export default function TeamPage() {
                                     <input value={form.city} onChange={e => setForm({ ...form, city: e.target.value })} placeholder="Annecy" className="w-full p-2.5 rounded-xl border border-stone-300 focus:ring-2 focus:ring-[#E1567A] focus:outline-none" />
                                 </div>
                             </div>
+                            {form.userId && (
+                                <div className="bg-stone-50 border border-stone-200 rounded-2xl p-3 space-y-2">
+                                    <p className="font-bold text-stone-800">Rémunération</p>
+                                    <div className="grid grid-cols-2 gap-2">
+                                        <div>
+                                            <label className="font-semibold block text-stone-700 mb-1">SAP + Avance Immédiate actifs le</label>
+                                            <input type="date" value={form.sapActiveSince} onChange={e => setForm({ ...form, sapActiveSince: e.target.value })} className="w-full p-2.5 rounded-xl border border-stone-300 bg-white focus:ring-2 focus:ring-[#E1567A] focus:outline-none" />
+                                        </div>
+                                        <div>
+                                            <label className="font-semibold block text-stone-700 mb-1">Son taux URSSAF (%)</label>
+                                            <input inputMode="decimal" value={form.urssafRate} onChange={e => setForm({ ...form, urssafRate: e.target.value })} placeholder="21,2" className="w-full p-2.5 rounded-xl border border-stone-300 bg-white focus:ring-2 focus:ring-[#E1567A] focus:outline-none" />
+                                        </div>
+                                    </div>
+                                    <p className="text-[11px] text-stone-500">Laissez la date vide tant qu’il attend son SAP : vous facturez ses clients (phase 1). À partir de cette date, il les facture lui-même (phase 2). Le taux sert seulement à estimer ce qu’il garde après ses cotisations.</p>
+                                </div>
+                            )}
                             <Button type="submit" disabled={saving} className="w-full bg-[#E1567A] hover:bg-[#c94567] text-white rounded-xl h-10 font-bold">
                                 {saving ? 'Enregistrement…' : form.userId ? 'Enregistrer' : 'Créer son accès'}
                             </Button>

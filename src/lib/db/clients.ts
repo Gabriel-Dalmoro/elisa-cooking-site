@@ -1,6 +1,7 @@
 import { randomBytes, randomUUID } from 'crypto';
 import { getSupabaseAdmin } from '../supabase/admin';
 import { ClientProfile } from '../types/cooking-ops';
+import { isBillingPlan } from '../remuneration';
 
 /**
  * Client CRM data access. Supabase is the single source of truth:
@@ -33,6 +34,8 @@ interface ClientRow {
     notes: string | null;
     private_notes: string | null;
     chef_id?: string | null; // migration 006
+    billing_plan?: string | null; // migration 008
+    custom_price?: number | string | null;
     is_booked_this_week: boolean | null;
     booking_day: string | null;
     created_at: string;
@@ -54,6 +57,8 @@ function rowToClient(row: ClientRow): ClientProfile {
         notes: row.notes || '',
         privateNotes: row.private_notes || '',
         chefId: row.chef_id || null,
+        billingPlan: isBillingPlan(row.billing_plan) ? row.billing_plan : 'abonnement',
+        customPrice: row.custom_price != null ? Number(row.custom_price) : null,
         isBookedThisWeek: Boolean(row.is_booked_this_week),
         bookingDay: row.booking_day || undefined,
         createdAt: row.created_at
@@ -62,7 +67,12 @@ function rowToClient(row: ClientRow): ClientProfile {
 
 export type ClientInput = Partial<Pick<ClientProfile,
     'name' | 'phone' | 'email' | 'address' | 'accessCode' | 'allergies' | 'dislikes' | 'defaultDishCount' | 'personCount' | 'notes' | 'privateNotes' | 'chefId'
+    | 'billingPlan' | 'customPrice'
 >>;
+
+/** A client as a chef may see it: no private notes (billing, family situation…), no pricing. */
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+export const withoutOwnerFields = ({ privateNotes, billingPlan, customPrice, ...rest }: ClientProfile): ClientProfile => rest;
 
 /** Fields a chef may change on their own clients (they're in the kitchen and hear about changes first). */
 export const CHEF_EDITABLE_FIELDS = ['allergies', 'dislikes', 'notes', 'personCount'] as const;
@@ -82,6 +92,8 @@ function inputToRow(input: ClientInput): Record<string, unknown> {
     if (input.notes !== undefined) row.notes = input.notes.trim();
     if (input.privateNotes !== undefined) row.private_notes = input.privateNotes.trim();
     if (input.chefId !== undefined) row.chef_id = input.chefId || null;
+    if (input.billingPlan !== undefined) row.billing_plan = input.billingPlan;
+    if (input.customPrice !== undefined) row.custom_price = input.customPrice;
     return row;
 }
 

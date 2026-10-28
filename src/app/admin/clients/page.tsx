@@ -37,6 +37,7 @@ import { ClientProfile } from '@/lib/types/cooking-ops';
 import { allergyOptions } from '@/lib/allergies';
 import CustomAllergyInput from '@/components/CustomAllergyInput';
 import { chefColor, chefName, useStaff } from '@/components/admin/StaffContext';
+import { BILLING_PLANS, BillingPlan } from '@/lib/remuneration';
 
 interface ParsedCsvClient {
     name: string;
@@ -86,6 +87,8 @@ export default function ClientDirectoryPage() {
     const [formNotes, setFormNotes] = useState('');
     const [formPrivateNotes, setFormPrivateNotes] = useState('');
     const [formChefId, setFormChefId] = useState('');
+    const [formBillingPlan, setFormBillingPlan] = useState<BillingPlan>('abonnement');
+    const [formCustomPrice, setFormCustomPrice] = useState('');
 
     // Elisa sees every client and assigns them to chefs; a chef sees only theirs (the server enforces it)
     const { isOwner, isChef, userId, chefs } = useStaff();
@@ -175,6 +178,8 @@ export default function ClientDirectoryPage() {
         setFormDislikes('');
         setFormNotes('');
         setFormPrivateNotes('');
+        setFormBillingPlan('abonnement');
+        setFormCustomPrice('');
         setIsModalOpen(true);
     };
 
@@ -192,6 +197,8 @@ export default function ClientDirectoryPage() {
         setFormNotes(client.notes || '');
         setFormPrivateNotes(client.privateNotes || '');
         setFormChefId(client.chefId || '');
+        setFormBillingPlan(client.billingPlan || 'abonnement');
+        setFormCustomPrice(client.customPrice != null ? String(client.customPrice).replace('.', ',') : '');
         setIsModalOpen(true);
     };
 
@@ -217,7 +224,12 @@ export default function ClientDirectoryPage() {
                     dislikes: formDislikes,
                     notes: formNotes,
                     // Elisa only (a chef never receives nor sends these; the server ignores them from a chef)
-                    ...(isOwner ? { privateNotes: formPrivateNotes, chefId: formChefId || null } : {})
+                    ...(isOwner ? {
+                        privateNotes: formPrivateNotes,
+                        chefId: formChefId || null,
+                        billingPlan: formBillingPlan,
+                        customPrice: formBillingPlan === 'prix_libre' && formCustomPrice.trim() ? Number(formCustomPrice.replace(',', '.')) : null
+                    } : {})
                 })
             });
 
@@ -1305,6 +1317,37 @@ export default function ClientDirectoryPage() {
                                 className="w-full p-2.5 rounded-xl border border-stone-300 focus:ring-2 focus:ring-[#E1567A] focus:outline-none"
                             />
                         </div>
+
+                        {isOwner && <div>
+                            <label className="font-semibold block text-stone-700 mb-1">Formule (visible par vous uniquement, sert au calcul de la rémunération)</label>
+                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
+                                {BILLING_PLANS.map(plan => (
+                                    <button
+                                        key={plan.id}
+                                        type="button"
+                                        onClick={() => setFormBillingPlan(plan.id)}
+                                        title={plan.hint}
+                                        className={`px-2 py-2 rounded-xl border text-[11px] font-bold transition-colors ${formBillingPlan === plan.id ? 'bg-[#E1567A] text-white border-[#E1567A]' : 'bg-stone-50 text-stone-600 border-stone-200'}`}
+                                    >
+                                        {plan.label}
+                                    </button>
+                                ))}
+                            </div>
+                            <p className="text-[11px] text-stone-500 mt-1">{BILLING_PLANS.find(p => p.id === formBillingPlan)?.hint}</p>
+                            {formBillingPlan === 'prix_libre' && (
+                                <div className="flex items-center gap-2 mt-1.5">
+                                    <input
+                                        type="text"
+                                        inputMode="decimal"
+                                        value={formCustomPrice}
+                                        onChange={e => setFormCustomPrice(e.target.value)}
+                                        placeholder="180,00"
+                                        className="w-32 p-2.5 rounded-xl border border-stone-300 focus:ring-2 focus:ring-[#E1567A] focus:outline-none"
+                                    />
+                                    <span className="text-stone-600">€ par séance, avant le crédit d’impôt</span>
+                                </div>
+                            )}
+                        </div>}
 
                         {isOwner && <div>
                             <label className="font-semibold block text-stone-700 mb-1">Notes privées (visibles par vous uniquement)</label>

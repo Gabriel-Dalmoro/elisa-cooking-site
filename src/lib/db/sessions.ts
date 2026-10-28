@@ -223,6 +223,33 @@ export async function rescheduleAppSession(id: string, dateIso: string, timeSlot
     return rowToSession(data as SessionRow);
 }
 
+/**
+ * Sessions of a date range priced by hand (id → euros). Kept apart from BookingSession on purpose:
+ * sessions are sent to chefs, prices are not.
+ */
+export async function listSessionPriceOverrides(startIso: string, endIso: string): Promise<Record<string, number>> {
+    const { data, error } = await getSupabaseAdmin()
+        .from('cooking_sessions')
+        .select('id, price_override')
+        .gte('date', startIso)
+        .lte('date', endIso)
+        .not('price_override', 'is', null);
+    if (error) throw new Error(`Lecture des prix des séances impossible : ${error.message}`);
+    return Object.fromEntries((data as { id: string; price_override: number | string }[]).map(r => [r.id, Number(r.price_override)]));
+}
+
+/** One session at a different price (euros, before the tax credit). null = the client's usual price. */
+export async function setSessionPriceOverride(id: string, price: number | null): Promise<void> {
+    const { data, error } = await getSupabaseAdmin()
+        .from('cooking_sessions')
+        .update({ price_override: price, updated_at: new Date().toISOString() })
+        .eq('id', id)
+        .select('id')
+        .maybeSingle();
+    if (error) throw new Error(`Mise à jour du prix impossible : ${error.message}`);
+    if (!data) throw new Error('Séance introuvable');
+}
+
 /** Who cooks this session (null = Elisa). */
 export async function setSessionAssignee(id: string, assignedTo: string | null): Promise<BookingSession> {
     const { data, error } = await getSupabaseAdmin()

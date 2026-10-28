@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowRight, Calendar, LogOut, Navigation, ShoppingCart, Users } from 'lucide-react';
+import { ArrowRight, Calendar, Euro, LogOut, Navigation, ShoppingCart, Users } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { createSupabaseBrowserClient } from '@/lib/supabase/browser';
@@ -26,7 +26,8 @@ export default function ChefDashboard({ displayName, refused }: { displayName: s
         { href: '/admin/aujourd-hui', icon: Navigation, title: 'Aujourd’hui / En route', text: 'Vos clients du jour, itinéraires et fiches cuisine.', tone: 'bg-stone-900 text-white' },
         { href: '/admin/semaine', icon: Calendar, title: 'Mon planning', text: 'Vos séances de la semaine, les choix de vos clients, ajouter ou déplacer une séance.', tone: 'bg-amber-600 text-white' },
         { href: '/admin/clients', icon: Users, title: 'Mes clients', text: 'Coordonnées, allergies, notes cuisine et liens de choix des plats.', tone: 'bg-[#E1567A] text-white' },
-        { href: '/admin/courses', icon: ShoppingCart, title: 'Courses groupées', text: 'Une seule liste pour plusieurs clients, avec la part de chacun.', tone: 'bg-emerald-600 text-white' }
+        { href: '/admin/courses', icon: ShoppingCart, title: 'Courses groupées', text: 'Une seule liste pour plusieurs clients, avec la part de chacun.', tone: 'bg-emerald-600 text-white' },
+        { href: '/admin/remuneration', icon: Euro, title: 'Mes gains', text: 'Ce que te rapporte chaque séance, ta facture du mois et ton bonus avec ton SAP.', tone: 'bg-sky-600 text-white' }
     ];
 
     return (

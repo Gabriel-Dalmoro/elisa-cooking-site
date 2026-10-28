@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import type { CurrentStaff } from './auth';
 import type { BookingSession, ClientProfile } from './types/cooking-ops';
+import { withoutOwnerFields } from './db/clients';
 
 /**
  * What each member of the team may see and change. Every rule is enforced on the server:
@@ -22,12 +23,9 @@ export function canAccessSession(staff: CurrentStaff, session: Pick<BookingSessi
     return isOwner(staff) || (Boolean(session.assignedTo) && session.assignedTo === staff.userId);
 }
 
-/** A client as a chef may see it: no private notes (billing, family situation…). */
+/** A client as a chef may see it: no private notes (billing, family situation…), no pricing. */
 export function clientForStaff(staff: CurrentStaff, client: ClientProfile): ClientProfile {
-    if (isOwner(staff)) return client;
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const { privateNotes, ...rest } = client;
-    return rest;
+    return isOwner(staff) ? client : withoutOwnerFields(client);
 }
 
 export const forbidden = (message = 'Accès refusé') => NextResponse.json({ error: message }, { status: 403 });

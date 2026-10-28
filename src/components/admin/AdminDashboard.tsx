@@ -15,7 +15,8 @@ import {
     Users,
     Navigation,
     ShoppingCart,
-    UserPlus
+    UserPlus,
+    Euro
 } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -197,7 +198,7 @@ export default function AdminDashboard({ displayName }: { displayName: string | 
                     </motion.div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
                 {/* Combined shopping for several clients */}
                 <motion.div whileHover={{ y: -3, transition: { duration: 0.2 } }}>
                     <Card
@@ -237,6 +238,27 @@ export default function AdminDashboard({ displayName }: { displayName: string | 
                             </div>
                         </div>
                         <ArrowRight className="h-4 w-4 text-sky-700 shrink-0" />
+                    </Card>
+                </motion.div>
+
+                {/* What each session pays Elisa and her chefs */}
+                <motion.div whileHover={{ y: -3, transition: { duration: 0.2 } }}>
+                    <Card
+                        onClick={() => router.push('/admin/remuneration')}
+                        className="w-full h-full flex flex-row items-center justify-between gap-4 hover:shadow-lg transition-all border-violet-200 hover:border-violet-400 cursor-pointer bg-violet-50/60 rounded-3xl p-5 select-none"
+                    >
+                        <div className="flex items-center gap-4">
+                            <div className="h-11 w-11 rounded-2xl bg-white border border-violet-200 flex items-center justify-center text-violet-700 shrink-0">
+                                <Euro className="h-5 w-5" />
+                            </div>
+                            <div>
+                                <h3 className="text-sm font-bold text-stone-900">Rémunération</h3>
+                                <p className="text-xs text-stone-600 mt-0.5">
+                                    Ce que rapporte chaque séance à vous et à vos chefs, mois par mois.
+                                </p>
+                            </div>
+                        </div>
+                        <ArrowRight className="h-4 w-4 text-violet-700 shrink-0" />
                     </Card>
                 </motion.div>
                 </div>

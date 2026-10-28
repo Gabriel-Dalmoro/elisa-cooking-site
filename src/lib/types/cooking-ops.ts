@@ -1,3 +1,5 @@
+import type { BillingPlan } from '../remuneration';
+
 export type DishCategory = 'viande' | 'Végétarien' | 'Poisson' | 'Végan' | string;
 
 export interface ClientProfile {
@@ -15,6 +17,8 @@ export interface ClientProfile {
     notes?: string; // Kitchen & equipment notes (operational, visible to the client's chef)
     privateNotes?: string; // Owner only — never sent to a chef
     chefId?: string | null; // Chef in charge of this client (staff user id), null = Elisa
+    billingPlan?: BillingPlan; // How the client pays (owner only — never sent to a chef)
+    customPrice?: number | null; // Euros per session for 'prix_libre' (owner only)
     isBookedThisWeek?: boolean;
     bookingDay?: string;
     createdAt: string;

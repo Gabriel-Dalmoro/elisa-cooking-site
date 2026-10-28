@@ -7,7 +7,8 @@ import { listClients } from '@/lib/db/clients';
  * The team (Elisa only).
  * GET → everyone, with how many clients each chef has
  * POST { displayName, email, phone?, city? } → creates a chef login; returns a temporary password ONCE
- * PATCH { userId, displayName?, phone?, city?, active? } → edit / deactivate / reactivate a chef
+ * PATCH { userId, displayName?, phone?, city?, active?, sapActiveSince?, urssafRate? } → edit / deactivate / reactivate a chef
+ *   (sapActiveSince: "YYYY-MM-DD" or null; urssafRate: 0.212 = 21,2 %)
  * PATCH { userId, resetPassword: true } → new temporary password (returned once)
  * DELETE ?userId=… → removes a chef for good; their clients and sessions go back to Elisa
  */
@@ -62,7 +63,11 @@ export async function PATCH(req: NextRequest) {
             displayName: text(body.displayName, 80),
             phone: text(body.phone, 40),
             city: text(body.city, 80),
-            active: typeof body.active === 'boolean' ? body.active : undefined
+            active: typeof body.active === 'boolean' ? body.active : undefined,
+            sapActiveSince: body.sapActiveSince === null || body.sapActiveSince === ''
+                ? null
+                : typeof body.sapActiveSince === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(body.sapActiveSince) ? body.sapActiveSince : undefined,
+            urssafRate: typeof body.urssafRate === 'number' && body.urssafRate >= 0 && body.urssafRate < 0.6 ? body.urssafRate : undefined
         });
         return NextResponse.json({ success: true, chef });
     } catch (error) {

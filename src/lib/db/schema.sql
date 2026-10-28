@@ -19,6 +19,8 @@ CREATE TABLE IF NOT EXISTS public.clients (
     notes TEXT,          -- kitchen / equipment notes (assistant-visible)
     private_notes TEXT,  -- Elisa only
     chef_id UUID REFERENCES public.staff(user_id) ON DELETE SET NULL, -- migration 006 (null = Elisa)
+    billing_plan TEXT NOT NULL DEFAULT 'abonnement' CHECK (billing_plan IN ('abonnement', 'ponctuel', 'carte_cadeau', 'prix_libre')), -- migration 008
+    custom_price NUMERIC(8, 2),                          -- migration 008 (billing_plan 'prix_libre')
     is_booked_this_week BOOLEAN DEFAULT TRUE,
     booking_day TEXT,
     created_at TIMESTAMPTZ DEFAULT NOW(),
@@ -76,6 +78,8 @@ CREATE TABLE IF NOT EXISTS public.staff (
     phone TEXT,                                          -- migration 006
     city TEXT,                                           -- migration 006
     active BOOLEAN NOT NULL DEFAULT TRUE,
+    sap_active_since DATE,                               -- migration 008 (chef's own SAP + Avance Immédiate live)
+    urssaf_rate NUMERIC(5, 4) NOT NULL DEFAULT 0.212,    -- migration 008
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
@@ -95,6 +99,7 @@ CREATE TABLE IF NOT EXISTS public.cooking_sessions (
     person_count INTEGER NOT NULL DEFAULT 2,
     assigned_to UUID REFERENCES public.staff(user_id) ON DELETE SET NULL,
     ignored BOOLEAN NOT NULL DEFAULT FALSE,
+    price_override NUMERIC(8, 2),                        -- migration 008 (null = the client's usual price)
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );

@@ -1,5 +1,6 @@
 import { randomBytes } from 'crypto';
 import { getSupabaseAdmin } from '../supabase/admin';
+import { DEFAULT_CHEF_URSSAF_RATE } from '../remuneration';
 
 /**
  * The team: Elisa (owner) and the chefs who cook under her brand.
@@ -16,6 +17,8 @@ export interface StaffMember {
     phone: string;
     city: string;
     active: boolean;
+    sapActiveSince: string | null; // the day the chef's own SAP + Avance Immédiate went live (migration 008)
+    urssafRate: number; // the chef's own URSSAF rate, to estimate what they keep
     createdAt: string;
 }
 
@@ -27,6 +30,8 @@ interface StaffRow {
     phone?: string | null;
     city?: string | null;
     active: boolean;
+    sap_active_since?: string | null; // migration 008
+    urssaf_rate?: number | string | null;
     created_at: string;
 }
 
@@ -40,6 +45,8 @@ function rowToStaff(row: StaffRow): StaffMember {
         phone: row.phone || '',
         city: row.city || '',
         active: row.active,
+        sapActiveSince: row.sap_active_since || null,
+        urssafRate: row.urssaf_rate != null ? Number(row.urssaf_rate) : DEFAULT_CHEF_URSSAF_RATE,
         createdAt: row.created_at
     };
 }
@@ -127,13 +134,15 @@ export async function createChef(input: ChefInput): Promise<{ chef: StaffMember;
 
 export async function updateChef(
     userId: string,
-    input: Partial<ChefInput> & { active?: boolean }
+    input: Partial<ChefInput> & { active?: boolean; sapActiveSince?: string | null; urssafRate?: number }
 ): Promise<StaffMember> {
     const row: Record<string, unknown> = { updated_at: new Date().toISOString() };
     if (input.displayName !== undefined) row.display_name = input.displayName.trim();
     if (input.phone !== undefined) row.phone = input.phone.trim();
     if (input.city !== undefined) row.city = input.city.trim();
     if (input.active !== undefined) row.active = input.active;
+    if (input.sapActiveSince !== undefined) row.sap_active_since = input.sapActiveSince;
+    if (input.urssafRate !== undefined) row.urssaf_rate = input.urssafRate;
 
     const { data, error } = await getSupabaseAdmin()
         .from('staff')

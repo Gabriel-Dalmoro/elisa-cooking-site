@@ -8,6 +8,7 @@ import { createGoogleCalendarEvent } from '@/lib/googleCalendar';
 import { getParisUtcOffset } from '@/lib/dateUtils';
 import { requireOwner, requireStaff } from '@/lib/auth';
 import { canAccessClient, clientForStaff, forbidden, isOwner } from '@/lib/access';
+import { isBillingPlan } from '@/lib/remuneration';
 
 function errorMessage(error: unknown, fallback: string): string {
     return error instanceof Error ? error.message : fallback;
@@ -28,6 +29,11 @@ function pickClientInput(body: Record<string, unknown>): ClientInput {
     if (body.defaultDishCount !== undefined) input.defaultDishCount = Number(body.defaultDishCount) || 4;
     if (body.personCount !== undefined) input.personCount = Number(body.personCount) || 2;
     if (body.chefId !== undefined) input.chefId = typeof body.chefId === 'string' && body.chefId ? body.chefId : null;
+    if (isBillingPlan(body.billingPlan)) input.billingPlan = body.billingPlan;
+    if (body.customPrice !== undefined) {
+        const price = Number(body.customPrice);
+        input.customPrice = body.customPrice !== null && body.customPrice !== '' && price > 0 ? Math.round(price * 100) / 100 : null;
+    }
     return input;
 }
 
