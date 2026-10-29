@@ -512,7 +512,7 @@ export function SimulatorForm({ promoConfig, leadMenu }: SimulatorFormProps) {
                                                                         <span className="text-xs font-bold text-stone-900 leading-tight text-center">
                                                                             Recettes payées
                                                                             <span className={cn("block font-black", isSelected ? "text-brand-rose" : "text-stone-400")}>
-                                                                                → {bonusDisplayMeals} livrées !
+                                                                                → {bonusDisplayMeals} préparées !
                                                                             </span>
                                                                         </span>
                                                                     ) : (
@@ -1137,7 +1137,7 @@ export function SimulatorForm({ promoConfig, leadMenu }: SimulatorFormProps) {
                                 <form onSubmit={handleFormSubmit} className="px-8 md:px-10 pb-10 space-y-5">
                                     <div className="space-y-4">
                                         <div className="space-y-2 px-1">
-                                            <Label className="text-[11px] font-black uppercase text-stone-500 ml-1">Adresse de livraison</Label>
+                                            <Label className="text-[11px] font-black uppercase text-stone-500 ml-1">Adresse de la prestation</Label>
                                             <AddressAutocomplete
                                                 onEligibilityChange={(eligible, data) => {
                                                     setIsEligible(eligible);
