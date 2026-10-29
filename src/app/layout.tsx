@@ -36,7 +36,7 @@ export const metadata: Metadata = {
     template: "%s | Elisa Batch Cooking"
   },
   description: "Simplifiez votre quotidien avec Elisa, votre cheffe à domicile à Annecy. Batch Cooking : des plats sains, frais et faits maison pour toute la semaine. Avance immédiate active : vous ne payez que 50 %.",
-  keywords: ["batch cooking annecy", "chef à domicile annecy", "repas préparés", "cuisine saine", "livraison repas annecy", "service à la personne annecy", "elisa batch cooking"],
+  keywords: ["batch cooking annecy", "chef à domicile annecy", "repas préparés", "cuisine saine", "service à la personne annecy", "elisa batch cooking"],
   authors: [{ name: "Elisa Batch Cooking" }],
   creator: "Elisa Batch Cooking",
   icons: {
