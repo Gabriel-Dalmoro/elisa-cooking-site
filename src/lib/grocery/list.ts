@@ -118,9 +118,10 @@ const NOTE_STOPWORDS = new Set(['mai', 'bar', 'lieu', 'bleu', 'loup', 'part', 'b
 const containsWords = (haystack: string, needle: string) =>
     Boolean(needle) && ` ${haystack} `.includes(` ${needle} `);
 
+// The words that name an item in the client's notes: its own words and its family (« champignon » for girolles)
 function itemTerms(line: IngredientLine): string[] {
     const terms = line.entry
-        ? line.entry.aliases.map(normalize)
+        ? [...line.entry.aliases, ...line.entry.family].map(normalize)
         : [normalize(line.name)];
     return terms.filter(t => t.length >= 3 && !NOTE_STOPWORDS.has(t));
 }
@@ -296,7 +297,8 @@ function buildLists(clients: GroceryClientInput[], merged: boolean): GroceryList
             for (const { label, tags: conflicting } of r.allergyTags) {
                 if (conflicting?.some(t => tags.has(t))) warnings.add(`🚫 ${label}${r.suffix}`);
             }
-            const texts = [normalize(acc.name), ...lines.map(l => normalize(l.raw))];
+            // « Allergie champignons » typed by hand also catches girolles: the family words count
+            const texts = [normalize(acc.name), ...lines.map(l => normalize(l.raw)), ...lines.flatMap(l => (l.entry?.family || []).map(normalize))];
             for (const { label, term } of r.customAllergies) {
                 if (texts.some(t => containsWords(t, term))) warnings.add(`🚫 ${label}${r.suffix}`);
             }

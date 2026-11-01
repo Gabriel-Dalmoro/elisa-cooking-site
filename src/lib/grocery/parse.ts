@@ -158,8 +158,12 @@ const displayName = (text: string) => {
     return t.charAt(0).toUpperCase() + t.slice(1);
 };
 
+// The ingredient itself, without what follows it: « feta (ou halloumi) », « oignon, émincé », « beurre ou huile »
+const mainPhrase = (text: string) => text.split(/\s*[,(;]\s*|\s+ou\s+|\s+\/\s+/i)[0];
+
 function withEntry(raw: string, rest: string, qty: Qty | null, unit: string, scales: boolean): IngredientLine {
-    const hit = findIngredient(rest) || findIngredient(raw);
+    // The main phrase first, so an alternative or a note in brackets never replaces the ingredient
+    const hit = findIngredient(mainPhrase(rest)) || findIngredient(rest) || findIngredient(raw);
     const frozen = /surgel/i.test(raw);
     const name = hit ? hit.entry.name : displayName(rest || raw);
     return {
@@ -247,13 +251,21 @@ export function parseLine(input: string): ParsedLine {
     if (counted) {
         const unitWords = counted[1].toLowerCase().split(' ');
         const isCountWord = COUNT_WORDS.has(normalize(unitWords[unitWords.length - 1]));
-        const remainderHit = findIngredient(counted[2]);
-        const wholeHit = findIngredient(rest);
+        const remainderHit = findIngredient(mainPhrase(counted[2])) || findIngredient(counted[2]);
+        const wholeHit = findIngredient(mainPhrase(rest)) || findIngredient(rest);
+        // The whole phrase is a different product than the single word after the counted word:
+        // « 1 boîte de thon » is canned tuna, « 4 feuilles de riz » rice paper, « 2 blancs de poulet » chicken breasts.
+        // A precise product after it still wins (« 1 sachet de levure chimique », « 1 cube de bouillon de volaille »),
+        // and a one-word match such as « noix » in « 1 noix de beurre » doesn't count.
+        const wholeIsOtherProduct = Boolean(
+            wholeHit && remainderHit && wholeHit.start === 0 && wholeHit.length > 1
+            && remainderHit.length === 1 && wholeHit.entry !== remainderHit.entry
+        );
         // A counted word, or any word in front of a known ingredient (« 4 darnes de saumon »),
         // unless the whole text is itself an ingredient (« pomme de terre », « fond de volaille »).
         if (remainderHit && (isCountWord || !wholeHit || wholeHit.start > 0)) {
             const unit = unitWords.filter(w => !SIZE_WORDS.has(normalize(w))).map(singular).join(' ') || 'piece';
-            return withEntry(raw, counted[2], qty, unit, true);
+            return withEntry(raw, wholeIsOtherProduct ? rest : counted[2], qty, unit, true);
         }
     }
 
