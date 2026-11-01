@@ -78,7 +78,7 @@ export async function getSeries(id: string): Promise<SessionSeries | null> {
 
 export async function createSeries(input: {
     clientId: string;
-    assignedTo: string;
+    assignedTo: string | null;
     timeSlot: TimeSlot;
     everyWeeks: SeriesFrequency;
     startDate: string;
@@ -189,6 +189,35 @@ export async function stopSeries(id: string, fromIso: string): Promise<void> {
         .eq('series_id', id)
         .gte('series_date', fromIso);
     if (deleteError) throw new Error(`Suppression des séances à venir impossible : ${deleteError.message}`);
+}
+
+/**
+ * « This session and all the following »: from the planned date fromSeriesDate on, the series moves to
+ * a new day and/or slot. The series is split: the old one ends just before, a new one (same client,
+ * chef, frequency and end) starts on newStartIso. Its sessions from fromSeriesDate on are planned again,
+ * so a single week moved or cancelled by hand after that date is replaced too. Earlier weeks are untouched.
+ */
+export async function rescheduleSeriesFrom(
+    id: string,
+    fromSeriesDate: string,
+    newStartIso: string,
+    timeSlot: TimeSlot,
+    client: ClientProfile
+): Promise<SessionSeries> {
+    const series = await getSeries(id);
+    if (!series) throw new Error('Récurrence introuvable');
+
+    await stopSeries(id, fromSeriesDate);
+    const next = await createSeries({
+        clientId: series.clientId,
+        assignedTo: series.assignedTo,
+        timeSlot,
+        everyWeeks: series.everyWeeks,
+        startDate: newStartIso,
+        endDate: series.endDate && series.endDate >= newStartIso ? series.endDate : null
+    });
+    await ensureSeriesSessions(addDaysIso(newStartIso, 7 * 8), [client]);
+    return next;
 }
 
 /** Gives a series to another chef: the series and its sessions from fromIso on. */
