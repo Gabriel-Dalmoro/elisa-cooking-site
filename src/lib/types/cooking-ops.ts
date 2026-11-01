@@ -37,6 +37,7 @@ export interface BookingSession {
     notes?: string; // Google Calendar event title
     assignedTo?: string | null; // Staff user id of the chef cooking this session (null = Elisa)
     seriesId?: string; // Set when the session comes from a recurring series
+    seriesDate?: string; // The date the series planned it for (kept when this one session is moved)
     createdAt: string;
 }
 

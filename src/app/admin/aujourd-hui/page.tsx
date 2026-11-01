@@ -26,10 +26,12 @@ import {
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import AdminPageHeader from '@/components/admin/AdminPageHeader';
+import { useStaff } from '@/components/admin/StaffContext';
 import { SlotSessionStatus, ClientProfile, BookingSession } from '@/lib/types/cooking-ops';
 import { formatLocalDateToIso, FRENCH_DAYS, getWeekOffsetForDate, getParisDateTimeInfo } from '@/lib/dateUtils';
 
 export default function TodayOperationsPage() {
+    const { isChef } = useStaff();
     // Current selected date (defaults to Today local)
     const [selectedDate, setSelectedDate] = useState<Date>(() => new Date());
     const [loading, setLoading] = useState(true);
@@ -58,9 +60,10 @@ export default function TodayOperationsPage() {
     const loadData = useCallback(async () => {
         try {
             setLoading(true);
-            // Sync the selected date's week with Google Calendar. If Google is unreachable the
+            // Elisa: sync the selected date's week with Google Calendar. If Google is unreachable the
             // server still returns the last stored sessions, so the day stays readable.
-            const syncRes = await fetch(`/api/cooking-ops/calendar-sync?offset=${currentWeekOffset}`);
+            // A chef has no Google Calendar: their week just loads.
+            const syncRes = await fetch(`/api/cooking-ops/${isChef ? 'admin' : 'calendar-sync'}?offset=${currentWeekOffset}`);
             const syncData = await syncRes.json().catch(() => ({}));
             if (syncData.slotStatuses) {
                 setAllSessions(syncData.slotStatuses);
@@ -70,7 +73,7 @@ export default function TodayOperationsPage() {
         } finally {
             setLoading(false);
         }
-    }, [currentWeekOffset]);
+    }, [currentWeekOffset, isChef]);
 
     useEffect(() => {
         loadData();
