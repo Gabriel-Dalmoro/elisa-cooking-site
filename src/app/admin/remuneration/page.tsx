@@ -504,7 +504,7 @@ function ChefMonth({ data, rows, onCopy }: { data: PayData; rows: ChefRow[]; onC
 // The price grid: subscription prices (most clients), every catalogue formula
 
 const GRID_DISHES = [3, 5, 6];
-const GRID_PEOPLE = [1, 2, 3, 4, 5, 6];
+const GRID_PEOPLE = [2, 3, 4, 5, 6]; // no session is ever booked for 1 person
 const EXAMPLE_SESSIONS = 12;
 
 function PriceGrid({ isOwner, chefRate, chefName }: { isOwner: boolean; chefRate: number; chefName: string }) {
@@ -540,7 +540,7 @@ function PriceGrid({ isOwner, chefRate, chefName }: { isOwner: boolean; chefRate
                     </thead>
                     <tbody>
                         {rows.map(r => (
-                            <tr key={`${r.dishCount}-${r.personCount}`} className={`border-b border-stone-100 last:border-0 ${r.personCount === 1 ? 'border-t-2 border-t-stone-200' : ''}`}>
+                            <tr key={`${r.dishCount}-${r.personCount}`} className={`border-b border-stone-100 last:border-0 ${r.personCount === GRID_PEOPLE[0] ? 'border-t-2 border-t-stone-200' : ''}`}>
                                 <td className="px-4 py-2.5 font-bold whitespace-nowrap">{r.dishCount} recettes · {r.personCount} pers.</td>
                                 {isOwner && <td className="text-right px-3 py-2.5 whitespace-nowrap">{formatEuros(r.price)}</td>}
                                 <td className="text-right px-3 py-2.5 whitespace-nowrap font-bold">{formatEuros(r.pay.phase1.chefInvoice)}</td>

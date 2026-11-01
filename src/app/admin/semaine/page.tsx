@@ -43,7 +43,7 @@ import AdminPageHeader from '@/components/admin/AdminPageHeader';
 import { useConfirm } from '@/components/admin/useConfirm';
 import { useToast } from '@/components/admin/useToast';
 import { ClientProfile, SlotSessionStatus, WeeklyMenuData } from '@/lib/types/cooking-ops';
-import { getWeekBounds, getWeekBoundsForStart, WEEK_DAY_NAMES } from '@/lib/dateUtils';
+import { getParisDateTimeInfo, getWeekBounds, getWeekBoundsForStart, WEEK_DAY_NAMES } from '@/lib/dateUtils';
 import { allergyOptions } from '@/lib/allergies';
 import CustomAllergyInput from '@/components/CustomAllergyInput';
 import { chefColor, chefName, useStaff } from '@/components/admin/StaffContext';
@@ -105,7 +105,8 @@ export default function WeeklyOpsAdminDashboard() {
         const fromUrl = new URLSearchParams(window.location.search).get('chef');
         if (fromUrl) setChefFilter(fromUrl);
     }, []);
-    const [moveDraft, setMoveDraft] = useState<{ dateIso: string; timeSlot: 'Matin' | 'Après-midi' } | null>(null);
+    // scope: a recurring session moves alone ('one') or with every following week ('following', Elisa only)
+    const [moveDraft, setMoveDraft] = useState<{ dateIso: string; timeSlot: 'Matin' | 'Après-midi'; scope: 'one' | 'following' } | null>(null);
     const [isUpdatingSession, setIsUpdatingSession] = useState(false);
 
     const weekInfo = useMemo(() => getWeekBounds(weekOffset), [weekOffset]);
@@ -165,9 +166,17 @@ export default function WeeklyOpsAdminDashboard() {
         }
     };
 
-    // Automatically sync calendar and load data whenever weekOffset changes
+    // Google Calendar is Elisa's: sync it only when her sessions are on screen. A chef's planning
+    // (signed in as the chef, or Elisa looking at one chef) lives in the app and just loads.
+    const syncsGoogle = (filter: string) => isOwner && (filter === 'all' || filter === 'elisa');
+    const refreshWeek = (offset = weekOffset) => {
+        // On the first load the ?chef= filter from the address isn't in state yet
+        const filter = chefFilter !== 'all' ? chefFilter : new URLSearchParams(window.location.search).get('chef') || 'all';
+        return syncsGoogle(filter) ? handleCalendarSync(offset) : loadWeekOverview(offset);
+    };
+
     useEffect(() => {
-        handleCalendarSync(weekOffset);
+        refreshWeek(weekOffset);
     }, [weekOffset]);
 
     const copyClientLink = (token: string, clientName?: string) => {
@@ -354,7 +363,9 @@ export default function WeeklyOpsAdminDashboard() {
             if (!res.ok) throw new Error(data.error || 'Erreur lors de l’enregistrement');
 
             setIsAddClientOpen(false);
-            await handleCalendarSync(weekOffset);
+            // Only Elisa's own booking touched Google Calendar
+            if (isOwner && !bookingAssignee && slotTargetDateIso) await handleCalendarSync(weekOffset);
+            else await loadWeekOverview(weekOffset);
             showToast(data.series
                 ? `${REPEAT_LABEL[data.series.everyWeeks]} : séances de ${data.client?.name || clientFormName} planifiées pour ${chefName(chefs, data.series.assignedTo)}`
                 : `Fiche / séance de ${data.client?.name || clientFormName} enregistrée !`, 'calendar');
@@ -483,12 +494,22 @@ export default function WeeklyOpsAdminDashboard() {
     // Moves a session created in the app (Google Calendar sessions are moved in Google Calendar)
     const moveSession = async (sessionId: string) => {
         if (!moveDraft) return;
+        const target = slotStatuses.find(s => s.session.id === sessionId)?.session;
+        if (moveDraft.scope === 'following' && target?.seriesId) {
+            const { dayName } = getParisDateTimeInfo(moveDraft.dateIso);
+            setMoveDraft(null);
+            await updateSeries(
+                { id: target.seriesId, from: target.seriesDate || target.dateIso, dateIso: moveDraft.dateIso, timeSlot: moveDraft.timeSlot },
+                `Séances de ${target.clientName} : désormais le ${dayName.toLowerCase()} ${moveDraft.timeSlot.toLowerCase()}, à partir du ${moveDraft.dateIso.split('-').reverse().join('/')}`
+            );
+            return;
+        }
         try {
             setIsUpdatingSession(true);
             const res = await fetch(`/api/cooking-ops/session/${encodeURIComponent(sessionId)}`, {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(moveDraft)
+                body: JSON.stringify({ dateIso: moveDraft.dateIso, timeSlot: moveDraft.timeSlot })
             });
             const data = await res.json().catch(() => ({}));
             if (!res.ok) throw new Error(data.error || 'Déplacement impossible');
@@ -665,7 +686,7 @@ export default function WeeklyOpsAdminDashboard() {
                         )}
 
                         {/* Sync GCal Button inside Hero (Elisa's calendar only) */}
-                        {isOwner && <Button
+                        {syncsGoogle(chefFilter) && <Button
                             size="sm"
                             variant="outline"
                             onClick={() => handleCalendarSync(weekOffset)}
@@ -1312,6 +1333,27 @@ export default function WeeklyOpsAdminDashboard() {
                                             )}
                                             {!session.gcalEventId && (
                                                 moveDraft ? (
+                                                    <div className="space-y-2">
+                                                    {session.seriesId && isOwner && (
+                                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5" role="radiogroup" aria-label="Séances concernées">
+                                                            {([
+                                                                ['one', 'Seulement cette séance', 'Une exception : les autres semaines ne bougent pas.'],
+                                                                ['following', 'Cette séance et toutes les suivantes', 'Le nouveau jour et créneau deviennent la règle.']
+                                                            ] as const).map(([value, label, hint]) => (
+                                                                <button
+                                                                    key={value}
+                                                                    type="button"
+                                                                    role="radio"
+                                                                    aria-checked={moveDraft.scope === value}
+                                                                    onClick={() => setMoveDraft({ ...moveDraft, scope: value })}
+                                                                    className={`text-left p-2.5 rounded-xl border transition-colors ${moveDraft.scope === value ? 'border-[#E1567A] bg-rose-50' : 'border-stone-200 bg-white'}`}
+                                                                >
+                                                                    <span className="block font-bold text-stone-800">{label}</span>
+                                                                    <span className="block text-[11px] text-stone-500">{hint}</span>
+                                                                </button>
+                                                            ))}
+                                                        </div>
+                                                    )}
                                                     <div className="flex flex-wrap items-center gap-2">
                                                         <input
                                                             type="date"
@@ -1328,17 +1370,23 @@ export default function WeeklyOpsAdminDashboard() {
                                                             <option value="Après-midi">Après-midi</option>
                                                         </select>
                                                         <Button size="sm" disabled={isUpdatingSession || !moveDraft.dateIso} onClick={() => moveSession(session.id)} className="rounded-full text-xs h-8 bg-stone-900 text-white">
-                                                            Déplacer
+                                                            {moveDraft.scope === 'following' ? 'Déplacer toutes les suivantes' : 'Déplacer'}
                                                         </Button>
                                                         <button type="button" onClick={() => setMoveDraft(null)} className="text-stone-500 underline">Annuler</button>
+                                                    </div>
+                                                    {moveDraft.scope === 'following' && moveDraft.dateIso && (
+                                                        <p className="text-[11px] text-stone-500">
+                                                            À partir du {moveDraft.dateIso.split('-').reverse().join('/')} : chaque {getParisDateTimeInfo(moveDraft.dateIso).dayName.toLowerCase()} {moveDraft.timeSlot.toLowerCase()}, au même rythme. Les semaines d’avant ne changent pas.
+                                                        </p>
+                                                    )}
                                                     </div>
                                                 ) : (
                                                     <button
                                                         type="button"
-                                                        onClick={() => setMoveDraft({ dateIso: session.dateIso, timeSlot: session.timeSlot })}
+                                                        onClick={() => setMoveDraft({ dateIso: session.dateIso, timeSlot: session.timeSlot, scope: 'one' })}
                                                         className="flex items-center gap-1.5 font-semibold text-stone-700 hover:text-[#E1567A]"
                                                     >
-                                                        <CalendarIcon className="w-3.5 h-3.5" /> Déplacer cette séance (autre jour ou créneau)
+                                                        <CalendarIcon className="w-3.5 h-3.5" /> {session.seriesId && isOwner ? 'Changer le jour ou le créneau' : 'Déplacer cette séance (autre jour ou créneau)'}
                                                     </button>
                                                 )
                                             )}
@@ -1472,7 +1520,7 @@ export default function WeeklyOpsAdminDashboard() {
                                                         </button>
                                                     </div>
                                                 )}
-                                                <p className="text-[11px] text-stone-500">Pour sauter une seule semaine, supprimez juste cette séance (corbeille sur la carte).</p>
+                                                <p className="text-[11px] text-stone-500">Pour sauter une seule semaine, supprimez juste cette séance (corbeille sur la carte). Pour changer le jour ou le créneau, une fois ou pour toutes les suivantes : « Changer le jour ou le créneau » ci-dessus.</p>
                                             </div>
                                         );
                                     })()}

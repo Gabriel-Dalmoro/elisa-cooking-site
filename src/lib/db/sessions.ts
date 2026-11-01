@@ -44,6 +44,7 @@ function rowToSession(row: SessionRow): BookingSession {
         notes: row.calendar_title || undefined,
         assignedTo: row.assigned_to,
         seriesId: row.series_id || undefined,
+        seriesDate: row.series_date || undefined,
         createdAt: row.created_at
     };
 }

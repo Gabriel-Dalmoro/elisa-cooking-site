@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { addDaysIso, createSeries, ensureSeriesSessions, getSeries, linkSessionToSeries, reassignSeries, stopSeries } from '@/lib/db/series';
+import { addDaysIso, createSeries, ensureSeriesSessions, getSeries, linkSessionToSeries, reassignSeries, rescheduleSeriesFrom, stopSeries } from '@/lib/db/series';
 import { getSession } from '@/lib/db/sessions';
 import { getClientById } from '@/lib/db/clients';
 import { getStaffMember } from '@/lib/db/staff';
@@ -58,6 +58,8 @@ export async function POST(req: NextRequest) {
  * with repeatEveryWeeks) or from a booked session (POST above); this route changes them:
  * PATCH { id, stopFrom: 'YYYY-MM-DD' } → no more sessions from that date (earlier ones are kept)
  * PATCH { id, assignedTo: chefId, from: 'YYYY-MM-DD' } → another chef cooks it from that date
+ * PATCH { id, from: 'YYYY-MM-DD', dateIso, timeSlot } → « this session and all the following » move:
+ *   the week planned on `from` goes to dateIso / timeSlot, and every next one follows the same rhythm
  */
 export async function PATCH(req: NextRequest) {
     const denied = await requireOwner();
@@ -66,7 +68,18 @@ export async function PATCH(req: NextRequest) {
     try {
         const body = await req.json();
         const id = typeof body.id === 'string' ? body.id : '';
-        if (!id || !(await getSeries(id))) return NextResponse.json({ error: 'Récurrence introuvable' }, { status: 404 });
+        const series = id ? await getSeries(id) : null;
+        if (!series) return NextResponse.json({ error: 'Récurrence introuvable' }, { status: 404 });
+
+        if (typeof body.from === 'string' && ISO_DATE.test(body.from) && typeof body.dateIso === 'string') {
+            if (!ISO_DATE.test(body.dateIso) || !['Matin', 'Après-midi'].includes(body.timeSlot)) {
+                return NextResponse.json({ error: 'Créneau invalide' }, { status: 400 });
+            }
+            const client = await getClientById(series.clientId);
+            if (!client) return NextResponse.json({ error: 'Fiche client introuvable' }, { status: 404 });
+            const next = await rescheduleSeriesFrom(id, body.from, body.dateIso, body.timeSlot, client);
+            return NextResponse.json({ success: true, series: next });
+        }
 
         if (typeof body.stopFrom === 'string' && ISO_DATE.test(body.stopFrom)) {
             await stopSeries(id, body.stopFrom);
