@@ -60,7 +60,7 @@ export function useConfirm() {
                 </DialogHeader>
 
                 {pending?.options.description && (
-                    <p className="text-xs text-stone-600 leading-relaxed">
+                    <p className="text-xs text-stone-600 leading-relaxed whitespace-pre-line">
                         {pending.options.description}
                     </p>
                 )}

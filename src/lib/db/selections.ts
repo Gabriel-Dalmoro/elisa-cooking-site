@@ -26,6 +26,8 @@ const CUSTOM_DISH_FROM_KEY = '__custom_dish_from__';
 const RECIPE_OVERRIDES_KEY = '__recipe_overrides__';
 // And their ingredient lists (dish id → ingredient text), read by the client's grocery list
 const INGREDIENT_OVERRIDES_KEY = '__ingredient_overrides__';
+// And the diet version of each chosen dish the client saw (dish id → variant id, lib/diets.ts)
+const VARIANTS_KEY = '__variants__';
 // And dish titles renamed for this client only (dish id → title), e.g. « Curry de légumes, sans coco »
 const TITLE_OVERRIDES_KEY = '__title_overrides__';
 // And the grocery items Elisa ticked off (bought, or the client already has them), saved with the Save button
@@ -54,6 +56,7 @@ function rowToSelection(row: SelectionRow): ClientSelection {
     const recipeOverrides = asStringRecord(notes[RECIPE_OVERRIDES_KEY]);
     const ingredientOverrides = asStringRecord(notes[INGREDIENT_OVERRIDES_KEY]);
     const titleOverrides = asStringRecord(notes[TITLE_OVERRIDES_KEY]);
+    const variantIds = asStringRecord(notes[VARIANTS_KEY]);
     const groceryChecked = asStringArray(notes[GROCERY_CHECKED_KEY]);
     const groceryEdits = asStringRecord(notes[GROCERY_EDITS_KEY]);
     const groceryExtras = asStringArray(notes[GROCERY_EXTRAS_KEY]);
@@ -62,6 +65,7 @@ function rowToSelection(row: SelectionRow): ClientSelection {
     delete notes[RECIPE_OVERRIDES_KEY];
     delete notes[INGREDIENT_OVERRIDES_KEY];
     delete notes[TITLE_OVERRIDES_KEY];
+    delete notes[VARIANTS_KEY];
     delete notes[GROCERY_CHECKED_KEY];
     delete notes[GROCERY_EDITS_KEY];
     delete notes[GROCERY_EXTRAS_KEY];
@@ -79,6 +83,7 @@ function rowToSelection(row: SelectionRow): ClientSelection {
         recipeOverrides,
         ingredientOverrides,
         titleOverrides,
+        variantIds,
         groceryChecked,
         groceryEdits,
         groceryExtras,
@@ -135,7 +140,9 @@ export async function upsertSelection(input: {
     generalNote: string;
     allergiesAtSubmission: string[];
     allergiesAdded: string[];
+    variantIds?: Record<string, string>; // the diet version shown for each chosen dish
 }): Promise<ClientSelection> {
+    const variants = Object.fromEntries(Object.entries(input.variantIds || {}).filter(([, v]) => v));
     const now = new Date().toISOString();
     const { data, error } = await getSupabaseAdmin()
         .from('client_selections')
@@ -144,13 +151,12 @@ export async function upsertSelection(input: {
             week_start: input.weekStart,
             selected_dish_ids: input.selectedDishIds,
             selected_dish_names: input.selectedDishNames,
-            dish_notes: input.customDish
-                ? {
-                    ...input.dishNotes,
-                    [CUSTOM_DISH_KEY]: input.customDish,
-                    ...(input.customDishFrom ? { [CUSTOM_DISH_FROM_KEY]: input.customDishFrom } : {})
-                }
-                : input.dishNotes,
+            dish_notes: {
+                ...input.dishNotes,
+                ...(input.customDish ? { [CUSTOM_DISH_KEY]: input.customDish } : {}),
+                ...(input.customDish && input.customDishFrom ? { [CUSTOM_DISH_FROM_KEY]: input.customDishFrom } : {}),
+                ...(Object.keys(variants).length > 0 ? { [VARIANTS_KEY]: variants } : {})
+            },
             general_note: input.generalNote,
             allergies_at_submission: input.allergiesAtSubmission,
             allergies_added: input.allergiesAdded,

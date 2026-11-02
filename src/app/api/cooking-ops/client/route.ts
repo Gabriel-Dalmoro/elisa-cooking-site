@@ -4,6 +4,7 @@ import { findPastSeasonDish, getClientFacingMenu, listPastSeasonDishes } from '@
 import { getSelection, setRecipeOverride, upsertSelection, CUSTOM_DISH_RECIPE_ID } from '@/lib/db/selections';
 import { sendSelectionEmail } from '@/lib/selectionEmail';
 import { ClientProfile, WeeklyDish } from '@/lib/types/cooking-ops';
+import { chosenVersion, menuForClient } from '@/lib/diets';
 import { getStaffMember } from '@/lib/db/staff';
 import { effectiveRecipe } from '@/lib/grocery/recipe';
 import { getWeekBoundsForStart, getWeekOffsetForDate, isMondayIso, seasonOf, SEASON_OF_PHRASE, SEASON_PHRASE } from '@/lib/dateUtils';
@@ -29,8 +30,8 @@ async function toPublicClient(client: ClientProfile) {
     };
 }
 
-function toPublicDish(dish: WeeklyDish) {
-    return { id: dish.id, name: dish.name, category: dish.category, description: dish.description || '' };
+function toPublicDish(dish: WeeklyDish, badge = '') {
+    return { id: dish.id, name: dish.name, category: dish.category, description: dish.description || '', ...(badge ? { badge } : {}) };
 }
 
 // "Cette semaine" / "Semaine prochaine": shown next to the dates so the client can't mix up two open weeks
@@ -82,7 +83,8 @@ export async function GET(req: NextRequest) {
                 weekStart: menu.weekStart,
                 weekLabel: menu.weekLabel,
                 when: relativeWeek(menu.weekStart),
-                dishes: menu.recipes.map(toPublicDish),
+                // This client's own 8: dishes that don't suit their diet come in Elisa's adapted version
+                dishes: menuForClient(menu.recipes, client.allergies).map(({ dish, badge }) => toPublicDish(dish, badge)),
                 pastDishes,
                 seasonPhrase: SEASON_PHRASE[season], // « cet automne »
                 seasonOfPhrase: SEASON_OF_PHRASE[season], // « de l'automne »
@@ -90,9 +92,10 @@ export async function GET(req: NextRequest) {
                     ? {
                         selectedDishIds: existing.selectedDishIds,
                         // Names as shown to the client (snapshot kept if a dish was later removed from the menu)
-                        selectedDishNames: existing.selectedDishIds.map((id, i) =>
-                            menu.recipes.find(d => d.id === id)?.name || existing.selectedDishNames[i] || ''
-                        ),
+                        selectedDishNames: existing.selectedDishIds.map((id, i) => {
+                            const dish = menu.recipes.find(d => d.id === id);
+                            return (dish && chosenVersion(dish, existing.variantIds?.[id]).name) || existing.selectedDishNames[i] || '';
+                        }),
                         dishNotes: existing.dishNotes,
                         customDish: existing.customDish || '',
                         generalNote: existing.generalNote,
@@ -181,11 +184,14 @@ export async function POST(req: NextRequest) {
             });
         }
 
+        // The versions the client was shown (from their allergies before this submission)
+        const shown = new Map(menuForClient(menu.recipes, client.allergies).map(v => [v.dish.id, v]));
         let selection = await upsertSelection({
             clientId: client.id,
             weekStart,
             selectedDishIds: ids,
-            selectedDishNames: ids.map(id => menu.recipes.find(d => d.id === id)?.name || ''),
+            selectedDishNames: ids.map(id => shown.get(id)?.dish.name || ''),
+            variantIds: Object.fromEntries(ids.map(id => [id, shown.get(id)?.variantId || ''])),
             dishNotes: cleanNotes,
             customDish: custom,
             customDishFrom: picked ? pastDish.weekStart : undefined,

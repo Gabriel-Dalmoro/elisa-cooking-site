@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { 
     ChefHat, 
@@ -19,7 +19,9 @@ import {
     Utensils,
     Image as ImageIcon,
     ChevronLeft,
-    ChevronRight
+    ChevronRight,
+    AlertTriangle,
+    CheckCircle2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -28,6 +30,8 @@ import AdminPageHeader from '@/components/admin/AdminPageHeader';
 import { useConfirm } from '@/components/admin/useConfirm';
 import { useToast } from '@/components/admin/useToast';
 import RecipeBoxes from '@/components/admin/RecipeBoxes';
+import DishDietPanel, { DietClient } from '@/components/admin/DishDietPanel';
+import { DietIssue, dietLabel, dietsFromAllergies, DIET_KEYS, menuDietIssues } from '@/lib/diets';
 import { splitRecipe } from '@/lib/grocery/parse';
 import { WeeklyDish, WeeklyMenuData, VaultRecipe, DishCategory, MenuStatus } from '@/lib/types/cooking-ops';
 
@@ -80,6 +84,8 @@ export default function WeeklyRecipeAndVaultPage() {
     const [weekOffset, setWeekOffset] = useState<number | null>(null);
     const [menu, setMenu] = useState<WeeklyMenuData | null>(null);
     const [vault, setVault] = useState<VaultRecipe[]>([]);
+    // Regular clients with a diet: every dish must suit them (adapted or replaced)
+    const [dietClients, setDietClients] = useState<DietClient[]>([]);
     const [selectedDishIndex, setSelectedDishIndex] = useState<number>(0);
     const [isDirty, setIsDirty] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
@@ -114,6 +120,7 @@ export default function WeeklyRecipeAndVaultPage() {
             if (!res.ok) throw new Error(data.error || 'Erreur de chargement');
             setMenu({ ...data.menu, recipes: padToSlots(data.menu.recipes) });
             setVault(data.vault || []);
+            setDietClients(data.dietClients || []);
             setSelectedDishIndex(0);
             setIsDirty(false);
         } catch (e) {
@@ -158,6 +165,17 @@ export default function WeeklyRecipeAndVaultPage() {
         setIsDirty(true);
         setSaveSuccess(false);
     };
+
+    // What's still to adapt this week, per dish (every client must get 8 dishes that suit them)
+    const dietIssues = useMemo(
+        () => (menu ? menuDietIssues(menu.recipes.filter(d => d.name.trim()), dietClients) : []),
+        [menu, dietClients]
+    );
+    const dietCounts = useMemo(() => {
+        const counts = new Map<string, string[]>();
+        for (const c of dietClients) for (const d of dietsFromAllergies(c.allergies)) counts.set(d, [...(counts.get(d) || []), c.name]);
+        return DIET_KEYS.filter(d => counts.has(d)).map(d => ({ diet: d, clients: counts.get(d)! }));
+    }, [dietClients]);
 
     const currentDish = menu?.recipes?.[selectedDishIndex];
     // The recipe is one free text (older recipes saved as separate steps are shown joined, one per line)
@@ -238,14 +256,17 @@ export default function WeeklyRecipeAndVaultPage() {
         }
     };
 
-    const changeStatus = async (status: MenuStatus) => {
+    const describeIssues = (issues: DietIssue[]) =>
+        issues.map(i => `• ${i.dishName} — ${i.diets.map(dietLabel).join(' + ')} (${i.clients.join(', ')})`).join('\n');
+
+    const changeStatus = async (status: MenuStatus, force = false) => {
         if (!menu) return;
         const dialogOptions = status === 'open'
             ? { title: 'Ouvrir le menu aux clients ?', description: `Les liens clients afficheront le menu de la ${menu.weekLabel.toLowerCase()} et les clients pourront envoyer leurs choix. Si un autre menu est encore ouvert, chaque client choisira la semaine sur son lien (le même lien).`, confirmLabel: 'Ouvrir aux clients' }
             : status === 'closed'
                 ? { title: 'Clôturer les choix ?', description: 'Les clients ne pourront plus envoyer ni modifier leur sélection.', confirmLabel: 'Clôturer', tone: 'danger' as const }
                 : { title: 'Repasser en brouillon ?', description: 'Les liens clients n’afficheront plus ce menu.', confirmLabel: 'Repasser en brouillon', tone: 'danger' as const };
-        if (!(await confirm(dialogOptions))) return;
+        if (!force && !(await confirm(dialogOptions))) return;
 
         // Save pending edits first so clients see the latest version
         if (isDirty && !(await saveMenu())) return;
@@ -256,9 +277,21 @@ export default function WeeklyRecipeAndVaultPage() {
             const res = await fetch('/api/cooking-ops/admin/menu', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ weekStart: menu.weekStart, status })
+                body: JSON.stringify({ weekStart: menu.weekStart, status, force })
             });
             const data = await res.json().catch(() => ({}));
+            // Some clients would get a dish that doesn't suit them: Elisa decides
+            if (res.status === 409 && Array.isArray(data.dietIssues)) {
+                setIsSaving(false);
+                const openAnyway = await confirm({
+                    title: 'Certains plats ne conviennent pas encore à tous vos clients',
+                    description: `${describeIssues(data.dietIssues)}\n\nAdaptez-les (ou remplacez-les) pour que chacun ait ses 8 plats, ou ouvrez quand même : ces clients verront le plat d'origine.`,
+                    confirmLabel: 'Ouvrir quand même',
+                    tone: 'danger'
+                });
+                if (openAnyway) await changeStatus('open', true);
+                return;
+            }
             if (!res.ok) throw new Error(data.error || 'Erreur');
             setMenu({ ...data.menu, recipes: padToSlots(data.menu.recipes) });
             showToast(
@@ -282,7 +315,9 @@ export default function WeeklyRecipeAndVaultPage() {
             category: vaultRecipe.category,
             ingredients: vaultRecipe.ingredients || '',
             instructions: vaultRecipe.instructions || [],
-            chefNotes: vaultRecipe.chefNotes || ''
+            chefNotes: vaultRecipe.chefNotes || '',
+            variants: [],
+            dietOk: []
         });
         setSelectedDishIndex(indexToUse);
         setInspectedVaultRecipe(null);
@@ -460,6 +495,31 @@ export default function WeeklyRecipeAndVaultPage() {
                             </Link>
                         </div>
 
+                        {/* Diets this week: who needs an adapted menu, and what's left to adapt */}
+                        {dietCounts.length > 0 && (
+                            <div className={`rounded-3xl p-5 border flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${
+                                dietIssues.length > 0 ? 'bg-amber-50 border-amber-300' : 'bg-emerald-50 border-emerald-200'
+                            }`}>
+                                <div className="space-y-1.5">
+                                    <h3 className="font-serif font-bold text-stone-900 text-sm sm:text-base flex items-center gap-2">
+                                        {dietIssues.length > 0
+                                            ? <><AlertTriangle className="w-4 h-4 text-amber-600" /> {new Set(dietIssues.map(i => i.dishId)).size} plat{new Set(dietIssues.map(i => i.dishId)).size > 1 ? 's' : ''} à adapter pour vos clients</>
+                                            : <><CheckCircle2 className="w-4 h-4 text-emerald-600" /> Chaque client a ses 8 plats adaptés</>}
+                                    </h3>
+                                    <p className="text-xs text-stone-600 flex flex-wrap gap-1.5">
+                                        {dietCounts.map(({ diet, clients }) => (
+                                            <span key={diet} title={clients.join(', ')} className="bg-white border border-stone-200 rounded-full px-2.5 py-0.5 font-semibold">
+                                                {dietLabel(diet)} · {clients.length} client{clients.length > 1 ? 's' : ''}
+                                            </span>
+                                        ))}
+                                    </p>
+                                </div>
+                                <p className="text-[11px] text-stone-500 sm:max-w-xs">
+                                    Chaque client reçoit le même lien : il y voit automatiquement sa version du menu, avec le badge « Adapté pour vous ».
+                                </p>
+                            </div>
+                        )}
+
                         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
                             {/* Left: 8 Dishes List & Quick Renamer */}
                             <div className="lg:col-span-5 space-y-3">
@@ -532,6 +592,21 @@ export default function WeeklyRecipeAndVaultPage() {
                                                         Éditer la recette <ArrowRight className="w-3 h-3" />
                                                     </span>
                                                 </div>
+                                                {dish.name.trim() && dietCounts.length > 0 && (() => {
+                                                    const todo = dietIssues.filter(i => i.dishId === dish.id);
+                                                    const versions = dish.variants?.length || 0;
+                                                    if (todo.length > 0) return (
+                                                        <span className="mt-2 inline-flex items-center gap-1 text-[10px] font-bold rounded-full border border-amber-300 bg-amber-50 text-amber-800 px-2 py-0.5">
+                                                            <AlertTriangle className="w-3 h-3" /> À adapter : {[...new Set(todo.flatMap(i => i.diets))].map(dietLabel).join(', ')}
+                                                        </span>
+                                                    );
+                                                    if (versions > 0) return (
+                                                        <span className="mt-2 inline-flex items-center gap-1 text-[10px] font-bold rounded-full border border-emerald-200 bg-emerald-50 text-emerald-700 px-2 py-0.5">
+                                                            <CheckCircle2 className="w-3 h-3" /> {versions} version{versions > 1 ? 's' : ''} adaptée{versions > 1 ? 's' : ''}
+                                                        </span>
+                                                    );
+                                                    return null;
+                                                })()}
                                             </div>
                                         );
                                     })}
@@ -597,6 +672,9 @@ export default function WeeklyRecipeAndVaultPage() {
                                                 className="w-full text-xs p-3 rounded-2xl border border-stone-300 focus:ring-2 focus:ring-[#E1567A] focus:outline-none"
                                             />
                                         </div>
+
+                                        {/* Diets: versions of this dish for the clients it doesn't suit */}
+                                        <DishDietPanel dish={currentDish} clients={dietClients} vault={vault} onChange={updateCurrentDish} />
 
                                         <div className="pt-3 border-t border-stone-200 flex items-center justify-between">
                                             <div className="flex flex-col items-start gap-1">

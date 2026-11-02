@@ -47,6 +47,7 @@ import { getParisDateTimeInfo, getWeekBounds, getWeekBoundsForStart, WEEK_DAY_NA
 import { allergyOptions } from '@/lib/allergies';
 import CustomAllergyInput from '@/components/CustomAllergyInput';
 import { chefColor, chefName, useStaff } from '@/components/admin/StaffContext';
+import { chosenVersion } from '@/lib/diets';
 
 const SLOTS: ('Matin' | 'Après-midi')[] = ['Matin', 'Après-midi'];
 
@@ -1295,7 +1296,10 @@ export default function WeeklyOpsAdminDashboard() {
                         const chosen = selection
                             ? selection.selectedDishIds.map((id, i) => ({
                                 id,
-                                name: selection.titleOverrides?.[id] || weekMenu?.recipes.find(d => d.id === id)?.name || selection.selectedDishNames[i] || id,
+                                name: selection.titleOverrides?.[id] || (() => {
+                                    const dish = weekMenu?.recipes.find(d => d.id === id);
+                                    return dish ? chosenVersion(dish, selection.variantIds?.[id]).name : '';
+                                })() || selection.selectedDishNames[i] || id,
                                 note: selection.dishNotes[id] || ''
                             }))
                             : [];

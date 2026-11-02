@@ -2,6 +2,7 @@ import { BookingSession, ClientProfile, ClientSelection, WeeklyMenuData } from '
 import { getWeekBoundsForStart } from './dateUtils';
 import { listSessions } from './db/sessions';
 import { ensureSeriesSessions } from './db/series';
+import { chosenVersion } from './diets';
 import { getStaffMember } from './db/staff';
 
 /**
@@ -45,7 +46,10 @@ export function buildSelectionEmail(input: {
 }): { subject: string; html: string; text: string } {
     const { client, selection, menu, sessions, baseUrl } = input;
     const dishes = selection.selectedDishIds.map((id, i) => ({
-        name: menu.recipes.find(d => d.id === id)?.name || selection.selectedDishNames[i] || id,
+        name: (() => {
+            const dish = menu.recipes.find(d => d.id === id);
+            return (dish && chosenVersion(dish, selection.variantIds?.[id]).name) || selection.selectedDishNames[i] || id;
+        })(),
         note: selection.dishNotes[id] || ''
     }));
     const total = dishes.length + (selection.customDish ? 1 : 0);

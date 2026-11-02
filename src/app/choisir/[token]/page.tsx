@@ -42,6 +42,7 @@ interface PublicDish {
     name: string;
     category: string;
     description?: string;
+    badge?: string; // « Adapté sans gluten pour vous »: Elisa's version for this client's diet
 }
 
 interface PublicMenu {
@@ -665,6 +666,11 @@ export default function ClientMenuSelectionPage() {
                                                 {getDishIcon(dish.category)}
                                                 {dish.category}
                                             </Badge>
+                                            {dish.badge && (
+                                                <span className="inline-flex items-center gap-1 text-[11px] font-bold rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200 px-2 py-0.5">
+                                                    <Check className="w-3 h-3 stroke-[3]" /> {dish.badge}
+                                                </span>
+                                            )}
                                         </div>
 
                                         <h3 className="font-serif font-bold text-stone-900 text-base leading-snug">
