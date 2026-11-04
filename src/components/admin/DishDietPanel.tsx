@@ -42,6 +42,14 @@ export default function DishDietPanel({ dish, clients, vault, onChange }: Props)
     const issues = useMemo(() => (dish.name.trim() ? menuDietIssues([dish], clients) : []), [dish, clients]);
     const checkedOk = (dish.dietOk || []).filter(d => (conflicts[d as DietKey]?.length || 0) > 0) as DietKey[];
 
+    // The same dish in the recipe bank, with versions written on an earlier menu
+    const remembered = useMemo(() => {
+        if (variants.length > 0) return null;
+        const key = dish.name.trim().toLowerCase();
+        const recipe = vault.find(r => r.name.trim().toLowerCase() === key);
+        return recipe && ((recipe.variants?.length || 0) > 0) ? recipe : null;
+    }, [dish.name, variants.length, vault]);
+
     if (clientDiets.length === 0 || !dish.name.trim()) return null;
 
     const saveVariant = (variant: DishVariant) => {
@@ -77,6 +85,22 @@ export default function DishDietPanel({ dish, clients, vault, onChange }: Props)
                     </span>
                 )}
             </div>
+
+            {remembered && (
+                <div className="bg-sky-50 border border-sky-200 rounded-2xl p-3 text-xs flex flex-wrap items-center justify-between gap-2">
+                    <span className="text-sky-900">
+                        <strong>Déjà adapté une autre semaine :</strong>{' '}
+                        {remembered.variants!.map(v => `${v.name} (${v.diets.map(dietLabel).join(' + ').toLowerCase()})`).join(' · ')}
+                    </span>
+                    <button
+                        type="button"
+                        onClick={() => onChange({ variants: remembered.variants, dietOk: [...new Set([...(dish.dietOk || []), ...(remembered.dietOk || [])])] })}
+                        className="rounded-full bg-sky-700 hover:bg-sky-800 text-white px-3 py-1.5 font-semibold"
+                    >
+                        Reprendre {remembered.variants!.length > 1 ? 'ces versions' : 'cette version'}
+                    </button>
+                </div>
+            )}
 
             {/* To do: clients this dish (or its versions) doesn't suit yet */}
             {issues.map(issue => (

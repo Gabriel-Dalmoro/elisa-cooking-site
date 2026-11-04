@@ -123,4 +123,7 @@ export interface VaultRecipe {
     timesUsed?: number;
     lastUsedWeek?: string; // Monday of the last week it was on an open menu
     createdAt: string;
+    // Diet versions remembered from the menus it was on (migration 008)
+    variants?: DishVariant[];
+    dietOk?: string[];
 }

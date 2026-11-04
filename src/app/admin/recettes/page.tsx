@@ -316,8 +316,9 @@ export default function WeeklyRecipeAndVaultPage() {
             ingredients: vaultRecipe.ingredients || '',
             instructions: vaultRecipe.instructions || [],
             chefNotes: vaultRecipe.chefNotes || '',
-            variants: [],
-            dietOk: []
+            // Its diet versions come back with it, ready for this week's clients
+            variants: vaultRecipe.variants || [],
+            dietOk: vaultRecipe.dietOk || []
         });
         setSelectedDishIndex(indexToUse);
         setInspectedVaultRecipe(null);
@@ -780,6 +781,14 @@ export default function WeeklyRecipeAndVaultPage() {
                                         >
                                             <td className="py-3.5 px-4 font-serif font-bold text-stone-900 text-sm">
                                                 {recipe.name}
+                                                {(recipe.variants?.length || 0) > 0 && (
+                                                    <span
+                                                        title={recipe.variants!.map(v => `${v.name} (${v.diets.map(dietLabel).join(' + ')})`).join('\n')}
+                                                        className="ml-2 align-middle inline-flex items-center gap-1 font-sans text-[10px] font-bold rounded-full border border-emerald-200 bg-emerald-50 text-emerald-700 px-2 py-0.5"
+                                                    >
+                                                        <CheckCircle2 className="w-3 h-3" /> {recipe.variants!.length} version{recipe.variants!.length > 1 ? 's' : ''} régime
+                                                    </span>
+                                                )}
                                                 {recipe.chefNotes && (
                                                     <span className="block font-sans font-normal text-[11px] text-stone-500 italic mt-0.5 line-clamp-1">
                                                         {recipe.chefNotes}
@@ -890,6 +899,24 @@ export default function WeeklyRecipeAndVaultPage() {
                                 )}
                             </div>
                         </div>
+
+                        {/* Diet versions remembered with this recipe */}
+                        {(inspectedVaultRecipe?.variants?.length || 0) > 0 && (
+                            <div className="space-y-2">
+                                <h4 className="font-bold uppercase tracking-wider text-stone-600 text-[11px]">Versions pour les régimes :</h4>
+                                <ul className="space-y-1.5">
+                                    {inspectedVaultRecipe!.variants!.map(v => (
+                                        <li key={v.id} className="bg-emerald-50/60 border border-emerald-200 rounded-xl px-3 py-2">
+                                            <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-700 block">
+                                                {v.kind === 'replacement' ? 'Remplacé' : 'Adapté'} · {v.diets.map(dietLabel).join(' + ')}
+                                            </span>
+                                            <span className="font-serif font-bold text-stone-900">{v.name}</span>
+                                        </li>
+                                    ))}
+                                </ul>
+                                <p className="text-[11px] text-stone-500">Elles reviennent avec le plat quand vous le placez dans un menu.</p>
+                            </div>
+                        )}
 
                         {/* Slot selector for import */}
                         <div className="pt-2 border-t border-stone-200">
