@@ -50,6 +50,23 @@ export interface WeeklyDish {
     instructions?: string[];
     chefNotes?: string;
     tags?: string[];
+    // Diet-adapted menus (lib/diets.ts): versions of this dish for clients it doesn't suit,
+    // and the diets Elisa checked the original is fine for (a wrong flag)
+    variants?: DishVariant[];
+    dietOk?: string[];
+}
+
+/** Another version of a menu dish for some diets: adapted from it, or a different dish replacing it. */
+export interface DishVariant {
+    id: string;
+    diets: import('../diets').DietKey[];
+    kind: 'adapted' | 'replacement';
+    name: string;
+    category?: DishCategory;
+    description?: string;
+    ingredients?: string;
+    instructions?: string[];
+    chefNotes?: string;
 }
 
 export type MenuStatus = 'draft' | 'open' | 'closed';
@@ -71,6 +88,7 @@ export interface ClientSelection {
     dishNotes: Record<string, string>; // Keyed by dish id
     customDish?: string; // The one dish the client wrote themselves (replaces one menu dish)
     customDishFrom?: string; // Week (Monday) of the earlier menu the custom dish was picked from, if any
+    variantIds?: Record<string, string>; // Diet version of each chosen dish the client saw (dish id → variant id). Staff only.
     titleOverrides?: Record<string, string>; // Dish titles renamed for this client's week only, keyed by dish id. Staff only.
     recipeOverrides: Record<string, string>; // Elisa's recipe adapted for this client only, keyed by dish id ('__custom__' = custom dish). Staff only.
     ingredientOverrides: Record<string, string>; // Same, for the ingredient list (feeds this client's grocery list). Staff only.
@@ -105,4 +123,7 @@ export interface VaultRecipe {
     timesUsed?: number;
     lastUsedWeek?: string; // Monday of the last week it was on an open menu
     createdAt: string;
+    // Diet versions remembered from the menus it was on (migration 008)
+    variants?: DishVariant[];
+    dietOk?: string[];
 }

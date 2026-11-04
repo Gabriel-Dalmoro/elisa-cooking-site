@@ -36,6 +36,7 @@ interface KitchenSheet {
     selection: ClientSelection | null;
     dishes: WeeklyDish[];
     missingDishNames: string[];
+    versionLabels?: Record<string, string>; // « Version sans gluten » for dishes in a diet version
     weekLabel: string;
 }
 
@@ -261,7 +262,7 @@ export default function ChefCookingModePage({ params }: { params: Promise<{ sess
         );
     }
 
-    const { session, client, selection, dishes, missingDishNames } = sheet;
+    const { session, client, selection, dishes, missingDishNames, versionLabels } = sheet;
     const displayName = client?.name || session.clientName;
     const arrival = formatParisTime(session.startsAt);
     const allergiesAdded = selection?.allergiesAdded || [];
@@ -512,6 +513,11 @@ export default function ChefCookingModePage({ params }: { params: Promise<{ sess
                                     <Badge variant="outline" className="bg-rose-50 text-[#E1567A] border-[#E1567A]/30 text-[11px] font-bold rounded-full">
                                         Plat #{dIdx + 1} • {dish.category}
                                     </Badge>
+                                    {versionLabels?.[dish.id] && (
+                                        <Badge variant="outline" className="ml-1.5 bg-emerald-50 text-emerald-800 border-emerald-200 text-[11px] font-bold rounded-full">
+                                            {versionLabels[dish.id]}
+                                        </Badge>
+                                    )}
                                     <DishTitleEdit
                                         title={dish.name}
                                         override={selection?.titleOverrides?.[dish.id]}

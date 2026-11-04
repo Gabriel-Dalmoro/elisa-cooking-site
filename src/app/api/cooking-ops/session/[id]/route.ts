@@ -8,6 +8,7 @@ import { getMenu } from '@/lib/db/menus';
 import { getWeekStartForDate } from '@/lib/dateUtils';
 import { requireStaff } from '@/lib/auth';
 import { canAccessSession, clientForStaff, forbidden, isOwner } from '@/lib/access';
+import { chosenVersion, dietLabel } from '@/lib/diets';
 
 type Params = { params: Promise<{ id: string }> };
 
@@ -38,7 +39,18 @@ export async function GET(_req: NextRequest, { params }: Params) {
         // Dishes chosen by the client, in menu order. A chosen dish later removed from the menu
         // is still listed by name so nothing silently disappears from the kitchen sheet.
         const chosenIds = selection?.selectedDishIds || [];
-        const dishes = menu.recipes.filter(d => chosenIds.includes(d.id));
+        // Each in the version the client chose (adapted for their diet, when Elisa wrote one)
+        const dishes = menu.recipes
+            .filter(d => chosenIds.includes(d.id))
+            .map(d => chosenVersion(d, selection?.variantIds?.[d.id]));
+        // « Version sans gluten » on the kitchen sheet, so the cook knows which recipe it is
+        const versionLabels: Record<string, string> = {};
+        for (const d of menu.recipes) {
+            const variant = d.variants?.find(v => v.id === selection?.variantIds?.[d.id]);
+            if (variant && chosenIds.includes(d.id)) {
+                versionLabels[d.id] = `${variant.kind === 'replacement' ? 'Remplacement' : 'Version'} ${variant.diets.map(dietLabel).join(' + ').toLowerCase()}`;
+            }
+        }
         const missingDishNames = chosenIds
             .map((dishId, i) => (menu.recipes.some(d => d.id === dishId) ? null : selection?.selectedDishNames[i] || null))
             .filter((n): n is string => Boolean(n));
@@ -49,6 +61,7 @@ export async function GET(_req: NextRequest, { params }: Params) {
             selection,
             dishes,
             missingDishNames,
+            versionLabels,
             weekLabel: menu.weekLabel
         });
     } catch (error) {

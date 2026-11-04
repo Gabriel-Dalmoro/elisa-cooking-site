@@ -1,6 +1,7 @@
 import { randomUUID } from 'crypto';
 import { getSupabaseAdmin } from '../supabase/admin';
-import { MenuStatus, WeeklyDish, WeeklyMenuData } from '../types/cooking-ops';
+import { DishVariant, MenuStatus, WeeklyDish, WeeklyMenuData } from '../types/cooking-ops';
+import { isDietKey, menuDietIssues } from '../diets';
 import { getCurrentWeekStart, getWeekBoundsForStart, seasonOf } from '../dateUtils';
 import { markDishesUsed, saveDishesToVault } from './vault';
 
@@ -23,6 +24,38 @@ function rowToMenu(row: MenuRow): WeeklyMenuData {
         recipes: Array.isArray(row.dishes) ? (row.dishes as WeeklyDish[]) : [],
         updatedAt: row.updated_at
     };
+}
+
+const cleanSteps = (v: unknown): string[] =>
+    Array.isArray(v) ? v.filter((s): s is string => typeof s === 'string').map(s => s.trim()).filter(Boolean) : [];
+
+/** Diet versions of a dish (lib/diets.ts): each needs a name and at least one diet. */
+function sanitizeVariants(input: unknown): DishVariant[] {
+    if (!Array.isArray(input)) return [];
+    const seen = new Set<string>();
+    const out: DishVariant[] = [];
+    for (const raw of input.slice(0, 20)) {
+        if (!raw || typeof raw !== 'object') continue;
+        const v = raw as Record<string, unknown>;
+        const name = typeof v.name === 'string' ? v.name.trim().slice(0, 300) : '';
+        const diets = Array.isArray(v.diets) ? [...new Set(v.diets.filter(isDietKey))] : [];
+        if (!name || diets.length === 0) continue;
+        let id = typeof v.id === 'string' && /^[\w-]{1,64}$/.test(v.id) ? v.id : '';
+        if (!id || seen.has(id)) id = `var_${randomUUID().slice(0, 8)}`;
+        seen.add(id);
+        out.push({
+            id,
+            diets,
+            kind: v.kind === 'replacement' ? 'replacement' : 'adapted',
+            name,
+            category: typeof v.category === 'string' && v.category.trim() ? v.category.trim() : undefined,
+            description: typeof v.description === 'string' ? v.description.trim() : undefined,
+            ingredients: typeof v.ingredients === 'string' ? v.ingredients.trim().slice(0, 20000) : '',
+            instructions: cleanSteps(v.instructions),
+            chefNotes: typeof v.chefNotes === 'string' ? v.chefNotes.trim() : ''
+        });
+    }
+    return out;
 }
 
 /**
@@ -53,7 +86,9 @@ export function sanitizeDishes(input: unknown): WeeklyDish[] {
             instructions: Array.isArray(d.instructions)
                 ? d.instructions.filter((s): s is string => typeof s === 'string').map(s => s.trim()).filter(Boolean)
                 : [],
-            chefNotes: typeof d.chefNotes === 'string' ? d.chefNotes.trim() : ''
+            chefNotes: typeof d.chefNotes === 'string' ? d.chefNotes.trim() : '',
+            variants: sanitizeVariants(d.variants),
+            dietOk: Array.isArray(d.dietOk) ? [...new Set(d.dietOk.filter(isDietKey))] : []
         });
     }
     return dishes;
@@ -96,10 +131,28 @@ export async function saveMenuDishes(weekStart: string, dishesInput: unknown): P
     return menu;
 }
 
-export async function setMenuStatus(weekStart: string, status: MenuStatus): Promise<WeeklyMenuData> {
+export class DietIssuesError extends Error {
+    constructor(public issues: ReturnType<typeof menuDietIssues>) {
+        super('Certains plats ne conviennent pas encore à tous vos clients');
+    }
+}
+
+/**
+ * Opening the menu checks every client gets 8 dishes that suit them (clients list given by the
+ * caller); `force` opens anyway, once Elisa has seen what's left.
+ */
+export async function setMenuStatus(
+    weekStart: string,
+    status: MenuStatus,
+    options: { clients?: { name: string; allergies: string[] }[]; force?: boolean } = {}
+): Promise<WeeklyMenuData> {
     const current = await getMenu(weekStart);
     if (status === 'open' && current.recipes.length === 0) {
         throw new Error('Ajoutez au moins un plat avant d’ouvrir le menu aux clients');
+    }
+    if (status === 'open' && !options.force && options.clients) {
+        const issues = menuDietIssues(current.recipes, options.clients);
+        if (issues.length > 0) throw new DietIssuesError(issues);
     }
 
     const { data, error } = await getSupabaseAdmin()
