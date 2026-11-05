@@ -9,6 +9,7 @@ import { getWeekStartForDate } from '@/lib/dateUtils';
 import { requireStaff } from '@/lib/auth';
 import { canAccessSession, clientForStaff, forbidden, isOwner } from '@/lib/access';
 import { chosenVersion, dietLabel } from '@/lib/diets';
+import { alignSelectionToMenu } from '@/lib/chosenDishes';
 
 type Params = { params: Promise<{ id: string }> };
 
@@ -34,7 +35,8 @@ export async function GET(_req: NextRequest, { params }: Params) {
             session.clientId ? getClientById(session.clientId) : Promise.resolve(null),
             getMenu(weekStart)
         ]);
-        const selection = client ? await getSelection(client.id, weekStart) : null;
+        // Lined up on the menu as it is now (a dish re-placed after the client chose keeps its place)
+        const selection = alignSelectionToMenu(client ? await getSelection(client.id, weekStart) : null, menu.recipes);
 
         // Dishes chosen by the client, in menu order. A chosen dish later removed from the menu
         // is still listed by name so nothing silently disappears from the kitchen sheet.
@@ -143,7 +145,7 @@ export async function PATCH(req: NextRequest, { params }: Params) {
         if (typeof body.dishId === 'string' && typeof body.title === 'string') {
             if (!current.clientId) return NextResponse.json({ error: 'Aucune fiche client liée à cette séance' }, { status: 404 });
             const weekStart = getWeekStartForDate(current.dateIso);
-            const selection = await getSelection(current.clientId, weekStart);
+            const selection = alignSelectionToMenu(await getSelection(current.clientId, weekStart), (await getMenu(weekStart)).recipes);
             const isChosen = body.dishId === CUSTOM_DISH_RECIPE_ID
                 ? Boolean(selection?.customDish)
                 : Boolean(selection?.selectedDishIds.includes(body.dishId));
@@ -158,7 +160,7 @@ export async function PATCH(req: NextRequest, { params }: Params) {
                 return NextResponse.json({ error: 'Aucune fiche client liée à cette séance' }, { status: 404 });
             }
             const weekStart = getWeekStartForDate(session.dateIso);
-            const selection = await getSelection(session.clientId, weekStart);
+            const selection = alignSelectionToMenu(await getSelection(session.clientId, weekStart), (await getMenu(weekStart)).recipes);
             const isChosen = body.dishId === CUSTOM_DISH_RECIPE_ID
                 ? Boolean(selection?.customDish)
                 : Boolean(selection?.selectedDishIds.includes(body.dishId));

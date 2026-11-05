@@ -2,6 +2,7 @@ import { randomUUID } from 'crypto';
 import { getSupabaseAdmin } from '../supabase/admin';
 import { DishVariant, MenuStatus, WeeklyDish, WeeklyMenuData } from '../types/cooking-ops';
 import { isDietKey, menuDietIssues } from '../diets';
+import { normalize } from '../grocery/parse';
 import { getCurrentWeekStart, getWeekBoundsForStart, seasonOf } from '../dateUtils';
 import { markDishesUsed, saveDishesToVault } from './vault';
 
@@ -113,8 +114,25 @@ export async function getMenu(weekStart: string): Promise<WeeklyMenuData> {
     };
 }
 
+/**
+ * Clients' choices point to dishes by id: a dish that comes back with a new id (re-placed from the
+ * recipe bank, or re-typed in its slot) keeps the id it already had on this week's menu.
+ */
+function keepDishIds(dishes: WeeklyDish[], stored: WeeklyDish[]): WeeklyDish[] {
+    const key = (name: string) => normalize(name);
+    const incomingIds = new Set(dishes.map(d => d.id));
+    const used = new Set<string>();
+    return dishes.map(dish => {
+        if (stored.some(s => s.id === dish.id)) return dish;
+        const previous = stored.find(s => key(s.name) === key(dish.name) && !incomingIds.has(s.id) && !used.has(s.id));
+        if (!previous) return dish;
+        used.add(previous.id);
+        return { ...dish, id: previous.id };
+    });
+}
+
 export async function saveMenuDishes(weekStart: string, dishesInput: unknown): Promise<WeeklyMenuData> {
-    const dishes = sanitizeDishes(dishesInput);
+    const dishes = keepDishIds(sanitizeDishes(dishesInput), (await getMenu(weekStart)).recipes);
     // Status is not in the payload, so saving never changes draft/open/closed
     const { data, error } = await getSupabaseAdmin()
         .from('weekly_menus')

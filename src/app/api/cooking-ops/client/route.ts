@@ -5,6 +5,7 @@ import { getSelection, setRecipeOverride, upsertSelection, CUSTOM_DISH_RECIPE_ID
 import { sendSelectionEmail } from '@/lib/selectionEmail';
 import { ClientProfile, WeeklyDish } from '@/lib/types/cooking-ops';
 import { chosenVersion, menuForClient } from '@/lib/diets';
+import { alignSelectionToMenu } from '@/lib/chosenDishes';
 import { getStaffMember } from '@/lib/db/staff';
 import { effectiveRecipe } from '@/lib/grocery/recipe';
 import { getWeekBoundsForStart, getWeekOffsetForDate, isMondayIso, seasonOf, SEASON_OF_PHRASE, SEASON_PHRASE } from '@/lib/dateUtils';
@@ -66,7 +67,7 @@ export async function GET(req: NextRequest) {
         // Every open week, with what the client already sent for it (if anything)
         const weeks = await Promise.all(facing.menus.map(async menu => {
             const [existing, past] = await Promise.all([
-                getSelection(client.id, menu.weekStart),
+                getSelection(client.id, menu.weekStart).then(s => alignSelectionToMenu(s, menu.recipes)),
                 listPastSeasonDishes(menu.weekStart)
             ]);
             // Earlier dishes of the season the client can ask for again (not the ones already on this menu)
