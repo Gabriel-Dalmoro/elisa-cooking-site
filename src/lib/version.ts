@@ -1,16 +1,19 @@
+import pkg from '../../package.json';
+
 /**
- * App version shown discreetly on the admin home page.
+ * App version shown discreetly on the admin and chef dashboards.
  *
- * CONVENTION: bump this on every commit that changes the app, and put the new
- * version in the commit message (e.g. "fix(crm): ... [v0.9.1]"). That way the
- * number on screen tells you exactly what is running on prod vs preview.
+ * ONE source: the "version" in package.json. Bump it on every change merged to main and put it
+ * in the commit / merge message (e.g. "fix(crm): ... [v1.1.1]"), so the number on screen tells
+ * exactly what is running on prod vs preview. Rules in CLAUDE.md.
  *
  *   0.x    — alpha: Elisa's first season, features still moving
  *   1.0.0  — first team version: chef accounts (Lucas), clients and sessions assigned by Elisa
+ *   1.1.0  — diet-adapted menus
  *
- * Patch (1.0.1) = fix or small change · Minor (1.1.0) = new capability · Major (2.0.0) = big change in how it works.
+ * Patch (1.1.1) = fix or small change · Minor (1.2.0) = new capability · Major (2.0.0) = big change in how it works.
  */
-export const APP_VERSION = '1.0.4';
+export const APP_VERSION: string = pkg.version;
 
 /**
  * Where this build is running. Vercel fills these in at build time when
