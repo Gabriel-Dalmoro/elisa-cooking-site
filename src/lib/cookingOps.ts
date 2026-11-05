@@ -4,6 +4,7 @@ import { listClients } from './db/clients';
 import { getMenu } from './db/menus';
 import { getSelectionsForWeek } from './db/selections';
 import { listSessions, replaceSessionsForRange, SessionInput } from './db/sessions';
+import { alignSelectionToMenu } from './chosenDishes';
 import { ensureSeriesSessions, listSeries, SessionSeries } from './db/series';
 import { getUpcomingCalendarBookings, matchEventToClient } from './googleCalendar';
 
@@ -75,11 +76,13 @@ export async function loadWeekOverview(offsetWeeks: number, chefId?: string) {
     } catch (error) {
         console.warn('Recurring sessions unavailable:', error instanceof Error ? error.message : error);
     }
-    const [sessions, selections, weekMenu] = await Promise.all([
+    const [sessions, savedSelections, weekMenu] = await Promise.all([
         listSessions(startIso, endIso, chefId),
         getSelectionsForWeek(startIso),
         getMenu(startIso)
     ]);
+    // Choices lined up on the menu as it is now (a dish re-placed after clients chose keeps its place)
+    const selections = savedSelections.map(s => alignSelectionToMenu(s, weekMenu.recipes));
 
     let clients = allClients;
     if (chefId) {

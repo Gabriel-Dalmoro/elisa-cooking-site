@@ -3,6 +3,7 @@ import { getWeekBoundsForStart } from './dateUtils';
 import { listSessions } from './db/sessions';
 import { ensureSeriesSessions } from './db/series';
 import { chosenVersion } from './diets';
+import { alignSelectionToMenu } from './chosenDishes';
 import { getStaffMember } from './db/staff';
 
 /**
@@ -44,7 +45,8 @@ export function buildSelectionEmail(input: {
     sessions: BookingSession[];
     baseUrl: string;
 }): { subject: string; html: string; text: string } {
-    const { client, selection, menu, sessions, baseUrl } = input;
+    const { client, menu, sessions, baseUrl } = input;
+    const selection = alignSelectionToMenu(input.selection, menu.recipes);
     const dishes = selection.selectedDishIds.map((id, i) => ({
         name: (() => {
             const dish = menu.recipes.find(d => d.id === id);
