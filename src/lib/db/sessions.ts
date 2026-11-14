@@ -224,6 +224,24 @@ export async function rescheduleAppSession(id: string, dateIso: string, timeSlot
     return rowToSession(data as SessionRow);
 }
 
+/**
+ * A client's number of people / dishes changed: their sessions from today on take the new numbers
+ * (pages already read the profile; this keeps the stored copies in line).
+ */
+export async function updateUpcomingSessionCounts(clientId: string, counts: { personCount?: number; dishCount?: number }): Promise<void> {
+    const update: Record<string, unknown> = { updated_at: new Date().toISOString() };
+    if (counts.personCount !== undefined) update.person_count = counts.personCount;
+    if (counts.dishCount !== undefined) update.dish_count = counts.dishCount;
+    if (Object.keys(update).length === 1) return;
+    const todayIso = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Paris' }).format(new Date());
+    const { error } = await getSupabaseAdmin()
+        .from('cooking_sessions')
+        .update(update)
+        .eq('client_id', clientId)
+        .gte('date', todayIso);
+    if (error) throw new Error(`Mise à jour des séances du client impossible : ${error.message}`);
+}
+
 /** Who cooks this session (null = Elisa). */
 export async function setSessionAssignee(id: string, assignedTo: string | null): Promise<BookingSession> {
     const { data, error } = await getSupabaseAdmin()

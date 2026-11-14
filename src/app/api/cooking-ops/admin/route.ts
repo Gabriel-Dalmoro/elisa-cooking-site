@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { loadWeekOverview } from '@/lib/cookingOps';
 import { listClients, getClientById, createClient, updateClient, deleteClient, ClientInput, CHEF_EDITABLE_FIELDS } from '@/lib/db/clients';
-import { createAppSession, listClientSessionsInSlot, upsertSession } from '@/lib/db/sessions';
+import { createAppSession, listClientSessionsInSlot, updateUpcomingSessionCounts, upsertSession } from '@/lib/db/sessions';
 import { getStaffMember } from '@/lib/db/staff';
 import { addDaysIso, createSeries, ensureSeriesSessions } from '@/lib/db/series';
 import { createGoogleCalendarEvent } from '@/lib/googleCalendar';
@@ -104,6 +104,11 @@ export async function POST(req: NextRequest) {
                 input = onlyChefFields(input);
             }
             savedClient = await updateClient(String(body.id), input);
+            // New number of people / dishes: their upcoming sessions follow (never blocks the save)
+            if (input.personCount !== undefined || input.defaultDishCount !== undefined) {
+                await updateUpcomingSessionCounts(savedClient.id, { personCount: savedClient.personCount, dishCount: savedClient.defaultDishCount })
+                    .catch(e => console.error('Updating upcoming session counts failed:', e));
+            }
         } else if (!owner) {
             return forbidden('Seule Elisa peut créer une fiche client');
         } else {

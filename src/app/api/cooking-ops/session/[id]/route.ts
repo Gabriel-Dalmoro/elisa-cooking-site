@@ -10,6 +10,7 @@ import { requireStaff } from '@/lib/auth';
 import { canAccessSession, clientForStaff, forbidden, isOwner } from '@/lib/access';
 import { chosenVersion, dietLabel } from '@/lib/diets';
 import { alignSelectionToMenu } from '@/lib/chosenDishes';
+import { withClientCounts } from '@/lib/clientCounts';
 
 type Params = { params: Promise<{ id: string }> };
 
@@ -58,7 +59,8 @@ export async function GET(_req: NextRequest, { params }: Params) {
             .filter((n): n is string => Boolean(n));
 
         return NextResponse.json({
-            session,
+            // People and dishes from the client's profile as it is now (the grocery list scales on it)
+            session: withClientCounts(session, client),
             client: client ? clientForStaff(staff, client) : null,
             selection,
             dishes,

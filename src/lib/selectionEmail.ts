@@ -4,6 +4,7 @@ import { listSessions } from './db/sessions';
 import { ensureSeriesSessions } from './db/series';
 import { chosenVersion } from './diets';
 import { alignSelectionToMenu } from './chosenDishes';
+import { withClientCounts } from './clientCounts';
 import { getStaffMember } from './db/staff';
 
 /**
@@ -162,7 +163,9 @@ export async function sendSelectionEmail(input: {
         const { startIso, endIso } = getWeekBoundsForStart(input.selection.weekStart);
         // A recurring client's session may not be created yet if nobody opened that week
         await ensureSeriesSessions(endIso, [input.client]).catch(() => undefined);
-        const sessions = (await listSessions(startIso, endIso)).filter(s => s.clientId === input.client.id);
+        const sessions = (await listSessions(startIso, endIso))
+            .filter(s => s.clientId === input.client.id)
+            .map(s => withClientCounts(s, input.client));
         const email = buildSelectionEmail({ ...input, sessions });
 
         // A chef's client: the chef prepares it, Elisa stays in the loop
