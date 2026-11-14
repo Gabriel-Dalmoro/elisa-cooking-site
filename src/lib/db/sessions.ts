@@ -25,6 +25,8 @@ interface SessionRow {
     ignored: boolean;
     series_id?: string | null; // migration 007
     series_date?: string | null;
+    person_count_override?: number | null; // migration 009
+    dish_count_override?: number | null;
     created_at: string;
 }
 
@@ -44,6 +46,8 @@ function rowToSession(row: SessionRow): BookingSession {
         notes: row.calendar_title || undefined,
         assignedTo: row.assigned_to,
         seriesId: row.series_id || undefined,
+        personCountOverride: row.person_count_override ?? null,
+        dishCountOverride: row.dish_count_override ?? null,
         seriesDate: row.series_date || undefined,
         createdAt: row.created_at
     };
@@ -240,6 +244,33 @@ export async function updateUpcomingSessionCounts(clientId: string, counts: { pe
         .eq('client_id', clientId)
         .gte('date', todayIso);
     if (error) throw new Error(`Mise à jour des séances du client impossible : ${error.message}`);
+}
+
+/**
+ * Number of people / dishes for this session only (null = back to the client's profile).
+ * Kept across Google re-syncs (the sync never writes these columns).
+ */
+export async function setSessionCountOverrides(
+    id: string,
+    overrides: { personCount?: number | null; dishCount?: number | null }
+): Promise<BookingSession> {
+    const update: Record<string, unknown> = { updated_at: new Date().toISOString() };
+    if (overrides.personCount !== undefined) update.person_count_override = overrides.personCount;
+    if (overrides.dishCount !== undefined) update.dish_count_override = overrides.dishCount;
+    const { data, error } = await getSupabaseAdmin()
+        .from('cooking_sessions')
+        .update(update)
+        .eq('id', id)
+        .select('*')
+        .maybeSingle();
+    if (error) {
+        const missing = /override/.test(error.message) && /column|schema cache/i.test(error.message);
+        throw new Error(missing
+            ? 'Cette option n’est pas encore activée (migration 009 à lancer dans Supabase).'
+            : `Mise à jour de la séance impossible : ${error.message}`);
+    }
+    if (!data) throw new Error('Séance introuvable');
+    return rowToSession(data as SessionRow);
 }
 
 /** Who cooks this session (null = Elisa). */

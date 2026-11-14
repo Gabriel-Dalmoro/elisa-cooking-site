@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getSession, setSessionIgnored, deleteSession, rescheduleAppSession, setSessionAssignee, listClientSessionsInSlot } from '@/lib/db/sessions';
+import { getSession, setSessionIgnored, deleteSession, rescheduleAppSession, setSessionAssignee, listClientSessionsInSlot, setSessionCountOverrides } from '@/lib/db/sessions';
 import { getStaffMember } from '@/lib/db/staff';
 import { deleteGoogleCalendarEvent } from '@/lib/googleCalendar';
 import { getClientById } from '@/lib/db/clients';
@@ -83,6 +83,7 @@ export async function GET(_req: NextRequest, { params }: Params) {
  *   for the week (ticked items, quantities corrected by hand; an empty amount goes back to the calculated one)
  * PATCH { dateIso, timeSlot } → moves a session created in the app (Google ones move in Google Calendar)
  * PATCH { assignedTo: chefId | null } → who cooks it (Elisa only; null = Elisa)
+ * PATCH { personCountOverride?, dishCountOverride? } → numbers for THIS session only (null = the client's profile)
  * PATCH { mergeDuplicates: true } → the same client booked twice on this day and slot becomes one session
  *   (Elisa only): the Google Calendar one is kept, cooked by the chef of the other copy, the copy is removed
  * A chef can do all of this on their own sessions, except hiding events and reassigning.
@@ -97,6 +98,23 @@ export async function PATCH(req: NextRequest, { params }: Params) {
         const current = await getSession(id);
         if (!current) return NextResponse.json({ error: 'Séance introuvable' }, { status: 404 });
         if (!canAccessSession(staff, current)) return forbidden('Cette séance ne vous est pas attribuée');
+
+        if ('personCountOverride' in body || 'dishCountOverride' in body) {
+            // A whole number in range, or null / '' to go back to the client's profile
+            const read = (value: unknown, max: number): number | null | undefined | 'invalid' => {
+                if (value === undefined) return undefined;
+                if (value === null || value === '') return null;
+                const n = Number(value);
+                return Number.isInteger(n) && n >= 1 && n <= max ? n : 'invalid';
+            };
+            const personCount = read(body.personCountOverride, 20);
+            const dishCount = read(body.dishCountOverride, 12);
+            if (personCount === 'invalid' || dishCount === 'invalid') {
+                return NextResponse.json({ error: 'Nombre invalide (personnes : 1 à 20, plats : 1 à 12)' }, { status: 400 });
+            }
+            const session = await setSessionCountOverrides(id, { personCount, dishCount });
+            return NextResponse.json({ success: true, session });
+        }
 
         if (body.mergeDuplicates === true) {
             if (!isOwner(staff)) return forbidden('Seule Elisa peut fusionner des séances');
