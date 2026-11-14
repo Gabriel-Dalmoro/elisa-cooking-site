@@ -6,6 +6,15 @@ import { sendSelectionEmail } from '@/lib/selectionEmail';
 import { ClientProfile, WeeklyDish } from '@/lib/types/cooking-ops';
 import { chosenVersion, menuForClient } from '@/lib/diets';
 import { alignSelectionToMenu } from '@/lib/chosenDishes';
+import { listSessions } from '@/lib/db/sessions';
+
+/** Dishes to choose that week: what Elisa set for that week's session only, else the client's formula. */
+async function dishCountForWeek(client: ClientProfile, weekStart: string): Promise<number> {
+    const { startIso, endIso } = getWeekBoundsForStart(weekStart);
+    const sessions = await listSessions(startIso, endIso).catch(() => []);
+    const override = sessions.find(s => s.clientId === client.id && s.dishCountOverride)?.dishCountOverride;
+    return override || client.defaultDishCount;
+}
 import { getStaffMember } from '@/lib/db/staff';
 import { effectiveRecipe } from '@/lib/grocery/recipe';
 import { getWeekBoundsForStart, getWeekOffsetForDate, isMondayIso, seasonOf, SEASON_OF_PHRASE, SEASON_PHRASE } from '@/lib/dateUtils';
@@ -66,9 +75,10 @@ export async function GET(req: NextRequest) {
 
         // Every open week, with what the client already sent for it (if anything)
         const weeks = await Promise.all(facing.menus.map(async menu => {
-            const [existing, past] = await Promise.all([
+            const [existing, past, dishCount] = await Promise.all([
                 getSelection(client.id, menu.weekStart).then(s => alignSelectionToMenu(s, menu.recipes)),
-                listPastSeasonDishes(menu.weekStart)
+                listPastSeasonDishes(menu.weekStart),
+                dishCountForWeek(client, menu.weekStart)
             ]);
             // Earlier dishes of the season the client can ask for again (not the ones already on this menu)
             const onThisMenu = new Set(menu.recipes.map(d => d.name.trim().toLowerCase()));
@@ -84,6 +94,7 @@ export async function GET(req: NextRequest) {
                 weekStart: menu.weekStart,
                 weekLabel: menu.weekLabel,
                 when: relativeWeek(menu.weekStart),
+                dishCount, // how many dishes to choose that week
                 // This client's own 8: dishes that don't suit their diet come in Elisa's adapted version
                 dishes: menuForClient(menu.recipes, client.allergies).map(({ dish, badge }) => toPublicDish(dish, badge)),
                 pastDishes,
@@ -151,7 +162,7 @@ export async function POST(req: NextRequest) {
         const custom = picked
             ? picked.name.slice(0, 500)
             : typeof customDish === 'string' ? customDish.trim().slice(0, 500) : '';
-        const targetCount = Math.min(client.defaultDishCount, menu.recipes.length);
+        const targetCount = Math.min(await dishCountForWeek(client, weekStart), menu.recipes.length);
         const expectedFromMenu = custom ? targetCount - 1 : targetCount;
         if (ids.length !== expectedFromMenu || ids.length + (custom ? 1 : 0) === 0) {
             return NextResponse.json({

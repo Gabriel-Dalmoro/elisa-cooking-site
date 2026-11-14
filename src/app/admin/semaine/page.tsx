@@ -97,6 +97,8 @@ export default function WeeklyOpsAdminDashboard() {
     const [seriesList, setSeriesList] = useState<SeriesInfo[]>([]);
     // Making an already booked chef session recurring (from its details)
     const [recurDraft, setRecurDraft] = useState<{ everyWeeks: '1' | '2' | '4'; until: string } | null>(null);
+    // Numbers for one session only (guests one week…): '' = the client's profile
+    const [countDraft, setCountDraft] = useState<{ persons: string; dishes: string } | null>(null);
 
     // Team: Elisa sees every chef's sessions and can filter; a chef only ever gets their own
     const { isOwner, isChef, chefs } = useStaff();
@@ -434,6 +436,27 @@ export default function WeeklyOpsAdminDashboard() {
             showToast(done, 'calendar');
         } catch (err) {
             showToast(err instanceof Error ? err.message : 'Modification impossible', 'error');
+        } finally {
+            setIsUpdatingSession(false);
+        }
+    };
+
+    // People / dishes for this session only; empty = back to the client's profile
+    const saveSessionCounts = async (sessionId: string, persons: string, dishes: string) => {
+        try {
+            setIsUpdatingSession(true);
+            const res = await fetch(`/api/cooking-ops/session/${encodeURIComponent(sessionId)}`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ personCountOverride: persons.trim() || null, dishCountOverride: dishes.trim() || null })
+            });
+            const data = await res.json().catch(() => ({}));
+            if (!res.ok) throw new Error(data.error || 'Enregistrement impossible');
+            setCountDraft(null);
+            await loadWeekOverview(weekOffset);
+            showToast(persons.trim() || dishes.trim() ? 'Changé pour cette séance seulement' : 'Retour aux nombres de la fiche client', 'check');
+        } catch (err) {
+            showToast(err instanceof Error ? err.message : 'Enregistrement impossible', 'error');
         } finally {
             setIsUpdatingSession(false);
         }
@@ -895,9 +918,14 @@ export default function WeeklyOpsAdminDashboard() {
                                                                 {session.clientName || client.name}
                                                             </h4>
                                                             <p className="text-[11px] text-stone-500 font-medium mt-0.5 flex items-center gap-1.5 flex-wrap">
-                                                                <span>Formule {session.dishCount || client.defaultDishCount} plats</span>
+                                                                <span className={session.dishCountOverride ? 'font-bold text-amber-700' : ''}>Formule {session.dishCount || client.defaultDishCount} plats</span>
                                                                 <span>•</span>
-                                                                <span className="text-[#E1567A] font-bold">👥 {session.personCount || client.personCount || 2} pers</span>
+                                                                <span className={`font-bold ${session.personCountOverride ? 'text-amber-700' : 'text-[#E1567A]'}`}>👥 {session.personCount || client.personCount || 2} pers</span>
+                                                                {(session.personCountOverride || session.dishCountOverride) && (
+                                                                    <span className="text-[10px] font-bold rounded-full border border-amber-300 bg-amber-50 text-amber-800 px-1.5" title="Nombres changés pour cette séance seulement">
+                                                                        cette séance
+                                                                    </span>
+                                                                )}
                                                             </p>
                                                         </div>
 
@@ -1289,7 +1317,7 @@ export default function WeeklyOpsAdminDashboard() {
             {toastElement}
 
             {/* Booking details: what the client chose + ways to send their link */}
-            <Dialog open={!!detailStatus} onOpenChange={open => { if (!open) { setDetailSessionId(null); setMoveDraft(null); setRecurDraft(null); } }}>
+            <Dialog open={!!detailStatus} onOpenChange={open => { if (!open) { setDetailSessionId(null); setMoveDraft(null); setRecurDraft(null); setCountDraft(null); } }}>
                 <DialogContent className="sm:max-w-lg bg-white rounded-3xl p-6 max-h-[90vh] overflow-y-auto">
                     {detailStatus && (() => {
                         const { client, session, selection } = detailStatus;
@@ -1462,6 +1490,74 @@ export default function WeeklyOpsAdminDashboard() {
                                             )}
                                         </div>
                                     ) : null}
+
+                                    {/* This session only: people / dishes (guests one week…); the client's profile stays as it is */}
+                                    {!detailStatus.isUnmatchedClient && (
+                                        <div className="bg-stone-50 border border-stone-200 rounded-2xl p-3 space-y-2">
+                                            <div className="flex items-center justify-between gap-2">
+                                                <p className="font-bold text-stone-700">
+                                                    {session.personCount} pers · {session.dishCount} plats
+                                                    {(session.personCountOverride || session.dishCountOverride)
+                                                        ? <span className="ml-1.5 text-[10px] font-bold rounded-full border border-amber-300 bg-amber-50 text-amber-800 px-1.5 py-0.5">pour cette séance seulement</span>
+                                                        : <span className="ml-1.5 font-normal text-stone-500">(fiche client)</span>}
+                                                </p>
+                                                {!countDraft && (
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => setCountDraft({ persons: session.personCountOverride ? String(session.personCountOverride) : '', dishes: session.dishCountOverride ? String(session.dishCountOverride) : '' })}
+                                                        className="text-[11px] font-semibold text-stone-700 hover:text-[#E1567A] flex items-center gap-1"
+                                                    >
+                                                        <Edit2 className="w-3 h-3" /> Changer pour cette séance
+                                                    </button>
+                                                )}
+                                            </div>
+                                            {countDraft && (
+                                                <div className="space-y-2">
+                                                    <div className="grid grid-cols-2 gap-2">
+                                                        <label className="space-y-1">
+                                                            <span className="block text-[11px] text-stone-600">Personnes</span>
+                                                            <input
+                                                                type="number" min={1} max={20}
+                                                                value={countDraft.persons}
+                                                                placeholder={`${client.personCount} (fiche)`}
+                                                                onChange={e => setCountDraft({ ...countDraft, persons: e.target.value })}
+                                                                className="w-full p-2 rounded-xl border border-stone-300 bg-white"
+                                                            />
+                                                        </label>
+                                                        <label className="space-y-1">
+                                                            <span className="block text-[11px] text-stone-600">Plats</span>
+                                                            <input
+                                                                type="number" min={1} max={12}
+                                                                value={countDraft.dishes}
+                                                                placeholder={`${client.defaultDishCount} (fiche)`}
+                                                                onChange={e => setCountDraft({ ...countDraft, dishes: e.target.value })}
+                                                                className="w-full p-2 rounded-xl border border-stone-300 bg-white"
+                                                            />
+                                                        </label>
+                                                    </div>
+                                                    <p className="text-[11px] text-stone-500">
+                                                        Seulement pour le {session.dayName.toLowerCase()} {session.dateIso.split('-').reverse().join('/')}. Laissez vide pour garder la fiche client ({client.personCount} pers · {client.defaultDishCount} plats).
+                                                    </p>
+                                                    <div className="flex flex-wrap items-center gap-2">
+                                                        <Button
+                                                            size="sm"
+                                                            disabled={isUpdatingSession}
+                                                            onClick={() => saveSessionCounts(session.id, countDraft.persons, countDraft.dishes)}
+                                                            className="rounded-full text-xs h-8 bg-stone-900 text-white"
+                                                        >
+                                                            Enregistrer pour cette séance
+                                                        </Button>
+                                                        {(session.personCountOverride || session.dishCountOverride) && (
+                                                            <button type="button" disabled={isUpdatingSession} onClick={() => saveSessionCounts(session.id, '', '')} className="text-[11px] text-stone-600 underline">
+                                                                Revenir à la fiche client
+                                                            </button>
+                                                        )}
+                                                        <button type="button" onClick={() => setCountDraft(null)} className="text-[11px] text-stone-500 underline">Annuler</button>
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </div>
+                                    )}
 
                                     {/* Booked twice on this slot */}
                                     {detailStatus.duplicateSessionIds && (

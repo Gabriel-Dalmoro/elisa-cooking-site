@@ -5,6 +5,7 @@ import { getMenu } from './db/menus';
 import { getSelectionsForWeek } from './db/selections';
 import { listSessions, replaceSessionsForRange, SessionInput } from './db/sessions';
 import { alignSelectionToMenu } from './chosenDishes';
+import { withClientCounts } from './clientCounts';
 import { ensureSeriesSessions, listSeries, SessionSeries } from './db/series';
 import { getUpcomingCalendarBookings, matchEventToClient } from './googleCalendar';
 
@@ -55,7 +56,8 @@ export function buildSlotStatuses(
         const selection = selectionByClient.get(client.id) || null;
         // A custom dish the client wrote counts as one of their dishes
         const selectedCount = selection ? selection.selectedDishIds.length + (selection.customDish ? 1 : 0) : 0;
-        return { session, client, selection, isSubmitted: selectedCount > 0, selectedCount, ...duplicatesOf(session) };
+        // People and dishes: always the client's profile as it is now
+        return { session: withClientCounts(session, client), client, selection, isSubmitted: selectedCount > 0, selectedCount, ...duplicatesOf(session) };
     });
 }
 
@@ -137,8 +139,9 @@ export async function syncWeekFromCalendar(offsetWeeks: number) {
             timeSlot: match.timeSlot,
             startsAt: match.startsAt,
             endsAt: match.endsAt,
-            dishCount: match.extractedQuota || client?.defaultDishCount || 4,
-            personCount: match.extractedPeopleCount || client?.personCount || 2
+            // The client's profile wins; numbers written in the event only help for an unknown client
+            dishCount: client?.defaultDishCount || match.extractedQuota || 4,
+            personCount: client?.personCount || match.extractedPeopleCount || 2
         });
     }
 

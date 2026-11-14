@@ -49,6 +49,7 @@ interface PublicMenu {
     weekStart: string;
     weekLabel: string;
     dishes: PublicDish[];
+    dishCount?: number; // dishes to choose that week (Elisa can change it for one week)
 }
 
 interface ExistingSelection {
@@ -180,7 +181,8 @@ export default function ClientMenuSelectionPage() {
     };
 
     // The client's formula, capped by the number of dishes on this week's menu
-    const targetCount = Math.min(client?.defaultDishCount || 4, menu?.dishes.length || client?.defaultDishCount || 4);
+    const weekDishCount = menu?.dishCount || client?.defaultDishCount || 4;
+    const targetCount = Math.min(weekDishCount, menu?.dishes.length || weekDishCount);
     // A custom dish takes the place of one menu dish
     const menuDishTarget = wantsCustomDish ? targetCount - 1 : targetCount;
     const customDishFilled = wantsCustomDish && (Boolean(pastPick) || customDish.trim().length > 0);
