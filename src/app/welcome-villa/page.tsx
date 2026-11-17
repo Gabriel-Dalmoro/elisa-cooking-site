@@ -33,7 +33,7 @@ const TRANSLATIONS = {
         noteReserve: "* Il est conseillé de réserver vos dates au moins 48 heures à l'avance.",
         scanToReserve: "Scannez pour réserver",
         footerInfo: "Elisa Batch Cooking • Cheffe à Domicile Annecy & Alentours",
-        footerContact: "Contact Direct : 06 52 07 72 03 • elisabatchcooking.com",
+        footerContact: "Contact Direct : 07 69 42 00 75 • elisabatchcooking.com",
         
         // Dynamic fields
         welcomePitch: "« Pour sublimer votre séjour au lac d'Annecy, nous vous proposons une expérience culinaire d'exception directement dans votre hébergement. Libérez-vous des repas, savourez pleinement vos vacances. »",
@@ -78,7 +78,7 @@ const TRANSLATIONS = {
         noteReserve: "* Booking at least 48 hours in advance is highly recommended.",
         scanToReserve: "Scan to book",
         footerInfo: "Elisa Batch Cooking • Private Chef in Annecy & Surrounding Area",
-        footerContact: "Direct Contact: +33 6 52 07 72 03 • elisabatchcooking.com",
+        footerContact: "Direct Contact: +33 7 69 42 00 75 • elisabatchcooking.com",
         
         // Dynamic fields
         welcomePitch: "« To elevate your stay by Lake Annecy, we offer an exceptional culinary experience directly at your accommodation. Free yourself from cooking and fully savor your holidays. »",

@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 
 export default function WaRedirectPage() {
-    const phoneNumber = "33652077203"; // Elisa's WhatsApp
+    const phoneNumber = "33769420075"; // Elisa's WhatsApp
     
     // Prefilled bilingual message
     const whatsappText = `Bonjour Elisa ! Je séjourne actuellement dans un hébergement partenaire autour d'Annecy et je souhaiterais profiter de l'offre privilège de 5% pour organiser des repas (chef à domicile / batch cooking / petit-déjeuner) durant mon séjour.
