@@ -67,7 +67,7 @@ export default function MentionsLegalesPage() {
                                     </li>
                                     <li className="flex gap-3">
                                         <Phone className="h-6 w-6 text-stone-400 flex-shrink-0" />
-                                        <span className="self-center">+33 6 52 07 72 03</span>
+                                        <span className="self-center">+33 7 69 42 00 75</span>
                                     </li>
                                 </ul>
                             </div>

@@ -99,7 +99,7 @@ export default async function RootLayout({
                 "@type": "LocalBusiness",
                 "name": "Elisa Batch Cooking",
                 "image": "https://elisabatchcooking.com/images/logo.jpg",
-                "telephone": "+33652077203",
+                "telephone": "+33769420075",
                 "priceRange": "€€",
                 "address": {
                   "@type": "PostalAddress",
@@ -115,7 +115,7 @@ export default async function RootLayout({
                 },
                 "sameAs": [
                   "https://www.instagram.com/elisabatchcooking/",
-                  "https://wa.me/33652077203"
+                  "https://wa.me/33769420075"
                 ]
               },
               "areaServed": {
