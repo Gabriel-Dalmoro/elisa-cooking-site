@@ -118,18 +118,37 @@ insert into public.billing_settings (key, value) values ('tracking_start', '2026
 -- 5. Row Level Security: only an active owner. Chefs (authenticated, role chef) and anonymous
 --    visitors get nothing, whatever the app does. The server uses the service role (bypasses RLS)
 --    and checks the owner role on every route itself.
+--    Written out table by table (no loop, no DROP) so the SQL Editor's safety check can read it.
+alter table public.client_billing enable row level security;
+alter table public.invoices enable row level security;
+alter table public.session_billing enable row level security;
+alter table public.billing_settings enable row level security;
+
+-- Anonymous visitors: no access at all, not even an empty answer.
+revoke all on table public.client_billing from anon;
+revoke all on table public.invoices from anon;
+revoke all on table public.session_billing from anon;
+revoke all on table public.billing_settings from anon;
+
+-- Logged-in users: only an active owner. Created once (skipped if it already exists, so re-running is safe).
 do $$
-declare t text;
 begin
-    foreach t in array array['client_billing', 'invoices', 'session_billing', 'billing_settings'] loop
-        execute format('alter table public.%I enable row level security', t);
-        execute format('revoke all on table public.%I from anon', t);
-        execute format('drop policy if exists owner_only on public.%I', t);
-        execute format(
-            'create policy owner_only on public.%I for all to authenticated using (public.is_active_owner()) with check (public.is_active_owner())',
-            t
-        );
-    end loop;
+    if not exists (select 1 from pg_policies where schemaname = 'public' and tablename = 'client_billing' and policyname = 'owner_only') then
+        create policy owner_only on public.client_billing for all to authenticated
+            using (public.is_active_owner()) with check (public.is_active_owner());
+    end if;
+    if not exists (select 1 from pg_policies where schemaname = 'public' and tablename = 'invoices' and policyname = 'owner_only') then
+        create policy owner_only on public.invoices for all to authenticated
+            using (public.is_active_owner()) with check (public.is_active_owner());
+    end if;
+    if not exists (select 1 from pg_policies where schemaname = 'public' and tablename = 'session_billing' and policyname = 'owner_only') then
+        create policy owner_only on public.session_billing for all to authenticated
+            using (public.is_active_owner()) with check (public.is_active_owner());
+    end if;
+    if not exists (select 1 from pg_policies where schemaname = 'public' and tablename = 'billing_settings' and policyname = 'owner_only') then
+        create policy owner_only on public.billing_settings for all to authenticated
+            using (public.is_active_owner()) with check (public.is_active_owner());
+    end if;
 end $$;
 
 commit;
