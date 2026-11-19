@@ -15,7 +15,8 @@ import {
     Users,
     Navigation,
     ShoppingCart,
-    UserPlus
+    UserPlus,
+    Receipt
 } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -248,6 +249,29 @@ export default function AdminDashboard({ displayName }: { displayName: string | 
                     </h2>
 
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+                        {/* Facturation: sessions to invoice, invoices to follow (Elisa only) */}
+                        <motion.div whileHover={{ y: -3, transition: { duration: 0.2 } }}>
+                            <Card
+                                onClick={() => router.push('/admin/facturation')}
+                                className="w-full h-full flex flex-col justify-between hover:shadow-lg transition-all border-stone-200 hover:border-[#E1567A]/30 cursor-pointer bg-white rounded-3xl p-5 select-none"
+                            >
+                                <div className="space-y-3">
+                                    <div className="h-10 w-10 rounded-xl bg-emerald-50 flex items-center justify-center text-emerald-700">
+                                        <Receipt className="h-5 w-5" />
+                                    </div>
+                                    <div>
+                                        <h4 className="text-sm font-bold text-stone-900">Facturation</h4>
+                                        <p className="text-xs text-stone-500 mt-0.5">
+                                            Séances à facturer, factures à créer dans Abby, paiements.
+                                        </p>
+                                    </div>
+                                </div>
+                                <div className="flex items-center gap-1 text-xs font-bold text-[#E1567A] pt-4 mt-auto">
+                                    Ouvrir <ArrowRight className="h-3.5 w-3.5" />
+                                </div>
+                            </Card>
+                        </motion.div>
+
                         {/* Tool 1: Calculator */}
                         <motion.div whileHover={{ y: -3, transition: { duration: 0.2 } }}>
                             <Card 
