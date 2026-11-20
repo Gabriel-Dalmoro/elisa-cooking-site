@@ -64,6 +64,12 @@ function LoginForm() {
                         <p className="text-xs text-stone-500">Connectez-vous pour accéder à vos outils.</p>
                     </div>
 
+                    {searchParams.get('error') === 'session' && (
+                        <p className="text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded-2xl p-3 font-medium">
+                            Votre connexion a expiré. Reconnectez-vous.
+                        </p>
+                    )}
+
                     {isConfigError && (
                         <p className="text-xs text-red-700 bg-red-50 border border-red-200 rounded-2xl p-3 font-medium">
                             L&apos;espace admin est momentanément indisponible (problème de configuration du serveur). Prévenez Gabriel.
