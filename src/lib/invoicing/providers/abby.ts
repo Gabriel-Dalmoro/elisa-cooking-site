@@ -1,5 +1,6 @@
 import type { ClientProfile } from '../../types/cooking-ops';
-import type { InvoicingProvider, ProviderContext, ProviderResult } from './types';
+import { matchAbbyContact, searchTermsFor, type AbbyContactCandidate } from '../abbyMatch';
+import type { ContactDirectory, InvoicingProvider, ProviderContext, ProviderResult } from './types';
 
 /**
  * Abby provider — WRITTEN, NOT ENABLED. Nothing imports this file unless INVOICING_PROVIDER=abby
@@ -112,26 +113,77 @@ export function toAbbyLines(ctx: ProviderContext, quantityUnit: string) {
     }));
 }
 
-interface AbbyContactListItem { id: string; fullname?: string; emails?: string[] }
+interface AbbyContactListItem {
+    id: string;
+    fullname?: string;
+    emails?: string[];
+    organization?: { name?: string | null } | null;
+    archivedAt?: unknown;
+    test?: boolean;
+    hasBillings?: boolean;
+}
+interface AbbyContact extends AbbyContactListItem { firstname?: string; lastname?: string }
 interface AbbyInvoice { id: string; number?: string; state?: string; customer?: { id?: string }; paymentRequest?: { statut?: string } }
 
-/** The client's Abby contact: the saved id, else found by e-mail / exact name, else created. */
-async function ensureContact(ctx: ProviderContext): Promise<string> {
-    if (ctx.billing.abbyContactId) return ctx.billing.abbyContactId;
-    if (!ctx.client) throw new AbbyError('Client supprimé : impossible de créer son contact Abby.');
-    const client = ctx.client;
-    const search = client.email || client.name;
-    const found = await abbyRequest<{ docs?: AbbyContactListItem[] }>(
-        'GET', `/contacts?search=${encodeURIComponent(search)}&page=1&limit=10`
+const toCandidate = (c: AbbyContact): AbbyContactCandidate => ({
+    id: c.id,
+    fullname: c.fullname || [c.firstname, c.lastname].filter(Boolean).join(' ') || '(sans nom)',
+    emails: c.emails || [],
+    organizationName: c.organization?.name || null,
+    archived: !!c.archivedAt,
+    test: !!c.test,
+    hasBillings: !!c.hasBillings
+});
+
+// GET /contacts: `search` matches first name, last name, organisation name only; page + limit
+// required, limit ≤ 100; archived contacts excluded unless archived=true
+// (https://docs.abby.fr/api/clients.md, https://docs.abby.fr/concepts/pagination.md)
+async function searchContacts(term: string): Promise<AbbyContactCandidate[]> {
+    const res = await abbyRequest<{ docs?: AbbyContactListItem[] }>(
+        'GET', `/contacts?search=${encodeURIComponent(term)}&page=1&limit=100`
     );
-    const email = client.email?.trim().toLowerCase();
-    const match = (found.docs || []).find(c =>
-        (email && (c.emails || []).some(e => e.trim().toLowerCase() === email))
-        || (c.fullname || '').trim().toLowerCase() === client.name.trim().toLowerCase()
+    return (res.docs || []).map(toCandidate);
+}
+
+const contacts: ContactDirectory = {
+    async search(client, query) {
+        const terms = query?.trim() ? [query.trim()] : searchTermsFor(client.name);
+        const results = await Promise.all(terms.map(searchContacts));
+        return results.flat();
+    },
+    async get(id) {
+        try {
+            return toCandidate(await abbyRequest<AbbyContact>('GET', `/contact/${encodeURIComponent(id)}`));
+        } catch (error) {
+            if (error instanceof AbbyError && error.status === 404) return null;
+            throw error;
+        }
+    },
+    async create(client) {
+        return toCandidate(await abbyRequest<AbbyContact>('POST', '/contact', toAbbyContact(client)));
+    }
+};
+
+/**
+ * The client's Abby contact, never a new one:
+ * - already linked → that id, checked to still exist and not be archived;
+ * - not linked → linked automatically only if exactly one Abby contact has the client's e-mail;
+ * - otherwise → error: Elisa picks (or creates) the contact once in the client's settings.
+ */
+async function resolveContact(ctx: ProviderContext): Promise<string> {
+    if (ctx.billing.abbyContactId) {
+        const linked = await contacts.get(ctx.billing.abbyContactId);
+        if (!linked || linked.archived) {
+            throw new AbbyError('Le client relié dans Abby n’existe plus ou est archivé : reliez-le à nouveau dans ses réglages Abby.');
+        }
+        return linked.id;
+    }
+    if (!ctx.client) throw new AbbyError('Client supprimé : impossible de trouver son contact Abby.');
+    const match = matchAbbyContact(ctx.client, await contacts.search(ctx.client));
+    if (match.auto) return match.auto.id;
+    throw new AbbyError(
+        'Client pas encore relié à Abby : ouvrez ses réglages Abby et choisissez-le (aucun client n’est créé automatiquement, pour éviter les doublons).'
     );
-    if (match) return match.id;
-    const created = await abbyRequest<{ id: string }>('POST', '/contact', toAbbyContact(client));
-    return created.id;
 }
 
 export function createAbbyProvider(): InvoicingProvider {
@@ -139,29 +191,43 @@ export function createAbbyProvider(): InvoicingProvider {
     return {
         id: 'abby',
         label: 'Abby (connexion API)',
+        contacts,
         createsInvoices: true,
 
         async pushInvoice(ctx): Promise<ProviderResult> {
+            // Kept outside the try: if a later step fails, the draft already made in Abby is saved
+            // on the invoice, so « Renvoyer » completes it instead of creating a second one.
+            let contactId: string | undefined;
+            let draftId = ctx.invoice.abbyInvoiceId || undefined;
             try {
-                const contactId = await ensureContact(ctx);
-                // POST /v2/billing/invoice/{customerId} — no request body defined in the spec
-                const draft = await abbyRequest<AbbyInvoice>('POST', `/v2/billing/invoice/${encodeURIComponent(contactId)}`, {});
-                await abbyRequest('PATCH', `/v2/billing/${encodeURIComponent(draft.id)}/lines`, {
+                contactId = await resolveContact(ctx);
+                if (!draftId) {
+                    // POST /v2/billing/invoice/{customerId} — no request body defined in the spec
+                    const draft = await abbyRequest<AbbyInvoice>('POST', `/v2/billing/invoice/${encodeURIComponent(contactId)}`, {});
+                    draftId = draft.id;
+                }
+                // Replaces the lines: safe to repeat
+                await abbyRequest('PATCH', `/v2/billing/${encodeURIComponent(draftId)}/lines`, {
                     lines: toAbbyLines(ctx, abbyConfig().quantityUnit)
                 });
                 const withPayment = await abbyRequest<AbbyInvoice>(
-                    'PATCH', `/v2/billing/invoice/${encodeURIComponent(draft.id)}/general-informations`,
+                    'PATCH', `/v2/billing/invoice/${encodeURIComponent(draftId)}/general-informations`,
                     { isOnlinePaymentActivated: true }
                 );
                 return {
                     syncStatus: 'synced',
                     abbyContactId: contactId,
-                    abbyInvoiceId: draft.id,
-                    abbyState: withPayment.state || draft.state || 'draft',
-                    externalNumber: withPayment.number || draft.number
+                    abbyInvoiceId: draftId,
+                    abbyState: withPayment.state || 'draft',
+                    externalNumber: withPayment.number
                 };
             } catch (error) {
-                return { syncStatus: 'error', error: error instanceof Error ? error.message : String(error) };
+                return {
+                    syncStatus: 'error',
+                    abbyContactId: contactId,
+                    abbyInvoiceId: draftId,
+                    error: error instanceof Error ? error.message : String(error)
+                };
             }
         },
 

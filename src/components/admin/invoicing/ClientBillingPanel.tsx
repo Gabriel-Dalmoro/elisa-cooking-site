@@ -9,6 +9,7 @@ import {
     type BillableSession, type BillingPlan, type BillingRhythm, type ClientBillingGroup, type Invoice
 } from '@/lib/invoicing/types';
 import InvoiceCard from './InvoiceCard';
+import AbbyLinkPanel from './AbbyLinkPanel';
 
 /** « 212,50 » / « 212.5 » / « 212 » → 21250 cents; null if not a valid amount. */
 export function parseEuros(text: string): number | null {
@@ -23,10 +24,11 @@ interface Props {
     busy: boolean;
     providerCreatesInvoices: boolean;
     onSaveBilling: (patch: { rhythm?: BillingRhythm; plan?: BillingPlan; customPriceCents?: number | null }) => Promise<void>;
-    onCreateInvoice: (items: { sessionId: string; priceCents: number }[], notes: string) => Promise<Invoice | null>;
+    onCreateInvoice: (items: { sessionId: string; priceCents: number; label: string }[], notes: string) => Promise<Invoice | null>;
     onSkip: (sessionIds: string[], skip: boolean) => Promise<void>;
     onInvoiceAction: (invoice: Invoice, action: string, extra?: { externalNumber?: string; date?: string }) => Promise<void>;
     onCopied: (ok: boolean) => void;
+    onToast: (message: string, ok: boolean) => void;
 }
 
 /**
@@ -34,10 +36,12 @@ interface Props {
  * an amount), « Regrouper en une facture », and their open invoices with the summary for Abby.
  */
 export default function ClientBillingPanel({
-    group, busy, providerCreatesInvoices, onSaveBilling, onCreateInvoice, onSkip, onInvoiceAction, onCopied
+    group, busy, providerCreatesInvoices, onSaveBilling, onCreateInvoice, onSkip, onInvoiceAction, onCopied, onToast
 }: Props) {
     const [selected, setSelected] = useState<string[]>([]);
     const [prices, setPrices] = useState<Record<string, string>>({});
+    // The text of each line, editable for a one-off change (e.g. 4 recettes instead of 5 that week)
+    const [labels, setLabels] = useState<Record<string, string>>({});
     const [notes, setNotes] = useState('');
     const [showUpcoming, setShowUpcoming] = useState(false);
     const [customPrice, setCustomPrice] = useState(group.billing.customPriceCents != null ? centsToInput(group.billing.customPriceCents) : '');
@@ -49,6 +53,7 @@ export default function ClientBillingPanel({
     // New sessions / new prices after a reload: refresh the amounts, preselect everything done
     useEffect(() => {
         setPrices(Object.fromEntries(all.map(s => [s.sessionId, centsToInput(s.suggestedPriceCents)])));
+        setLabels(Object.fromEntries(all.map(s => [s.sessionId, s.label])));
         setSelected(group.completed.map(s => s.sessionId));
     }, [all, group.completed]);
 
@@ -61,12 +66,13 @@ export default function ClientBillingPanel({
 
     const toggle = (id: string) => setSelected(prev => (prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]));
     const chosen = all.filter(s => selected.includes(s.sessionId));
-    const invalid = chosen.filter(s => parseEuros(prices[s.sessionId] || '') === null);
+    const labelOf = (s: BillableSession) => labels[s.sessionId] ?? s.label;
+    const invalid = chosen.filter(s => parseEuros(prices[s.sessionId] || '') === null || !labelOf(s).trim() || labelOf(s).length > 200);
     const total = chosen.reduce((sum, s) => sum + (parseEuros(prices[s.sessionId] || '') || 0), 0);
 
     const create = async () => {
         const created = await onCreateInvoice(
-            chosen.map(s => ({ sessionId: s.sessionId, priceCents: parseEuros(prices[s.sessionId] || '') || 0 })),
+            chosen.map(s => ({ sessionId: s.sessionId, priceCents: parseEuros(prices[s.sessionId] || '') || 0, label: labelOf(s).trim() })),
             notes
         );
         if (created) {
@@ -76,26 +82,38 @@ export default function ClientBillingPanel({
     };
 
     const sessionRow = (s: BillableSession) => (
-        <li key={s.sessionId} className="flex items-center gap-3 px-3 py-2.5">
+        <li key={s.sessionId} className="flex items-start gap-3 px-3 py-2.5">
             <input
                 type="checkbox"
                 checked={selected.includes(s.sessionId)}
                 onChange={() => toggle(s.sessionId)}
-                className="w-5 h-5 accent-[#E1567A] shrink-0"
+                className="w-5 h-5 mt-0.5 accent-[#E1567A] shrink-0"
                 aria-label={`Séance du ${formatDateFr(s.date)}`}
             />
             <span className="flex-1 min-w-0">
                 <span className="block font-semibold text-stone-800 text-sm">
                     {formatDateFr(s.date, true)} <span className="font-normal text-stone-500">· {s.timeSlot}</span>
                 </span>
-                <span className="block text-xs text-stone-500">{s.label}</span>
+                <input
+                    value={labelOf(s)}
+                    onChange={e => setLabels(l => ({ ...l, [s.sessionId]: e.target.value }))}
+                    maxLength={200}
+                    aria-label="Texte de la ligne sur la facture"
+                    title="Texte de la ligne sur la facture : modifiable pour cette séance seulement"
+                    className={`mt-1 w-full px-2 py-1 rounded-lg border text-xs text-stone-700 bg-white ${labelOf(s).trim() ? 'border-stone-200 hover:border-stone-300 focus:border-stone-400' : 'border-red-400'}`}
+                />
+                {labelOf(s) !== s.label && (
+                    <button type="button" onClick={() => setLabels(l => ({ ...l, [s.sessionId]: s.label }))} className="text-[11px] text-stone-500 underline flex items-center gap-1 mt-0.5">
+                        <RotateCcw className="w-3 h-3" /> Rétablir le texte habituel
+                    </button>
+                )}
                 {s.priceIsEstimate && (
                     <span className="text-[11px] text-amber-700 flex items-center gap-1">
                         <AlertTriangle className="w-3 h-3" /> Prix à vérifier (pas de formule catalogue pour {s.dishCount} plats)
                     </span>
                 )}
             </span>
-            <label className="flex items-center gap-1 shrink-0">
+            <label className="flex items-center gap-1 shrink-0 mt-0.5">
                 <input
                     value={prices[s.sessionId] ?? ''}
                     onChange={e => setPrices(p => ({ ...p, [s.sessionId]: e.target.value }))}
@@ -155,6 +173,11 @@ export default function ClientBillingPanel({
                 )}
             </div>
 
+            {/* Which Abby contact this client is (only when the Abby connection is on) */}
+            {providerCreatesInvoices && (
+                <AbbyLinkPanel clientId={group.clientId} clientName={group.clientName} onToast={onToast} />
+            )}
+
             {/* Sessions waiting to be invoiced */}
             <div className="space-y-2">
                 <div className="flex flex-wrap items-center justify-between gap-2">
@@ -200,7 +223,7 @@ export default function ClientBillingPanel({
                         placeholder="Note interne (optionnel)"
                         className="w-full p-2 rounded-xl border border-stone-300 bg-white"
                     />
-                    {invalid.length > 0 && <p className="text-xs text-red-600">Vérifiez les montants en rouge.</p>}
+                    {invalid.length > 0 && <p className="text-xs text-red-600">Vérifiez les cases en rouge (montant ou texte vide).</p>}
                     <div className="flex flex-wrap items-center gap-2">
                         <Button disabled={busy || invalid.length > 0} onClick={create} className="rounded-full gap-1.5 bg-[#E1567A] hover:bg-[#c94567] text-white">
                             <Receipt className="w-4 h-4" /> Regrouper en une facture

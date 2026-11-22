@@ -18,7 +18,9 @@ Sources used:
 | Invoices | https://docs.abby.fr/api/factures.md |
 | Credit notes | https://docs.abby.fr/api/avoirs.md |
 | Products | https://docs.abby.fr/api/produits.md |
-| Errors | https://docs.abby.fr/api/erreurs.md |
+| Errors | https://docs.abby.fr/concepts/erreurs.md |
+| Pagination | https://docs.abby.fr/concepts/pagination.md |
+| Organisations | https://docs.abby.fr/reference-de-lapi/organisations.md |
 | URSSAF declarations (MCP) | https://docs.abby.fr/mcp/declarations-urssaf.md |
 | Help: avance immédiate | https://aide.abby.fr/fr/collections/3677710-sap-avance-immediate-et-credit-d-impot |
 | Help: activate the service | https://aide.abby.fr/fr/collections/16081295-activer-et-utiliser-le-service |
@@ -67,10 +69,39 @@ n8n stays useful for what it already does (the booking flow). Nothing here chang
 
 | What | Endpoint | Source |
 | --- | --- | --- |
-| Search | `GET /contacts?search=…&page=1&limit=10` → `{ docs: [{ id, fullname, emails }] }` | [Clients] [n8n] |
+| Search | `GET /contacts?search=…&page=1&limit=100` → `{ docs: [{ id, fullname, emails, organization, archivedAt, test, hasBillings }] }`. `page` and `limit` are required, `limit` ≤ 100. Archived contacts are left out unless `archived=true`. | [Clients] [Pagination] [n8n] |
 | Create | `POST /contact` (`firstname` and `lastname` required) | [Clients] [n8n] |
-| Read one | `GET /contact/{id}` | [Clients] |
-| Update | `PUT /contact/{id}` | [Clients] |
+| Read one | `GET /contact/{id}` → the contact with `archivedAt`; 404 "Contact not found" | [Clients] |
+| Update | `PUT /contact/{id}`: **replaces the whole contact** (fields left out are emptied) | [Clients] |
+
+**Limits that matter for finding the right client** [Clients] [Errors]:
+- `search` only looks at **first name, last name and organisation name**. It does **not** search e-mails.
+- There is **no e-mail filter** and **no field of ours** (external id, reference) we could store on a
+  contact and search by later. `notes` can be written but can't be searched.
+- Abby does **not** say it refuses a second contact with the same e-mail (NOT DOCUMENTED), so
+  creating blindly can make duplicates.
+- No idempotency key (NOT DOCUMENTED) and no published rate limit; 429 means "too many requests".
+
+### Finding the right client, without duplicates
+
+What the app does (`src/lib/invoicing/abbyMatch.ts`, `resolveContact` in `abby.ts`):
+
+1. **Already linked?** Each client's Abby id is saved once (`client_billing.abby_contact_id`) and
+   always reused. Before each invoice the app checks it still exists and isn't archived
+   (`GET /contact/{id}`). If it's gone, it stops and asks Elisa to link again.
+2. **Not linked yet:** it searches Abby by name (full name, then last name, then first name), drops
+   archived and test contacts, and compares e-mails itself (the list gives each contact's `emails`).
+   - **Exactly one** contact with the client's e-mail → linked automatically.
+   - Anything else (none, several, same name only) → **nothing is sent**. The invoice shows
+     "Client pas encore relié à Abby", and Elisa picks the contact once in the client's
+     "Client dans Abby" box (same e-mail / same name / already invoiced are shown to help).
+3. **Creating a contact** happens only when Elisa clicks "Pas dans la liste : créer dans Abby"
+   (with a confirmation), and is refused if the client is already linked.
+4. **Retry is safe.** If Abby fails halfway, the draft's id is kept; "Renvoyer vers Abby" fills
+   that same draft instead of making a second one.
+
+Because the n8n onboarding already creates new clients in Abby, most clients will be found and
+linked by e-mail. The others take one click each, once.
 
 ### Invoices
 
@@ -140,12 +171,12 @@ The app only creates a **draft**. Elisa finishes it in Abby, on purpose:
 | Ours | Abby | Note |
 | --- | --- | --- |
 | `clients.name` | contact `firstname` + `lastname` | First word → first name, the rest → last name. One word → used for both (both are required). |
-| `clients.email` | contact `emails[0]` | Also used to find an existing contact first. |
+| `clients.email` | contact `emails[0]` | Also compared with each found contact's `emails` to link automatically (Abby can't search by e-mail). |
 | `clients.phone` | contact `phone` | |
 | `clients.address` | contact `billingAddress` `{ address, zipCode, city, country: 'FR' }` | Only when a 5-digit postcode is found. No "Annecy" fallback, unlike n8n. |
-| `client_billing.abby_contact_id` | contact `id` | Saved after the first push, so the contact is never created twice. |
+| `client_billing.abby_contact_id` | contact `id` | Saved once (auto e-mail match or Elisa's pick), then always reused. |
 | one session of the invoice | one line | `quantity: 1`, `unitPrice` = amount in cents, `vatCode: 'FR_00HT'`, `type: 'service_delivery'` |
-| `session_billing.label` + date | line `designation` | "Batch cooking à domicile — 5 recettes pour 2 personnes — séance du 03/11/2026" |
+| `session_billing.label` + date | line `designation` | "Batch cooking à domicile — 5 recettes pour 2 personnes — séance du 03/11/2026". Elisa can change the text per session before grouping (e.g. 4 recettes that week). |
 | `invoices.abby_invoice_id` | invoice `id` | |
 | `invoices.external_number` | invoice `number` | Filled by hand today ("N° de facture Abby"). |
 | `invoices.abby_state` | invoice `state` | |
@@ -186,8 +217,8 @@ The app only creates a **draft**. Elisa finishes it in Abby, on purpose:
 5. **Test with one client:** on Facturation, group one session into an invoice. Check:
    - the line at the top of the page reads "Abby (connexion API)" instead of "Abby non connecté"
    - the invoice card shows no Abby error
-   - in Abby: the contact exists (or was found, not duplicated), the draft has the right lines,
-     amounts and online payment
+   - the client's "Client dans Abby" box shows the right contact (pick it if asked)
+   - in Abby: no new duplicate contact, and the draft has the right lines, amounts and online payment
 6. **Finish that draft in Abby by hand** (section 3), then click "Facturé" / "Payé" in the app.
 7. Only then repeat steps 3–4 for Production.
 

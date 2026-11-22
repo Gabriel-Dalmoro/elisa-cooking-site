@@ -85,7 +85,16 @@ export default function InvoiceCard({ invoice, busy, defaultOpen = false, onActi
                         {invoice.invoicedAt && <p>Facturée le {shortDate(invoice.invoicedAt)}</p>}
                         {invoice.paidAt && <p>Payée le {shortDate(invoice.paidAt)}</p>}
                         {invoice.cancelledAt && <p>Annulée le {shortDate(invoice.cancelledAt)}</p>}
-                        {invoice.syncStatus === 'error' && <p className="text-red-600">Abby : {invoice.syncError}</p>}
+                        {invoice.syncStatus === 'error' && (
+                            <div className="text-red-700 bg-red-50 border border-red-200 rounded-xl p-2.5 mt-1 space-y-2">
+                                <p>Pas encore dans Abby : {invoice.syncError}</p>
+                                {invoice.status === 'draft' && (
+                                    <Button size="sm" variant="outline" disabled={busy} onClick={() => onAction(invoice, 'resend')} className="rounded-full text-xs h-8 gap-1.5 bg-white">
+                                        <RotateCcw className="w-3.5 h-3.5" /> Renvoyer vers Abby
+                                    </Button>
+                                )}
+                            </div>
+                        )}
                     </div>
 
                     {invoice.status !== 'cancelled' && (

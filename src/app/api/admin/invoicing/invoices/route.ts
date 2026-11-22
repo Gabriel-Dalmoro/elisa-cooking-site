@@ -28,7 +28,7 @@ export async function GET(req: NextRequest) {
     }
 }
 
-/** POST { clientId, items: [{ sessionId, priceCents }], notes? } → groups sessions into one invoice. */
+/** POST { clientId, items: [{ sessionId, priceCents, label? }], notes? } → groups sessions into one invoice. */
 export async function POST(req: NextRequest) {
     const denied = await requireOwner();
     if (denied) return denied;
@@ -37,9 +37,10 @@ export async function POST(req: NextRequest) {
         if (typeof body.clientId !== 'string' || !Array.isArray(body.items) || body.items.length === 0 || body.items.length > 100) {
             return NextResponse.json({ error: 'Données invalides' }, { status: 400 });
         }
-        const items = body.items.map((i: { sessionId?: unknown; priceCents?: unknown }) => ({
+        const items = body.items.map((i: { sessionId?: unknown; priceCents?: unknown; label?: unknown }) => ({
             sessionId: String(i.sessionId || ''),
-            priceCents: Number(i.priceCents)
+            priceCents: Number(i.priceCents),
+            label: typeof i.label === 'string' ? i.label : undefined
         }));
         const invoice = await createInvoice({ clientId: body.clientId, items, notes: typeof body.notes === 'string' ? body.notes : '' });
         return NextResponse.json({ success: true, invoice });

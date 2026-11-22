@@ -13,6 +13,7 @@ import {
     type InvoiceStatus, type SessionBillingStatus
 } from '../invoicing/types';
 import { getInvoicingProvider, type ProviderResult } from '../invoicing/providers';
+import { matchAbbyContact, type AbbyContactCandidate, type ContactMatch } from '../invoicing/abbyMatch';
 
 /**
  * Facturation data (owner only — every route calling these checks the owner role, and the tables
@@ -346,9 +347,13 @@ async function applyProviderResult(invoice: Invoice, result: ProviderResult | nu
  * Groups sessions of one client into one invoice (status « À créer dans Abby »), at the amounts
  * Elisa confirmed. The sessions leave the « À facturer » list.
  */
+const MAX_LABEL_LENGTH = 200;
+/** One line of text, no extra spaces. */
+const cleanLabel = (text: string) => text.replace(/\s+/g, ' ').trim();
+
 export async function createInvoice(input: {
     clientId: string;
-    items: { sessionId: string; priceCents: number }[];
+    items: { sessionId: string; priceCents: number; label?: string }[];
     notes?: string;
 }): Promise<Invoice> {
     const client = await getClientById(input.clientId);
@@ -357,8 +362,13 @@ export async function createInvoice(input: {
         if (!Number.isInteger(item.priceCents) || item.priceCents < 0 || item.priceCents > 10_000_00) {
             throw new Error('Montant invalide (entre 0 et 10 000 €).');
         }
+        if (item.label !== undefined && cleanLabel(item.label).length > MAX_LABEL_LENGTH) {
+            throw new Error(`Texte de séance trop long (${MAX_LABEL_LENGTH} caractères maximum).`);
+        }
     }
     const priceById = new Map(input.items.map(i => [i.sessionId, i.priceCents]));
+    // The text Elisa typed for a session (e.g. « 4 recettes » that week); empty = the usual text
+    const labelById = new Map(input.items.map(i => [i.sessionId, cleanLabel(i.label || '')]));
     const sessions = await sessionsOfClient(client.id, input.items.map(i => i.sessionId));
 
     const existing = await billingRowsFor(sessions.map(s => s.id));
@@ -374,7 +384,7 @@ export async function createInvoice(input: {
                 timeSlot: session.timeSlot,
                 dishCount: counted.dishCount,
                 personCount: counted.personCount,
-                label: sessionLabel(counted.dishCount, counted.personCount),
+                label: labelById.get(session.id) || sessionLabel(counted.dishCount, counted.personCount),
                 priceCents: priceById.get(session.id) ?? 0
             };
         })
@@ -617,4 +627,78 @@ export async function exportRows(from: string, to: string, now = new Date()): Pr
         });
     }
     return rows;
+}
+
+// ---------------------------------------------------------------- Abby client link (Abby provider only)
+
+export interface AbbyLinkState {
+    /** false while the provider is « manual »: nothing here calls Abby. */
+    enabled: boolean;
+    linked: AbbyContactCandidate | null;
+    /** The saved link points to a contact that is gone or archived in Abby. */
+    linkBroken: boolean;
+    match: ContactMatch | null;
+}
+
+async function contactDirectory() {
+    const provider = await getInvoicingProvider();
+    return provider.contacts || null;
+}
+
+/** Who this client is in Abby: the saved link, or contacts to choose from (searched by name). */
+export async function getAbbyLink(clientId: string, query?: string): Promise<AbbyLinkState> {
+    const directory = await contactDirectory();
+    if (!directory) return { enabled: false, linked: null, linkBroken: false, match: null };
+    const client = await getClientById(clientId);
+    if (!client) throw new Error('Client introuvable');
+    const billing = await getClientBilling(clientId);
+    if (billing.abbyContactId && !query) {
+        const linked = await directory.get(billing.abbyContactId);
+        if (linked && !linked.archived) return { enabled: true, linked, linkBroken: false, match: null };
+        return { enabled: true, linked: null, linkBroken: true, match: matchAbbyContact(client, await directory.search(client)) };
+    }
+    return { enabled: true, linked: null, linkBroken: false, match: matchAbbyContact(client, await directory.search(client, query)) };
+}
+
+/** Elisa picked this Abby contact for the client: checked to exist, then saved. */
+export async function linkAbbyContact(clientId: string, contactId: string): Promise<AbbyContactCandidate> {
+    const directory = await contactDirectory();
+    if (!directory) throw new Error('La connexion Abby est désactivée.');
+    if (!(await getClientById(clientId))) throw new Error('Client introuvable');
+    const contact = await directory.get(contactId);
+    if (!contact || contact.archived) throw new Error('Ce contact n’existe pas ou est archivé dans Abby.');
+    await saveClientBilling(clientId, { abbyContactId: contact.id });
+    return contact;
+}
+
+/** Elisa clicked « Créer dans Abby »: refused if the client is already linked (no duplicate). */
+export async function createAbbyContactFor(clientId: string): Promise<AbbyContactCandidate> {
+    const directory = await contactDirectory();
+    if (!directory) throw new Error('La connexion Abby est désactivée.');
+    const client = await getClientById(clientId);
+    if (!client) throw new Error('Client introuvable');
+    const billing = await getClientBilling(clientId);
+    if (billing.abbyContactId && (await directory.get(billing.abbyContactId))) {
+        throw new Error('Ce client est déjà relié à un contact Abby.');
+    }
+    const contact = await directory.create(client);
+    await saveClientBilling(clientId, { abbyContactId: contact.id });
+    return contact;
+}
+
+export async function unlinkAbbyContact(clientId: string): Promise<void> {
+    await saveClientBilling(clientId, { abbyContactId: null });
+}
+
+/** « Renvoyer vers Abby »: after linking the client, or when Abby failed. Reuses any draft already made. */
+export async function resendInvoice(id: string): Promise<Invoice> {
+    const provider = await getInvoicingProvider();
+    if (!provider.contacts) throw new Error('La connexion Abby est désactivée.');
+    const invoice = await getInvoice(id);
+    if (!invoice) throw new Error('Facture introuvable');
+    if (invoice.status !== 'draft') throw new Error('Seule une facture pas encore créée dans Abby peut être renvoyée.');
+    if (invoice.syncStatus === 'synced') throw new Error('Cette facture est déjà dans Abby.');
+    if (!invoice.clientId) throw new Error('Client supprimé : impossible d’envoyer la facture.');
+    const ctx = { invoice, client: await getClientById(invoice.clientId), billing: await getClientBilling(invoice.clientId) };
+    return applyProviderResult(invoice, await provider.pushInvoice(ctx));
 }

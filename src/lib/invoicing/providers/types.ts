@@ -1,5 +1,6 @@
 import type { ClientProfile } from '../../types/cooking-ops';
 import type { ClientBilling, Invoice, SyncStatus } from '../types';
+import type { AbbyContactCandidate } from '../abbyMatch';
 
 /**
  * Where invoices are really issued. The app groups sessions into an invoice and tracks it;
@@ -31,7 +32,19 @@ export interface ProviderResult {
     error?: string;
 }
 
+/** The tool's client list, to link each of our clients to ONE contact there (Abby only). */
+export interface ContactDirectory {
+    /** Contacts that could be this client (searched by name; the tool can't search by e-mail). */
+    search(client: ClientProfile, query?: string): Promise<AbbyContactCandidate[]>;
+    /** One contact by id; null if it doesn't exist any more. */
+    get(id: string): Promise<AbbyContactCandidate | null>;
+    /** Creates the contact. Only ever called when Elisa clicks « Créer dans Abby ». */
+    create(client: ClientProfile): Promise<AbbyContactCandidate>;
+}
+
 export interface InvoicingProvider {
+    /** Present when the provider has its own client list (Abby). */
+    contacts?: ContactDirectory;
     id: InvoicingProviderId;
     label: string;
     /** True when the provider creates invoices itself (the page then hides « créer dans Abby » steps). */

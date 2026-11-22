@@ -103,7 +103,8 @@ export default function FacturationPage() {
             undo_paid: 'Facture remise en attente de paiement',
             undo_invoiced: 'Facture remise « À créer dans Abby »',
             cancel: 'Facture annulée : séances remises à facturer',
-            edit: 'Numéro enregistré'
+            edit: 'Numéro enregistré',
+            resend: 'Facture renvoyée vers Abby'
         };
         await call(`/api/admin/invoicing/invoices/${encodeURIComponent(invoice.id)}`, 'PATCH', {
             action,
@@ -112,6 +113,8 @@ export default function FacturationPage() {
         }, messages[action]);
     };
 
+    // Stable: the Abby box reloads when this changes
+    const toast = useCallback((message: string, ok: boolean) => showToast(message, ok ? 'check' : 'error'), [showToast]);
     const copied = (ok: boolean) => showToast(ok ? 'Récapitulatif copié : collez-le dans Abby' : 'Copie impossible', ok ? 'check' : 'error');
 
     const groups = overview?.groups || [];
@@ -216,6 +219,7 @@ export default function FacturationPage() {
                                 }}
                                 onInvoiceAction={invoiceAction}
                                 onCopied={copied}
+                                onToast={toast}
                             />
                         </>
                     )}
