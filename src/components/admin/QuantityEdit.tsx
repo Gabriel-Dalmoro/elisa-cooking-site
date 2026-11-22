@@ -90,7 +90,7 @@ export default function QuantityEdit({ value, calculated, edited, onChange, mute
     return (
         <span className="inline-flex items-center gap-1 shrink-0" onClick={stop}>
             <span
-                className={`${large ? 'text-lg font-black' : 'text-sm font-bold'} tabular-nums text-right ${
+                className={`${large ? 'text-lg font-bold' : 'text-sm font-bold'} tabular-nums text-right ${
                     muted ? 'line-through text-stone-400' : edited ? 'text-[#c94567]' : 'text-stone-900'
                 }`}
                 title={edited && calculated ? `Calculé : ${calculated}` : undefined}

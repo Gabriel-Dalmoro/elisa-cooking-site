@@ -27,7 +27,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import AdminPageHeader from '@/components/admin/AdminPageHeader';
 import { useStaff } from '@/components/admin/StaffContext';
-import { SlotSessionStatus, ClientProfile, BookingSession } from '@/lib/types/cooking-ops';
+import { SlotSessionStatus, ClientProfile, BookingSession, arrivalTimeOf, formatTimeFr } from '@/lib/types/cooking-ops';
 import { formatLocalDateToIso, FRENCH_DAYS, getWeekOffsetForDate, getParisDateTimeInfo } from '@/lib/dateUtils';
 
 export default function TodayOperationsPage() {
@@ -185,10 +185,16 @@ export default function TodayOperationsPage() {
 
                 {/* Client Name & Portions */}
                 <div className="space-y-1">
-                    <h3 className="font-serif font-bold text-2xl text-stone-900">
+                    <h3 className="font-serif font-semibold text-2xl text-stone-900">
                         {session.clientName || client.name}
                     </h3>
+                    {session.sessionNote && <p className="text-sm text-sky-900 bg-sky-50 border border-sky-200 rounded-xl px-3 py-1.5">{session.sessionNote}</p>}
                     <div className="flex flex-wrap items-center gap-2 pt-0.5">
+                        {arrivalTimeOf(session) && (
+                            <span className="text-xs bg-stone-900 text-white font-bold px-2.5 py-0.5 rounded-full">
+                                Arrivée {formatTimeFr(arrivalTimeOf(session)!)}
+                            </span>
+                        )}
                         <span className="text-xs bg-rose-50 text-[#E1567A] border border-rose-200 font-bold px-2.5 py-0.5 rounded-full">
                             👥 {session.personCount || client.personCount || 2} personnes
                         </span>
@@ -219,7 +225,7 @@ export default function TodayOperationsPage() {
                 <div className="bg-gradient-to-br from-stone-50 to-orange-50/30 rounded-2xl p-4 border border-stone-200 space-y-3">
                     <div className="flex items-start justify-between gap-2">
                         <div className="space-y-0.5">
-                            <div className="text-[10px] font-bold uppercase tracking-wider text-stone-500 flex items-center gap-1">
+                            <div className="text-[11px] font-bold uppercase tracking-wider text-stone-500 flex items-center gap-1">
                                 <MapPin className="w-3.5 h-3.5 text-[#E1567A]" />
                                 Adresse de destination :
                             </div>
@@ -237,12 +243,12 @@ export default function TodayOperationsPage() {
                                 {copiedText === 'adresse' ? (
                                     <>
                                         <Check className="w-3.5 h-3.5 text-emerald-600" />
-                                        <span className="text-[10px] text-emerald-700">Copié !</span>
+                                        <span className="text-[11px] text-emerald-700">Copié !</span>
                                     </>
                                 ) : (
                                     <>
                                         <Copy className="w-3.5 h-3.5 text-stone-500" />
-                                        <span className="text-[10px]">Copier</span>
+                                        <span className="text-[11px]">Copier</span>
                                     </>
                                 )}
                             </button>
@@ -380,10 +386,8 @@ export default function TodayOperationsPage() {
         <div className="min-h-screen bg-[#FAFAF9] text-stone-900 pb-28 font-sans">
             {/* Standardized Header */}
             <AdminPageHeader
-                title="Séances du Jour & Itinéraires"
-                subtitle="Consultez vos clients du jour sur mobile, lancez l'itinéraire direct Waze / Google Maps et ouvrez vos fiches cuisine."
+                title="Aujourd’hui"
                 backHref="/admin"
-                backLabel="Retour au menu"
                 actionElement={
                     <div className="flex items-center gap-2">
                         <Link href="/admin/semaine">
@@ -423,11 +427,11 @@ export default function TodayOperationsPage() {
 
                     <div className="text-center">
                         <div className="flex items-center justify-center gap-1.5">
-                            <span className="font-serif font-bold text-base sm:text-lg text-stone-900 capitalize">
+                            <span className="font-serif font-semibold text-base sm:text-lg text-stone-900 capitalize">
                                 {formattedDateLabel}
                             </span>
                             {isToday && (
-                                <Badge className="bg-[#E1567A] text-white text-[10px] font-bold rounded-full px-2 py-0.2">
+                                <Badge className="bg-[#E1567A] text-white text-[11px] font-bold rounded-full px-2 py-0.2">
                                     Aujourd&apos;hui
                                 </Badge>
                             )}

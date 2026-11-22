@@ -241,7 +241,7 @@ export default function CombinedGroceryList({ list, saved, savedEdits, extras, o
                                         {item.warnings.length > 0 && (
                                             <div className="flex flex-wrap gap-1 pt-1 px-0.5">
                                                 {item.warnings.map(w => (
-                                                    <span key={w} className={`text-[10px] font-bold rounded-full px-2 py-0.5 border ${w.startsWith('🚫') ? 'bg-red-50 text-red-700 border-red-200' : 'bg-amber-50 text-amber-800 border-amber-200'}`}>
+                                                    <span key={w} className={`text-[11px] font-bold rounded-full px-2 py-0.5 border ${w.startsWith('🚫') ? 'bg-red-50 text-red-700 border-red-200' : 'bg-amber-50 text-amber-800 border-amber-200'}`}>
                                                         {w}
                                                     </span>
                                                 ))}

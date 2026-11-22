@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getSession, setSessionIgnored, deleteSession, rescheduleAppSession, setSessionAssignee, listClientSessionsInSlot, setSessionCountOverrides } from '@/lib/db/sessions';
+import { getSession, setSessionIgnored, deleteSession, rescheduleAppSession, setSessionAssignee, listClientSessionsInSlot, setSessionCountOverrides, setSessionDetails } from '@/lib/db/sessions';
+import { cleanArrivalTime, type ExtraDish, type WeeklyDish } from '@/lib/types/cooking-ops';
+import { randomUUID } from 'crypto';
 import { getStaffMember } from '@/lib/db/staff';
 import { deleteGoogleCalendarEvent } from '@/lib/googleCalendar';
 import { getClientById } from '@/lib/db/clients';
@@ -54,6 +56,22 @@ export async function GET(_req: NextRequest, { params }: Params) {
                 versionLabels[d.id] = `${variant.kind === 'replacement' ? 'Remplacement' : 'Version'} ${variant.diets.map(dietLabel).join(' + ').toLowerCase()}`;
             }
         }
+        // Dishes added for this session only (free), after the client's choices
+        const extras = session.extraDishes || [];
+        for (const extra of extras) {
+            const fromMenu = extra.fromMenuDishId ? menu.recipes.find(d => d.id === extra.fromMenuDishId) : undefined;
+            dishes.push({
+                ...(fromMenu || {}),
+                id: extra.id,
+                name: extra.name,
+                category: fromMenu?.category || 'Végétarien',
+                ingredients: fromMenu?.ingredients ?? extra.ingredients ?? '',
+                instructions: fromMenu?.instructions ?? extra.instructions ?? [],
+                chefNotes: fromMenu?.chefNotes ?? extra.chefNotes ?? ''
+            } as WeeklyDish);
+            versionLabels[extra.id] = 'Plat offert';
+        }
+
         const missingDishNames = chosenIds
             .map((dishId, i) => (menu.recipes.some(d => d.id === dishId) ? null : selection?.selectedDishNames[i] || null))
             .filter((n): n is string => Boolean(n));
@@ -66,6 +84,7 @@ export async function GET(_req: NextRequest, { params }: Params) {
             dishes,
             missingDishNames,
             versionLabels,
+            extraDishIds: extras.map(e => e.id),
             weekLabel: menu.weekLabel
         });
     } catch (error) {
@@ -84,6 +103,8 @@ export async function GET(_req: NextRequest, { params }: Params) {
  * PATCH { dateIso, timeSlot } → moves a session created in the app (Google ones move in Google Calendar)
  * PATCH { assignedTo: chefId | null } → who cooks it (Elisa only; null = Elisa)
  * PATCH { personCountOverride?, dishCountOverride? } → numbers for THIS session only (null = the client's profile)
+ * PATCH { sessionNote?, arrivalTime? } → a note and the arrival time for THIS session only ('' = none)
+ * PATCH { addExtraDish: { name, fromMenuDishId? } } / { removeExtraDishId } → a free dish added to THIS session
  * PATCH { mergeDuplicates: true } → the same client booked twice on this day and slot becomes one session
  *   (Elisa only): the Google Calendar one is kept, cooked by the chef of the other copy, the copy is removed
  * A chef can do all of this on their own sessions, except hiding events and reassigning.
@@ -114,6 +135,43 @@ export async function PATCH(req: NextRequest, { params }: Params) {
             }
             const session = await setSessionCountOverrides(id, { personCount, dishCount });
             return NextResponse.json({ success: true, session });
+        }
+
+        if ('sessionNote' in body || 'arrivalTime' in body) {
+            const details: Parameters<typeof setSessionDetails>[1] = {};
+            if ('sessionNote' in body) {
+                details.sessionNote = typeof body.sessionNote === 'string' && body.sessionNote.trim() ? body.sessionNote.trim().slice(0, 1000) : null;
+            }
+            if ('arrivalTime' in body) {
+                const empty = body.arrivalTime === null || body.arrivalTime === '';
+                const time = empty ? null : cleanArrivalTime(body.arrivalTime);
+                if (!empty && !time) return NextResponse.json({ error: 'Heure invalide (ex : 14:00)' }, { status: 400 });
+                details.arrivalTime = time;
+            }
+            return NextResponse.json({ success: true, session: await setSessionDetails(id, details) });
+        }
+
+        if (body.addExtraDish && typeof body.addExtraDish === 'object') {
+            const { name, fromMenuDishId } = body.addExtraDish as { name?: unknown; fromMenuDishId?: unknown };
+            const extras: ExtraDish[] = [...(current.extraDishes || [])];
+            if (extras.length >= 6) return NextResponse.json({ error: '6 plats ajoutés au maximum' }, { status: 400 });
+            let extra: ExtraDish | null = null;
+            if (typeof fromMenuDishId === 'string' && fromMenuDishId) {
+                const menu = await getMenu(getWeekStartForDate(current.dateIso));
+                const dish = menu.recipes.find(d => d.id === fromMenuDishId);
+                if (!dish) return NextResponse.json({ error: 'Ce plat n’est plus au menu de la semaine' }, { status: 400 });
+                // The recipe is copied, so the sheet keeps it even if the menu changes later
+                extra = { id: `extra_${randomUUID().slice(0, 8)}`, name: dish.name, fromMenuDishId: dish.id, ingredients: dish.ingredients, instructions: dish.instructions, chefNotes: dish.chefNotes };
+            } else if (typeof name === 'string' && name.trim()) {
+                extra = { id: `extra_${randomUUID().slice(0, 8)}`, name: name.trim().slice(0, 200) };
+            }
+            if (!extra) return NextResponse.json({ error: 'Choisissez un plat du menu ou écrivez son nom' }, { status: 400 });
+            return NextResponse.json({ success: true, session: await setSessionDetails(id, { extraDishes: [...extras, extra] }) });
+        }
+
+        if (typeof body.removeExtraDishId === 'string') {
+            const extras = (current.extraDishes || []).filter(e => e.id !== body.removeExtraDishId);
+            return NextResponse.json({ success: true, session: await setSessionDetails(id, { extraDishes: extras }) });
         }
 
         if (body.mergeDuplicates === true) {

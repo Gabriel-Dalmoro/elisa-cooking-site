@@ -60,7 +60,7 @@ function LoginForm() {
                         <div className="h-12 w-12 rounded-2xl bg-rose-50 border border-rose-200 flex items-center justify-center mx-auto text-[#E1567A]">
                             <Lock className="h-6 w-6" />
                         </div>
-                        <h1 className="text-2xl font-bold font-serif text-stone-900">Espace Administration</h1>
+                        <h1 className="text-2xl font-serif font-semibold text-stone-900">Espace Administration</h1>
                         <p className="text-xs text-stone-500">Connectez-vous pour accéder à vos outils.</p>
                     </div>
 

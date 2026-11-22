@@ -21,7 +21,9 @@ import {
     PenLine,
     CalendarDays,
     History,
-    X
+    X,
+    Refrigerator,
+    Snowflake
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -43,6 +45,20 @@ interface PublicDish {
     category: string;
     description?: string;
     badge?: string; // « Adapté sans gluten pour vous »: Elisa's version for this client's diet
+    freezable?: boolean | null; // how it keeps (Elisa's estimate); null = not said
+    fridgeDays?: number | null;
+}
+
+/** « Se congèle · ≈ 3 jours au frigo », for clients who cook ahead for the days after. */
+function StorageInfo({ dish }: { dish: PublicDish }) {
+    if (dish.freezable == null && !dish.fridgeDays) return null;
+    return (
+        <p className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-stone-600">
+            {dish.freezable === true && <span className="inline-flex items-center gap-1"><Snowflake className="w-3.5 h-3.5 text-sky-600" /> Se congèle</span>}
+            {dish.freezable === false && <span className="inline-flex items-center gap-1"><Snowflake className="w-3.5 h-3.5 text-stone-400" /> Ne se congèle pas</span>}
+            {dish.fridgeDays && <span className="inline-flex items-center gap-1"><Refrigerator className="w-3.5 h-3.5 text-stone-500" /> ≈ {dish.fridgeDays} jour{dish.fridgeDays > 1 ? 's' : ''} au frigo</span>}
+        </p>
+    );
 }
 
 interface PublicMenu {
@@ -351,7 +367,7 @@ export default function ClientMenuSelectionPage() {
                     ) : (
                         <Utensils className="w-12 h-12 text-[#E1567A] mx-auto mb-4" />
                     )}
-                    <h1 className="text-xl font-serif font-bold text-stone-900 mb-2">
+                    <h1 className="text-xl font-serif font-semibold text-stone-900 mb-2">
                         Bonjour {client.firstName} 👋
                     </h1>
                     <p className="text-stone-600 text-sm">
@@ -390,20 +406,20 @@ export default function ClientMenuSelectionPage() {
                             }`}
                         >
                             <span className="flex items-center justify-between gap-2">
-                                <span className={`text-[11px] font-black uppercase tracking-wider ${isActive ? 'text-[#E1567A]' : 'text-stone-500'}`}>
+                                <span className={`text-[11px] font-bold uppercase tracking-wider ${isActive ? 'text-[#E1567A]' : 'text-stone-500'}`}>
                                     {week.when}
                                 </span>
                                 {isSent ? (
-                                    <span className="text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-full px-2 py-0.5">
+                                    <span className="text-[11px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-full px-2 py-0.5">
                                         ✓ Choix envoyés
                                     </span>
                                 ) : (
-                                    <span className="text-[10px] font-bold bg-amber-50 text-amber-800 border border-amber-200 rounded-full px-2 py-0.5">
+                                    <span className="text-[11px] font-bold bg-amber-50 text-amber-800 border border-amber-200 rounded-full px-2 py-0.5">
                                         À choisir
                                     </span>
                                 )}
                             </span>
-                            <span className="block font-serif font-bold text-stone-900 text-base mt-1">{week.weekLabel}</span>
+                            <span className="block font-serif font-semibold text-stone-900 text-base mt-1">{week.weekLabel}</span>
                             {isActive && <span className="block text-[11px] text-[#E1567A] font-semibold mt-0.5">← Vous êtes ici</span>}
                         </button>
                     );
@@ -425,7 +441,7 @@ export default function ClientMenuSelectionPage() {
                         <div className="w-16 h-16 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto mb-4">
                             <CheckCircle2 className="w-10 h-10" />
                         </div>
-                        <h1 className="text-2xl font-serif font-bold text-stone-900 mb-2">
+                        <h1 className="text-2xl font-serif font-semibold text-stone-900 mb-2">
                             {sentRecap.justSent ? 'Choix confirmés avec succès !' : 'Votre sélection est déjà faite'}
                         </h1>
                         <p className="text-stone-600 text-sm mb-6">
@@ -510,7 +526,7 @@ export default function ClientMenuSelectionPage() {
                                     Menu Hebdomadaire
                                 </span>
                             </div>
-                            <h1 className="text-2xl sm:text-3xl font-serif font-bold text-stone-900">
+                            <h1 className="text-2xl sm:text-3xl font-serif font-semibold text-stone-900">
                                 Bonjour {client.firstName} 👋
                             </h1>
                             <p className="text-sm font-bold text-[#E1567A] mt-1 flex items-center gap-1.5">
@@ -628,7 +644,7 @@ export default function ClientMenuSelectionPage() {
 
                 {/* Section Header */}
                 <div className="flex items-center justify-between pt-2 px-1">
-                    <h2 className="text-base sm:text-lg font-serif font-bold text-stone-900 flex items-center gap-2">
+                    <h2 className="text-base sm:text-lg font-serif font-semibold text-stone-900 flex items-center gap-2">
                         <Utensils className="w-5 h-5 text-amber-600" />
                         Les {menu.dishes.length} Recettes de la semaine
                     </h2>
@@ -675,10 +691,11 @@ export default function ClientMenuSelectionPage() {
                                             )}
                                         </div>
 
-                                        <h3 className="font-serif font-bold text-stone-900 text-base leading-snug">
+                                        <h3 className="font-serif font-semibold text-stone-900 text-base leading-snug">
                                             {dish.name}
                                         </h3>
-                                        
+                                        <StorageInfo dish={dish} />
+
                                         {dish.description && (
                                             <p className="text-xs text-stone-600 mt-1 leading-relaxed">
                                                 {dish.description}
@@ -731,7 +748,7 @@ export default function ClientMenuSelectionPage() {
                             {wantsCustomDish ? <Check className="w-4 h-4 stroke-[3]" /> : <PenLine className="w-3.5 h-3.5 text-stone-400" />}
                         </div>
                         <div className="flex-1 min-w-0">
-                            <h3 className="font-serif font-bold text-stone-900 text-base leading-snug">
+                            <h3 className="font-serif font-semibold text-stone-900 text-base leading-snug">
                                 Demander un plat sur mesure
                             </h3>
                             <p className="text-xs text-stone-600 mt-1 leading-relaxed">
@@ -762,7 +779,7 @@ export default function ClientMenuSelectionPage() {
                             <div className="bg-white rounded-xl border border-[#E1567A]/40 p-3.5 flex items-start gap-3">
                                 <History className="w-5 h-5 text-[#E1567A] shrink-0 mt-0.5" />
                                 <div className="flex-1 min-w-0">
-                                    <p className="font-serif font-bold text-stone-900 leading-snug">{pastPick.name}</p>
+                                    <p className="font-serif font-semibold text-stone-900 leading-snug">{pastPick.name}</p>
                                     <p className="text-[11px] text-stone-500 mt-0.5">Déjà cuisiné · {pastPick.cookedWeek.toLowerCase()}</p>
                                     <button type="button" onClick={() => setIsPastOpen(true)} className="text-xs font-semibold text-[#E1567A] underline mt-1.5">
                                         Choisir un autre plat
@@ -847,7 +864,7 @@ export default function ClientMenuSelectionPage() {
                             <div className="text-xs font-bold text-stone-500 uppercase tracking-wider">
                                 Votre formule : {targetCount} plats
                             </div>
-                            <div className="text-base font-serif font-bold text-stone-900 flex items-center gap-2">
+                            <div className="text-base font-serif font-semibold text-stone-900 flex items-center gap-2">
                                 <span>{totalChosen} / {targetCount} sélectionnés</span>
                                 {canSubmit && (
                                     <span className="text-xs font-sans font-semibold text-emerald-600 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full">

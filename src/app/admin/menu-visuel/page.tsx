@@ -341,9 +341,8 @@ export default function InstagramMenuGeneratorPage() {
         <div className="min-h-screen bg-[#FAFAF9] text-stone-800 pb-28 font-sans">
             {/* Standardized Header */}
             <AdminPageHeader
-                title="Flyer Instagram Stories"
-                subtitle="Générez et téléchargez votre flyer hebdomadaire au format Story 9:16 pour Instagram et WhatsApp avec marges de sécurité."
-                backHref="/admin/recettes"
+                title="Flyer Instagram"
+                backHref="/admin"
                 backLabel="Retour au Menu & Recettes"
                 actionElement={
                     <div className="flex items-center gap-2">
