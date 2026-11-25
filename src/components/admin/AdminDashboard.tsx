@@ -117,7 +117,9 @@ export default function AdminDashboard({
                     href="/admin/aujourd-hui"
                     className="group relative overflow-hidden flex flex-col sm:flex-row sm:items-center justify-between gap-5 rounded-3xl bg-stone-900 text-white p-6 sm:p-8"
                 >
-                    <span aria-hidden className="absolute -right-16 -top-20 w-64 h-64 rounded-full bg-[#E1567A]/25 blur-3xl" />
+                    {/* Pink light coming in from the right */}
+                    <span aria-hidden className="absolute inset-0 bg-gradient-to-r from-stone-900 via-stone-900/80 to-[#E1567A]/70" />
+                    <span aria-hidden className="absolute -right-10 top-1/2 -translate-y-1/2 w-80 h-80 rounded-full bg-[#E1567A]/60 blur-3xl" />
                     <span className="relative flex items-center gap-5">
                         <span className="w-12 h-12 rounded-2xl bg-white/10 ring-1 ring-white/15 flex items-center justify-center shrink-0">
                             <Navigation className="w-5 h-5 text-[#F4A0B5]" strokeWidth={1.75} />
