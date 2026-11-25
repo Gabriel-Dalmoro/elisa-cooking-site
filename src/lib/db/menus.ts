@@ -1,6 +1,6 @@
 import { randomUUID } from 'crypto';
 import { getSupabaseAdmin } from '../supabase/admin';
-import { DishVariant, MenuStatus, WeeklyDish, WeeklyMenuData } from '../types/cooking-ops';
+import { cleanFridgeDays, DishVariant, MenuStatus, WeeklyDish, WeeklyMenuData } from '../types/cooking-ops';
 import { isDietKey, menuDietIssues } from '../diets';
 import { normalize } from '../grocery/parse';
 import { getCurrentWeekStart, getWeekBoundsForStart, seasonOf } from '../dateUtils';
@@ -88,6 +88,8 @@ export function sanitizeDishes(input: unknown): WeeklyDish[] {
                 ? d.instructions.filter((s): s is string => typeof s === 'string').map(s => s.trim()).filter(Boolean)
                 : [],
             chefNotes: typeof d.chefNotes === 'string' ? d.chefNotes.trim() : '',
+            freezable: typeof d.freezable === 'boolean' ? d.freezable : null,
+            fridgeDays: cleanFridgeDays(d.fridgeDays),
             variants: sanitizeVariants(d.variants),
             dietOk: Array.isArray(d.dietOk) ? [...new Set(d.dietOk.filter(isDietKey))] : []
         });

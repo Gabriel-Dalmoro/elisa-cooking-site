@@ -48,18 +48,12 @@ export default function RecipeBoxes({ ingredients, steps, onChange, stepsRows = 
             )}
 
             <div className="space-y-2">
-                <label className="text-xs font-bold text-stone-700 uppercase tracking-wider block">
-                    Ingrédients (pour la liste de courses)
-                </label>
-                <p className="text-[11px] text-stone-500">
-                    Un ingrédient par ligne, quantités pour {DEFAULT_SERVINGS} personnes (ou écrivez « Pour 6 personnes »).
-                    Une ligne seule comme « Polenta » ou « Pour la sauce : » regroupe les ingrédients qui suivent.
-                </p>
+                <label className="t-label block">Ingrédients</label>
                 <textarea
                     rows={10}
                     value={ingredients}
                     onChange={e => onChange({ ingredients: e.target.value, steps })}
-                    placeholder={'Pour 4 personnes\n\n250 g de figues fraîches\n2 échalotes\n1 c. à soupe de miel\nSel\nPoivre'}
+                    placeholder={'Un ingrédient par ligne\nPour 4 personnes\n\n250 g de figues fraîches\n2 échalotes\n1 c. à soupe de miel\nSel\nPoivre'}
                     className="w-full text-sm leading-relaxed p-4 rounded-2xl border border-stone-300 focus:ring-2 focus:ring-[#E1567A] focus:outline-none"
                 />
                 {summary.count > 0 && (
@@ -78,9 +72,7 @@ export default function RecipeBoxes({ ingredients, steps, onChange, stepsRows = 
             </div>
 
             <div className="space-y-2">
-                <label className="text-xs font-bold text-stone-700 uppercase tracking-wider block">
-                    Préparation, cuisson & notes
-                </label>
+                <label className="t-label block">Préparation</label>
                 <textarea
                     rows={stepsRows}
                     value={steps}

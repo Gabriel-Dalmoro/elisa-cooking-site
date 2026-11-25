@@ -14,7 +14,7 @@ interface Props {
  * A dish title on one client's cooking sheet that Elisa can rename for this client only
  * (« Curry de légumes » → « Curry de légumes sans lait de coco »). The menu keeps its title.
  */
-export default function DishTitleEdit({ title, override, onSave, className = 'text-lg font-serif font-bold text-stone-900' }: Props) {
+export default function DishTitleEdit({ title, override, onSave, className = 'text-lg font-serif font-semibold text-stone-900' }: Props) {
     const [draft, setDraft] = useState<string | null>(null);
     const [saving, setSaving] = useState(false);
     const shown = override || title;

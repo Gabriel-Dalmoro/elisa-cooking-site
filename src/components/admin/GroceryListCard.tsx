@@ -157,17 +157,17 @@ export default function GroceryListCard({
                         )}
                         <div className="flex flex-wrap gap-1.5 mt-1">
                             {alertCount > 0 && (
-                                <span className="text-[10px] font-bold bg-red-50 text-red-700 border border-red-200 rounded-full px-2 py-0.5">
+                                <span className="text-[11px] font-bold bg-red-50 text-red-700 border border-red-200 rounded-full px-2 py-0.5">
                                     ⚠️ {alertCount} alerte{alertCount > 1 ? 's' : ''}
                                 </span>
                             )}
                             {list.unsortedCount > 0 && (
-                                <span className="text-[10px] font-bold bg-amber-50 text-amber-800 border border-amber-200 rounded-full px-2 py-0.5">
+                                <span className="text-[11px] font-bold bg-amber-50 text-amber-800 border border-amber-200 rounded-full px-2 py-0.5">
                                     {list.unsortedCount} à classer
                                 </span>
                             )}
                             {list.dishesWithoutIngredients.length > 0 && (
-                                <span className="text-[10px] font-bold bg-amber-50 text-amber-800 border border-amber-200 rounded-full px-2 py-0.5">
+                                <span className="text-[11px] font-bold bg-amber-50 text-amber-800 border border-amber-200 rounded-full px-2 py-0.5">
                                     {list.dishesWithoutIngredients.length} plat{list.dishesWithoutIngredients.length > 1 ? 's' : ''} sans ingrédients
                                 </span>
                             )}
@@ -293,7 +293,7 @@ export default function GroceryListCard({
                                                             {item.warnings.map(w => (
                                                                 <span
                                                                     key={w}
-                                                                    className={`text-[10px] font-bold rounded-full px-2 py-0.5 border ${
+                                                                    className={`text-[11px] font-bold rounded-full px-2 py-0.5 border ${
                                                                         w.startsWith('🚫')
                                                                             ? 'bg-red-50 text-red-700 border-red-200'
                                                                             : 'bg-amber-50 text-amber-800 border-amber-200'

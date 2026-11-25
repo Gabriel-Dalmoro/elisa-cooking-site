@@ -1,5 +1,5 @@
 import { getSupabaseAdmin } from '../supabase/admin';
-import { BookingSession, TimeSlot } from '../types/cooking-ops';
+import { BookingSession, ExtraDish, TimeSlot } from '../types/cooking-ops';
 import { getParisDateTimeInfo, getParisUtcOffset } from '../dateUtils';
 
 /**
@@ -27,6 +27,9 @@ interface SessionRow {
     series_date?: string | null;
     person_count_override?: number | null; // migration 009
     dish_count_override?: number | null;
+    session_note?: string | null; // migration 011
+    arrival_time?: string | null;
+    extra_dishes?: unknown;
     created_at: string;
 }
 
@@ -49,6 +52,9 @@ function rowToSession(row: SessionRow): BookingSession {
         personCountOverride: row.person_count_override ?? null,
         dishCountOverride: row.dish_count_override ?? null,
         seriesDate: row.series_date || undefined,
+        sessionNote: row.session_note || undefined,
+        arrivalTime: row.arrival_time || undefined,
+        extraDishes: Array.isArray(row.extra_dishes) ? (row.extra_dishes as ExtraDish[]) : [],
         createdAt: row.created_at
     };
 }
@@ -282,6 +288,34 @@ export async function setSessionAssignee(id: string, assignedTo: string | null):
         .select('*')
         .maybeSingle();
     if (error) throw new Error(`Attribution de la séance impossible : ${error.message}`);
+    if (!data) throw new Error('Séance introuvable');
+    return rowToSession(data as SessionRow);
+}
+
+/**
+ * This session only: a note, the arrival time, dishes added for free. Kept across Google re-syncs
+ * (the sync never writes these columns).
+ */
+export async function setSessionDetails(
+    id: string,
+    details: { sessionNote?: string | null; arrivalTime?: string | null; extraDishes?: ExtraDish[] }
+): Promise<BookingSession> {
+    const update: Record<string, unknown> = { updated_at: new Date().toISOString() };
+    if (details.sessionNote !== undefined) update.session_note = details.sessionNote;
+    if (details.arrivalTime !== undefined) update.arrival_time = details.arrivalTime;
+    if (details.extraDishes !== undefined) update.extra_dishes = details.extraDishes;
+    const { data, error } = await getSupabaseAdmin()
+        .from('cooking_sessions')
+        .update(update)
+        .eq('id', id)
+        .select('*')
+        .maybeSingle();
+    if (error) {
+        const missing = /session_note|arrival_time|extra_dishes/.test(error.message) && /column|schema cache/i.test(error.message);
+        throw new Error(missing
+            ? 'Cette option n’est pas encore activée (migration 011 à lancer dans Supabase).'
+            : `Mise à jour de la séance impossible : ${error.message}`);
+    }
     if (!data) throw new Error('Séance introuvable');
     return rowToSession(data as SessionRow);
 }

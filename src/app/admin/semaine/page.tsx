@@ -2,48 +2,40 @@
 
 import React, { useEffect, useState, useMemo } from 'react';
 import Link from 'next/link';
-import { 
-    ChefHat, 
-    CheckCircle2, 
-    Clock, 
-    MessageCircle, 
-    Plus, 
-    Users, 
-    Sparkles, 
-    Check, 
+import {
+    ChefHat,
+    CheckCircle2,
+    Clock,
+    MessageCircle,
+    Plus,
+    Check,
     Copy,
-    BookOpen,
-    ArrowLeft,
-    Image as ImageIcon,
     Calendar as CalendarIcon,
-    CalendarCheck,
     RefreshCw,
     AlertCircle,
-    Info,
     Edit2,
     Sun,
     Moon,
-    LayoutGrid,
-    ListFilter,
     Navigation,
     Trash2,
     ChevronLeft,
     ChevronRight,
-    MapPin,
-    X,
     Mail,
     Share2,
     RotateCcw,
-    Repeat
+    Repeat,
+    StickyNote,
+    Gift
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import AdminPageHeader from '@/components/admin/AdminPageHeader';
 import { useConfirm } from '@/components/admin/useConfirm';
 import { useToast } from '@/components/admin/useToast';
-import { ClientProfile, SlotSessionStatus, WeeklyMenuData } from '@/lib/types/cooking-ops';
-import { getParisDateTimeInfo, getWeekBounds, getWeekBoundsForStart, WEEK_DAY_NAMES } from '@/lib/dateUtils';
+import { arrivalTimeOf, formatTimeFr, ClientProfile, SlotSessionStatus, WeeklyMenuData } from '@/lib/types/cooking-ops';
+import { ClientContact, SessionExtras } from '@/components/admin/SessionExtras';
+import { getParisDateTimeInfo, getWeekBounds, getWeekBoundsForStart } from '@/lib/dateUtils';
 import { allergyOptions } from '@/lib/allergies';
 import CustomAllergyInput from '@/components/CustomAllergyInput';
 import { chefColor, chefName, useStaff } from '@/components/admin/StaffContext';
@@ -60,7 +52,8 @@ export default function WeeklyOpsAdminDashboard() {
     const [slotStatuses, setSlotStatuses] = useState<SlotSessionStatus[]>([]);
     const [allClients, setAllClients] = useState<ClientProfile[]>([]);
     const [copiedToken, setCopiedToken] = useState<string | null>(null);
-    const [viewMode, setViewMode] = useState<'calendar' | 'list'>('calendar');
+    // « Lien envoyé » this week: clientId → when (ticked when the link is copied or sent)
+    const [linkSends, setLinkSends] = useState<Record<string, string>>({});
     const [weekOffset, setWeekOffset] = useState<number>(0);
     const [isSyncingCalendar, setIsSyncingCalendar] = useState(false);
     
@@ -103,7 +96,8 @@ export default function WeeklyOpsAdminDashboard() {
     // Team: Elisa sees every chef's sessions and can filter; a chef only ever gets their own
     const { isOwner, isChef, chefs } = useStaff();
     const activeChefs = chefs.filter(c => c.active);
-    const [chefFilter, setChefFilter] = useState<string>('all'); // 'all' | 'elisa' | chef id
+    // Elisa opens on her own planning; « Tous » and each chef are one tap away
+    const [chefFilter, setChefFilter] = useState<string>('elisa'); // 'all' | 'elisa' | chef id
     useEffect(() => {
         const fromUrl = new URLSearchParams(window.location.search).get('chef');
         if (fromUrl) setChefFilter(fromUrl);
@@ -124,6 +118,7 @@ export default function WeeklyOpsAdminDashboard() {
             setSlotStatuses(data.slotStatuses || []);
             setAllClients(data.clients || []);
             setSeriesList(data.series || []);
+            setLinkSends(data.linkSends || {});
         } catch (e) {
             console.error('Error loading admin ops overview:', e);
         } finally {
@@ -143,6 +138,7 @@ export default function WeeklyOpsAdminDashboard() {
                     setSeriesList(data.series || []);
                     setWeekMenu(data.weekMenu);
                     setAllClients(data.clients || []);
+                    setLinkSends(data.linkSends || {});
                 } else {
                     loadWeekOverview(offset);
                 }
@@ -153,7 +149,9 @@ export default function WeeklyOpsAdminDashboard() {
             setWeekMenu(data.weekMenu);
             setAllClients(data.clients || []);
             setSeriesList(data.series || []);
+            setLinkSends(data.linkSends || {});
             if (data.chefView) return; // a chef has no Google Calendar: nothing was synced
+            rememberSync(offset);
 
             const validCount = data.validBookingsCount || 0;
             const ignoredCount = data.ignoredBlocksCount || 0;
@@ -172,10 +170,20 @@ export default function WeeklyOpsAdminDashboard() {
     // Google Calendar is Elisa's: sync it only when her sessions are on screen. A chef's planning
     // (signed in as the chef, or Elisa looking at one chef) lives in the app and just loads.
     const syncsGoogle = (filter: string) => isOwner && (filter === 'all' || filter === 'elisa');
+    // Changing weeks doesn't wait for Google each time: a week synced less than 10 minutes ago just
+    // loads (the « Sync » button always syncs). Remembered in this browser only.
+    const SYNC_FRESH_MS = 10 * 60 * 1000;
+    const syncKey = (offset: number) => `planning-sync-${getWeekBounds(offset).startIso}`;
+    const rememberSync = (offset: number) => {
+        try { sessionStorage.setItem(syncKey(offset), String(Date.now())); } catch { /* private mode */ }
+    };
+    const syncedRecently = (offset: number) => {
+        try { return Date.now() - Number(sessionStorage.getItem(syncKey(offset)) || 0) < SYNC_FRESH_MS; } catch { return false; }
+    };
     const refreshWeek = (offset = weekOffset) => {
         // On the first load the ?chef= filter from the address isn't in state yet
-        const filter = chefFilter !== 'all' ? chefFilter : new URLSearchParams(window.location.search).get('chef') || 'all';
-        return syncsGoogle(filter) ? handleCalendarSync(offset) : loadWeekOverview(offset);
+        const filter = new URLSearchParams(window.location.search).get('chef') || chefFilter;
+        return syncsGoogle(filter) && !syncedRecently(offset) ? handleCalendarSync(offset) : loadWeekOverview(offset);
     };
 
     useEffect(() => {
@@ -193,6 +201,28 @@ export default function WeeklyOpsAdminDashboard() {
             'link'
         );
         setTimeout(() => setCopiedToken(null), 2500);
+    };
+
+    const markLinkSent = async (clientId: string, sent: boolean) => {
+        if (!clientId) return;
+        const before = linkSends;
+        setLinkSends(prev => {
+            const next = { ...prev };
+            if (sent) next[clientId] = new Date().toISOString(); else delete next[clientId];
+            return next;
+        });
+        try {
+            const res = await fetch('/api/cooking-ops/link-sent', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ clientId, weekStart: weekInfo.startIso, sent })
+            });
+            const data = await res.json().catch(() => ({}));
+            if (!res.ok) throw new Error(data.error || 'Enregistrement impossible');
+        } catch (e) {
+            setLinkSends(before);
+            showToast(e instanceof Error ? e.message : 'Enregistrement impossible', 'error');
+        }
     };
 
     const getClientLink = (client: ClientProfile) =>
@@ -392,10 +422,11 @@ export default function WeeklyOpsAdminDashboard() {
 
     // Elisa's chef filter (a chef's list already only holds their sessions)
     const visibleStatuses = useMemo(() => {
-        if (!isOwner || chefFilter === 'all') return slotStatuses;
+        // Without active chefs there's nothing to filter (and no buttons to switch back)
+        if (!isOwner || chefFilter === 'all' || activeChefs.length === 0) return slotStatuses;
         if (chefFilter === 'elisa') return slotStatuses.filter(s => !s.session.assignedTo);
         return slotStatuses.filter(s => s.session.assignedTo === chefFilter);
-    }, [slotStatuses, chefFilter, isOwner]);
+    }, [slotStatuses, chefFilter, isOwner, activeChefs.length]);
 
     const bookedCount = visibleStatuses.length;
     const submittedCount = visibleStatuses.filter(s => s.isSubmitted).length;
@@ -618,43 +649,15 @@ export default function WeeklyOpsAdminDashboard() {
         <div className="min-h-screen bg-[#FAFAF9] text-stone-800 pb-28 font-sans">
             {/* Standardized Header with Controls */}
             <AdminPageHeader
-                title={isChef ? 'Mon planning' : 'Planning Hebdo & Commandes'}
-                subtitle={isChef
-                    ? 'Vos séances de la semaine et les choix de vos clients. Touchez un créneau libre pour ajouter une séance.'
-                    : 'Visualisez votre calendrier synchronisé avec Google Calendar en temps réel, celui de vos chefs, et suivez les choix de plats.'}
+                title={isChef ? 'Mon planning' : 'Planning'}
                 backHref="/admin"
-                backLabel="Retour à l'admin"
                 actionElement={
                     <div className="flex flex-wrap items-center gap-2">
-                        {/* View Switchers: Calendrier | Liste | Aujourd'hui */}
-                        <div className="flex items-center bg-stone-100 p-1 rounded-full border border-stone-200 text-xs">
-                            <button
-                                onClick={() => setViewMode('calendar')}
-                                className={`px-3 py-1.5 rounded-full font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
-                                    viewMode === 'calendar' ? 'bg-white text-stone-900 shadow-xs' : 'text-stone-500 hover:text-stone-800'
-                                }`}
-                            >
-                                <LayoutGrid className="w-3.5 h-3.5 text-[#E1567A]" />
-                                Calendrier
-                            </button>
-                            <button
-                                onClick={() => setViewMode('list')}
-                                className={`px-3 py-1.5 rounded-full font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
-                                    viewMode === 'list' ? 'bg-white text-stone-900 shadow-xs' : 'text-stone-500 hover:text-stone-800'
-                                }`}
-                            >
-                                <ListFilter className="w-3.5 h-3.5 text-stone-600" />
-                                Liste
-                            </button>
-                            <Link href="/admin/aujourd-hui">
-                                <button
-                                    className="px-3 py-1.5 rounded-full font-bold text-stone-600 hover:text-stone-900 transition-all flex items-center gap-1.5 cursor-pointer"
-                                >
-                                    <Navigation className="w-3.5 h-3.5 text-[#E1567A]" />
-                                    Aujourd&apos;hui
-                                </button>
-                            </Link>
-                        </div>
+                        <Link href="/admin/aujourd-hui">
+                            <Button size="sm" variant="outline" className="rounded-full h-9 px-4 gap-1.5 text-xs font-semibold border-stone-300 bg-white">
+                                <Navigation className="w-3.5 h-3.5 text-[#E1567A]" /> Aujourd&apos;hui
+                            </Button>
+                        </Link>
 
                         <Button 
                             size="sm" 
@@ -683,7 +686,7 @@ export default function WeeklyOpsAdminDashboard() {
                                 <ChevronLeft className="w-5 h-5" />
                             </button>
 
-                            <h2 className="text-2xl font-serif font-bold text-stone-900 capitalize px-1">
+                            <h2 className="text-2xl font-serif font-semibold text-stone-900 px-1 first-letter:uppercase">
                                 {weekInfo.dateRangeOnly}
                             </h2>
 
@@ -723,26 +726,6 @@ export default function WeeklyOpsAdminDashboard() {
                         </Button>}
                     </div>
 
-                    {/* Stats Counters */}
-                    <div className="flex items-center gap-4 bg-stone-50 p-3 sm:p-3.5 rounded-2xl border border-stone-200 self-start md:self-auto">
-                        <div className="text-center px-2">
-                            <div className="text-xl sm:text-2xl font-bold font-serif text-[#E1567A]">
-                                {submittedCount} / {bookedCount}
-                            </div>
-                            <div className="text-[10px] text-stone-500 font-semibold uppercase tracking-wider">
-                                Choix Reçus
-                            </div>
-                        </div>
-                        <div className="w-px h-8 bg-stone-200" />
-                        <div className="text-center px-2">
-                            <div className="text-xl sm:text-2xl font-bold font-serif text-stone-800">
-                                {bookedCount}
-                            </div>
-                            <div className="text-[10px] text-stone-500 font-semibold uppercase tracking-wider">
-                                Séances Prévues
-                            </div>
-                        </div>
-                    </div>
                 </div>
 
                 {/* Elisa: everyone's sessions, or one chef's planning */}
@@ -790,7 +773,7 @@ export default function WeeklyOpsAdminDashboard() {
                     <div className="bg-white rounded-3xl p-12 text-center text-stone-500 border border-stone-200">
                         Chargement du planning...
                     </div>
-                ) : viewMode === 'calendar' ? (
+                ) : (
                     /* ========================================================================= */
                     /* CALENDAR GRID VIEW: Monday to Friday (With Light Pink Border on Today)    */
                     /* ========================================================================= */
@@ -812,7 +795,7 @@ export default function WeeklyOpsAdminDashboard() {
                                         ? 'bg-gradient-to-br from-[#E1567A] to-[#c94567] text-white shadow-md ring-2 ring-[#E1567A]/20' 
                                         : 'bg-stone-900 text-white'
                                 }`}>
-                                    <h3 className="font-serif font-bold text-sm tracking-wide">
+                                    <h3 className="font-serif font-semibold text-sm tracking-wide">
                                         {dayName}
                                     </h3>
                                     <span className={`text-[11px] font-medium block mt-0.5 ${isToday ? 'text-rose-100' : 'text-stone-300'}`}>
@@ -843,9 +826,12 @@ export default function WeeklyOpsAdminDashboard() {
                                                     <div className="space-y-2.5">
                                                         {/* Slot Header */}
                                                         <div className="flex items-center justify-between">
-                                                            <span className="text-[10px] font-bold uppercase tracking-wider text-amber-800 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full flex items-center gap-1">
-                                                                {isMorning ? <Sun className="w-3 h-3 text-amber-600" /> : <Moon className="w-3 h-3 text-indigo-600" />}
-                                                                {slot}
+                                                            <span className="flex items-center gap-1.5 min-w-0">
+                                                                <span className="whitespace-nowrap text-[11px] font-semibold uppercase tracking-wider text-amber-800 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full flex items-center gap-1">
+                                                                    {isMorning ? <Sun className="w-3 h-3 text-amber-600" /> : <Moon className="w-3 h-3 text-indigo-600" />}
+                                                                    {slot}
+                                                                </span>
+                                                                {arrivalTimeOf(session) && <span className="text-sm font-bold text-stone-900 tabular-nums">{formatTimeFr(arrivalTimeOf(session)!)}</span>}
                                                             </span>
 
                                                             <div className="flex items-center">
@@ -875,18 +861,18 @@ export default function WeeklyOpsAdminDashboard() {
                                                         {(isOwner && chefs.length > 0) || session.seriesId || status.duplicateSessionIds ? (
                                                             <div className="flex flex-wrap items-center gap-1">
                                                                 {isOwner && chefs.length > 0 && (
-                                                                    <span className={`inline-flex items-center gap-1.5 text-[10px] font-bold rounded-full border px-2 py-0.5 ${cook.pill}`}>
+                                                                    <span className={`inline-flex items-center gap-1.5 text-[11px] font-bold rounded-full border px-2 py-0.5 ${cook.pill}`}>
                                                                         <span className={`w-1.5 h-1.5 rounded-full ${cook.dot}`} />
                                                                         {chefName(chefs, session.assignedTo)}
                                                                     </span>
                                                                 )}
                                                                 {session.seriesId && (
-                                                                    <span className="inline-flex items-center gap-1 text-[10px] font-bold rounded-full border border-rose-200 bg-rose-50 text-[#c94567] px-2 py-0.5" title="Séance récurrente">
+                                                                    <span className="inline-flex items-center gap-1 text-[11px] font-bold rounded-full border border-rose-200 bg-rose-50 text-[#c94567] px-2 py-0.5" title="Séance récurrente">
                                                                         <Repeat className="w-3 h-3" /> Récurrent
                                                                     </span>
                                                                 )}
                                                                 {status.duplicateSessionIds && (
-                                                                    <span className="inline-flex items-center gap-1 text-[10px] font-bold rounded-full border border-amber-300 bg-amber-50 text-amber-800 px-2 py-0.5" title="Ce client est réservé deux fois sur ce créneau">
+                                                                    <span className="inline-flex items-center gap-1 text-[11px] font-bold rounded-full border border-amber-300 bg-amber-50 text-amber-800 px-2 py-0.5" title="Ce client est réservé deux fois sur ce créneau">
                                                                         <AlertCircle className="w-3 h-3" /> Doublon
                                                                     </span>
                                                                 )}
@@ -897,7 +883,7 @@ export default function WeeklyOpsAdminDashboard() {
                                                             <div className="space-y-1">
                                                                 <button
                                                                     onClick={() => openCreateClientFromUnmatched(session.clientName, session.dishCount, session.personCount)}
-                                                                    className="text-[10px] text-red-700 bg-red-50 border border-red-200 rounded-lg p-1.5 w-full text-left font-semibold flex items-center gap-1"
+                                                                    className="text-[11px] text-red-700 bg-red-50 border border-red-200 rounded-lg p-1.5 w-full text-left font-semibold flex items-center gap-1"
                                                                     title={`Événement Google Calendar : ${session.notes || ''}`}
                                                                 >
                                                                     <AlertCircle className="w-3 h-3 text-red-600 shrink-0" />
@@ -905,7 +891,7 @@ export default function WeeklyOpsAdminDashboard() {
                                                                 </button>
                                                                 <button
                                                                     onClick={() => handleIgnoreSession(session.id, session.clientName)}
-                                                                    className="text-[10px] text-stone-500 hover:text-stone-800 underline w-full text-left px-1"
+                                                                    className="text-[11px] text-stone-500 hover:text-stone-800 underline w-full text-left px-1"
                                                                 >
                                                                     Pas une séance ? Ignorer cet événement
                                                                 </button>
@@ -914,7 +900,7 @@ export default function WeeklyOpsAdminDashboard() {
 
                                                         {/* Client Name & Quota */}
                                                         <div>
-                                                            <h4 className="font-serif font-bold text-base text-stone-900 line-clamp-1">
+                                                            <h4 className="t-card-title">
                                                                 {session.clientName || client.name}
                                                             </h4>
                                                             <p className="text-[11px] text-stone-500 font-medium mt-0.5 flex items-center gap-1.5 flex-wrap">
@@ -922,7 +908,7 @@ export default function WeeklyOpsAdminDashboard() {
                                                                 <span>•</span>
                                                                 <span className={`font-bold ${session.personCountOverride ? 'text-amber-700' : 'text-[#E1567A]'}`}>👥 {session.personCount || client.personCount || 2} pers</span>
                                                                 {(session.personCountOverride || session.dishCountOverride) && (
-                                                                    <span className="text-[10px] font-bold rounded-full border border-amber-300 bg-amber-50 text-amber-800 px-1.5" title="Nombres changés pour cette séance seulement">
+                                                                    <span className="text-[11px] font-bold rounded-full border border-amber-300 bg-amber-50 text-amber-800 px-1.5" title="Nombres changés pour cette séance seulement">
                                                                         cette séance
                                                                     </span>
                                                                 )}
@@ -932,15 +918,36 @@ export default function WeeklyOpsAdminDashboard() {
                                                         {/* Status Badge */}
                                                         <div>
                                                             {isSubmitted ? (
-                                                                <Badge className="bg-emerald-100 text-emerald-800 border-emerald-300 text-[10px] font-bold gap-1 rounded-full w-full justify-center py-0.5">
+                                                                <Badge className="bg-emerald-100 text-emerald-800 border-emerald-300 text-[11px] font-bold gap-1 rounded-full w-full justify-center py-0.5">
                                                                     <CheckCircle2 className="w-3 h-3 text-emerald-600" />
                                                                     Choix validés ({selectedCount}/{session.dishCount}) · voir
                                                                 </Badge>
                                                             ) : (
-                                                                <Badge variant="outline" className="bg-amber-50 text-amber-800 border-amber-300 text-[10px] font-medium gap-1 rounded-full w-full justify-center py-0.5">
+                                                                <Badge variant="outline" className="bg-amber-50 text-amber-800 border-amber-300 text-[11px] font-medium gap-1 rounded-full w-full justify-center py-0.5">
                                                                     <Clock className="w-3 h-3 text-amber-600" />
                                                                     En attente de choix
                                                                 </Badge>
+                                                            )}
+                                                            {!isUnmatchedClient && !isSubmitted && (
+                                                                linkSends[client.id] ? (
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={() => markLinkSent(client.id, false)}
+                                                                        title="Le lien a été envoyé cette semaine. Cliquez pour annuler."
+                                                                        className="mt-1.5 w-full text-[11px] font-semibold text-emerald-700 flex items-center justify-center gap-1 hover:underline"
+                                                                    >
+                                                                        <Check className="w-3 h-3" /> Lien envoyé
+                                                                    </button>
+                                                                ) : (
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={() => markLinkSent(client.id, true)}
+                                                                        title="Cochez si vous avez déjà envoyé le lien autrement"
+                                                                        className="mt-1.5 w-full text-[11px] font-medium text-stone-500 flex items-center justify-center gap-1 hover:text-stone-800"
+                                                                    >
+                                                                        Lien pas encore envoyé
+                                                                    </button>
+                                                                )
                                                             )}
                                                         </div>
 
@@ -948,14 +955,14 @@ export default function WeeklyOpsAdminDashboard() {
                                                         {client.allergies && client.allergies.length > 0 && (
                                                             <div className="flex flex-wrap gap-1">
                                                                 {client.allergies.map(al => (
-                                                                    <span key={al} className="text-[10px] bg-red-50 text-red-700 border border-red-200 px-1.5 py-0.2 rounded-md font-bold">
+                                                                    <span key={al} className="text-[11px] bg-red-50 text-red-700 border border-red-200 px-1.5 py-0.2 rounded-md font-bold">
                                                                         ⚠️ {al}
                                                                     </span>
                                                                 ))}
                                                             </div>
                                                         )}
                                                         {selection && selection.allergiesAdded.length > 0 && (
-                                                            <div className="text-[10px] text-white bg-red-600 rounded-lg p-1.5 font-bold">
+                                                            <div className="text-[11px] text-white bg-red-600 rounded-lg p-1.5 font-bold">
                                                                 ⚠️ Ajoutée par le client : {selection.allergiesAdded.join(', ')}
                                                             </div>
                                                         )}
@@ -964,13 +971,28 @@ export default function WeeklyOpsAdminDashboard() {
                                                         {isMissingPhone && (
                                                             <button 
                                                                 onClick={() => openEditClient(client)}
-                                                                className="text-[10px] text-amber-700 bg-amber-50 border border-amber-200 rounded-lg p-1.5 w-full text-left font-medium flex items-center gap-1"
+                                                                className="text-[11px] text-amber-700 bg-amber-50 border border-amber-200 rounded-lg p-1.5 w-full text-left font-medium flex items-center gap-1"
                                                             >
                                                                 <AlertCircle className="w-3 h-3 text-amber-600 shrink-0" />
                                                                 <span>+ Ajouter tél WhatsApp</span>
                                                             </button>
                                                         )}
                                                     </div>
+
+                                                    {(session.sessionNote || (session.extraDishes?.length || 0) > 0) && (
+                                                        <div className="mt-2 space-y-1">
+                                                            {session.sessionNote && (
+                                                                <p className="text-xs text-stone-800 bg-sky-50 border border-sky-200 rounded-xl px-2.5 py-1.5" title="Note pour cette séance">
+                                                                    <StickyNote className="w-3 h-3 inline -mt-0.5 mr-1 text-sky-700" />{session.sessionNote}
+                                                                </p>
+                                                            )}
+                                                            {(session.extraDishes || []).map(extra => (
+                                                                <p key={extra.id} className="text-xs text-stone-800 bg-rose-50 border border-rose-200 rounded-xl px-2.5 py-1.5">
+                                                                    <Gift className="w-3 h-3 inline -mt-0.5 mr-1 text-[#E1567A]" />{extra.name} <span className="text-stone-500">· offert</span>
+                                                                </p>
+                                                            ))}
+                                                        </div>
+                                                    )}
 
                                                     {/* Quick Action Buttons */}
                                                     {!isUnmatchedClient && (
@@ -979,7 +1001,7 @@ export default function WeeklyOpsAdminDashboard() {
                                                         <Button 
                                                             size="sm" 
                                                             variant="outline"
-                                                            onClick={() => copyClientLink(client.token, client.name)}
+                                                            onClick={() => { copyClientLink(client.token, client.name); if (!linkSends[client.id]) markLinkSent(client.id, true); }}
                                                             className="w-full text-stone-700 border-stone-200 text-[11px] h-7 px-1 rounded-xl font-semibold gap-1 cursor-pointer hover:bg-stone-100"
                                                             title="Copier le lien de choix des plats"
                                                         >
@@ -990,6 +1012,7 @@ export default function WeeklyOpsAdminDashboard() {
                                                         {client.phone ? (
                                                             <a
                                                                 href={getWhatsAppUrl(client)}
+                                                                onClick={() => { if (!linkSends[client.id]) markLinkSent(client.id, true); }}
                                                                 target="_blank"
                                                                 rel="noopener noreferrer"
                                                                 className="w-full"
@@ -1004,7 +1027,7 @@ export default function WeeklyOpsAdminDashboard() {
                                                                 </Button>
                                                             </a>
                                                         ) : client.email ? (
-                                                            <a href={getEmailUrl(client)} className="w-full">
+                                                            <a href={getEmailUrl(client)} className="w-full" onClick={() => { if (!linkSends[client.id]) markLinkSent(client.id, true); }}>
                                                                 <Button 
                                                                     size="sm" 
                                                                     variant="outline"
@@ -1037,6 +1060,12 @@ export default function WeeklyOpsAdminDashboard() {
                                                         </Link>
                                                     </div>
                                                     )}
+                                                    {/* The whole card opens the session: say so */}
+                                                    {!isUnmatchedClient && (
+                                                        <span className="mt-2 text-xs font-semibold text-stone-500 group-hover:text-[#E1567A] flex items-center justify-center gap-0.5 transition-colors">
+                                                            Détails de la séance <ChevronRight className="w-3.5 h-3.5" />
+                                                        </span>
+                                                    )}
                                                 </div>
                                             );
                                             })}
@@ -1051,7 +1080,7 @@ export default function WeeklyOpsAdminDashboard() {
                                                 onClick={() => openCreateClientForSlot(dayName, slot, isoDate)}
                                                 className="rounded-3xl p-4 border border-dashed border-stone-300 bg-stone-50/50 hover:bg-white hover:border-[#E1567A] transition-all cursor-pointer flex flex-col items-center justify-center min-h-[140px] md:min-h-[300px] text-center space-y-2 group"
                                             >
-                                                <span className="text-[10px] font-bold uppercase tracking-wider text-stone-400 flex items-center gap-1">
+                                                <span className="text-[11px] font-bold uppercase tracking-wider text-stone-400 flex items-center gap-1">
                                                     {isMorning ? <Sun className="w-3 h-3" /> : <Moon className="w-3 h-3" />}
                                                     {slot}
                                                 </span>
@@ -1064,225 +1093,6 @@ export default function WeeklyOpsAdminDashboard() {
                             </div>
                         ))}
                     </div>
-                ) : (
-                    /* ========================================================================= */
-                    /* LIST VIEW: Detailed Vertical Cards                                        */
-                    /* ========================================================================= */
-                    <div className="grid grid-cols-1 gap-3.5">
-                        {visibleStatuses.length === 0 ? (
-                            <div className="bg-white rounded-3xl p-12 text-center text-stone-500 border border-stone-200">
-                                Aucun client réservé pour cette semaine.
-                            </div>
-                        ) : (
-                            visibleStatuses.map(({ client, isSubmitted, selectedCount, session, isUnmatchedClient, selection, duplicateSessionIds }) => {
-                                const isMissingPhone = !isUnmatchedClient && (!client.phone || client.phone.trim().length === 0);
-
-                                return (
-                                    <div 
-                                        key={session.id}
-                                        onClick={e => !isUnmatchedClient && openDetailsFromCard(e, session.id)}
-                                        className={`bg-white rounded-3xl border border-stone-200 p-5 sm:p-6 shadow-xs hover:border-stone-300 transition-all ${isUnmatchedClient ? '' : 'cursor-pointer'}`}
-                                    >
-                                        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-                                            {/* Client Identity & Booking Slot */}
-                                            <div className="space-y-2 flex-1">
-                                                <div className="flex flex-wrap items-center gap-2.5">
-                                                    <h4 className="font-serif font-bold text-lg text-stone-900 flex items-center gap-2">
-                                                        {session.clientName || client.name}
-                                                        {!isUnmatchedClient && (
-                                                            <button
-                                                                onClick={() => openEditClient(client)}
-                                                                className="text-stone-400 hover:text-stone-700 p-1"
-                                                                title="Modifier ce client"
-                                                            >
-                                                                <Edit2 className="w-3.5 h-3.5" />
-                                                            </button>
-                                                        )}
-                                                    </h4>
-
-                                                    {isUnmatchedClient && (
-                                                        <>
-                                                            <button
-                                                                onClick={() => openCreateClientFromUnmatched(session.clientName, session.dishCount, session.personCount)}
-                                                                className="text-[11px] text-red-700 bg-red-50 border border-red-200 rounded-full px-3 py-1 font-semibold flex items-center gap-1"
-                                                            >
-                                                                <AlertCircle className="w-3 h-3 text-red-600" />
-                                                                Fiche client introuvable — Créer la fiche
-                                                            </button>
-                                                            <button
-                                                                onClick={() => handleIgnoreSession(session.id, session.clientName)}
-                                                                className="text-[11px] text-stone-500 hover:text-stone-800 underline"
-                                                            >
-                                                                Ignorer cet événement
-                                                            </button>
-                                                        </>
-                                                    )}
-
-                                                    {isOwner && chefs.length > 0 && (
-                                                        <span className={`text-[11px] font-bold rounded-full border px-2.5 py-0.5 flex items-center gap-1.5 ${chefColor(chefs, session.assignedTo).pill}`}>
-                                                            <span className={`w-1.5 h-1.5 rounded-full ${chefColor(chefs, session.assignedTo).dot}`} />
-                                                            {chefName(chefs, session.assignedTo)}
-                                                        </span>
-                                                    )}
-                                                    {session.seriesId && (
-                                                        <span className="text-[11px] font-bold rounded-full border border-rose-200 bg-rose-50 text-[#c94567] px-2.5 py-0.5 flex items-center gap-1">
-                                                            <Repeat className="w-3 h-3" /> Récurrent
-                                                        </span>
-                                                    )}
-                                                    {duplicateSessionIds && (
-                                                        <span className="text-[11px] font-bold rounded-full border border-amber-300 bg-amber-50 text-amber-800 px-2.5 py-0.5 flex items-center gap-1">
-                                                            <AlertCircle className="w-3 h-3" /> Doublon
-                                                        </span>
-                                                    )}
-
-                                                    {/* Booking Slot pill */}
-                                                    <span className="text-[11px] bg-amber-50 text-amber-900 border border-amber-200 px-3 py-1 rounded-full font-bold flex items-center gap-1.5">
-                                                        <CalendarIcon className="w-3 h-3 text-amber-700" />
-                                                        {session.dayName} {session.timeSlot} ({session.dateIso})
-                                                    </span>
-
-                                                    {/* Quota Badge */}
-                                                    <span className="text-[11px] bg-stone-100 text-stone-600 border border-stone-200 px-2.5 py-0.5 rounded-full font-medium">
-                                                        {session.dishCount} plats
-                                                    </span>
-                                                    
-                                                    {/* Status Badge */}
-                                                    {isSubmitted ? (
-                                                        <Badge className="bg-emerald-100 text-emerald-800 border-emerald-300 text-xs font-semibold gap-1 rounded-full">
-                                                            <CheckCircle2 className="w-3 h-3 text-emerald-600" />
-                                                            {selectedCount} / {session.dishCount} plats choisis
-                                                        </Badge>
-                                                    ) : (
-                                                        <Badge variant="outline" className="bg-amber-50 text-amber-800 border-amber-300 text-xs font-medium gap-1 rounded-full">
-                                                            <Clock className="w-3 h-3 text-amber-600" />
-                                                            En attente de sélection
-                                                        </Badge>
-                                                    )}
-                                                </div>
-
-                                                {/* Allergies / Diets Pills */}
-                                                <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
-                                                    {client.allergies && client.allergies.length > 0 ? (
-                                                        client.allergies.map(al => (
-                                                            <span key={al} className="text-[11px] bg-red-50 text-red-700 border border-red-200 px-2.5 py-0.5 rounded-full font-semibold">
-                                                                ⚠️ {al}
-                                                            </span>
-                                                        ))
-                                                    ) : (
-                                                        <span className="text-[11px] text-stone-400">Aucune allergie enregistrée</span>
-                                                    )}
-                                                    {client.dislikes && (
-                                                        <span className="text-[11px] text-stone-500 italic">
-                                                            ({client.dislikes})
-                                                        </span>
-                                                    )}
-                                                    {selection && selection.allergiesAdded.length > 0 && (
-                                                        <span className="text-[11px] text-white bg-red-600 px-2.5 py-0.5 rounded-full font-bold">
-                                                            ⚠️ Ajoutée par le client : {selection.allergiesAdded.join(', ')}
-                                                        </span>
-                                                    )}
-                                                </div>
-
-                                                {selection && (selection.selectedDishNames.length > 0 || selection.customDish) && (
-                                                    <p className="text-[11px] text-stone-600">
-                                                        <span className="font-semibold">Choix :</span> {[
-                                                            ...selection.selectedDishIds.map((id, i) => selection.titleOverrides?.[id] || selection.selectedDishNames[i] || id),
-                                                            ...(selection.customDish ? [`Sur mesure : ${selection.titleOverrides?.__custom__ || selection.customDish}`] : [])
-                                                        ].join(' • ')}
-                                                    </p>
-                                                )}
-
-                                                {/* Missing Phone Alert */}
-                                                {isMissingPhone && (
-                                                    <div 
-                                                        onClick={() => openEditClient(client)}
-                                                        className="text-[11px] text-amber-700 bg-amber-50 border border-amber-200 rounded-xl p-2 cursor-pointer hover:bg-amber-100/70 transition-colors flex items-center gap-1.5 font-medium"
-                                                    >
-                                                        <AlertCircle className="w-3.5 h-3.5 text-amber-600 shrink-0" />
-                                                        <span>Numéro WhatsApp non renseigné — Cliquez ici pour l&apos;ajouter</span>
-                                                    </div>
-                                                )}
-                                            </div>
-
-                                            {/* Action Buttons Toolbar */}
-                                            {!isUnmatchedClient && (
-                                            <div className="flex flex-wrap items-center gap-2 pt-2 lg:pt-0 shrink-0">
-                                                {/* 1. WhatsApp Reminder Link */}
-                                                {client.phone ? (
-                                                    <a
-                                                        href={getWhatsAppUrl(client)}
-                                                        target="_blank"
-                                                        rel="noopener noreferrer"
-                                                    >
-                                                        <Button 
-                                                            size="sm" 
-                                                            variant="outline"
-                                                            className="text-emerald-700 border-emerald-300 hover:bg-emerald-50 text-xs h-9 gap-1.5 rounded-full font-semibold"
-                                                        >
-                                                            <MessageCircle className="w-3.5 h-3.5 text-emerald-600" />
-                                                            WhatsApp
-                                                        </Button>
-                                                    </a>
-                                                ) : (
-                                                    <Button 
-                                                        size="sm" 
-                                                        variant="outline"
-                                                        onClick={() => openEditClient(client)}
-                                                        className="text-amber-700 border-amber-300 hover:bg-amber-50 text-xs h-9 gap-1.5 rounded-full font-semibold"
-                                                    >
-                                                        + N° Tél
-                                                    </Button>
-                                                )}
-
-                                                {/* 2. Copy Link Button */}
-                                                <Button
-                                                    size="sm"
-                                                    variant="outline"
-                                                    onClick={() => copyClientLink(client.token, client.name)}
-                                                    className="border-stone-300 text-stone-700 hover:bg-stone-100 text-xs h-9 gap-1.5 rounded-full font-semibold cursor-pointer"
-                                                >
-                                                    {copiedToken === client.token ? (
-                                                        <>
-                                                            <Check className="w-3.5 h-3.5 text-emerald-600" />
-                                                            Lien copié !
-                                                        </>
-                                                    ) : (
-                                                        <>
-                                                            <Copy className="w-3.5 h-3.5 text-stone-500" />
-                                                            Copier Lien
-                                                        </>
-                                                    )}
-                                                </Button>
-
-                                                {/* 3. Open Kitchen Cook Mode */}
-                                                <Link href={`/admin/cuisine/${session.id}`}>
-                                                    <Button
-                                                        size="sm"
-                                                        className="bg-[#E1567A] hover:bg-[#c94567] text-white text-xs h-9 px-4 gap-1.5 shadow-xs font-bold rounded-full"
-                                                    >
-                                                        <ChefHat className="w-3.5 h-3.5" />
-                                                        Fiche Cuisine
-                                                    </Button>
-                                                </Link>
-
-                                                {(isOwner || !session.gcalEventId) && (
-                                                <button
-                                                    onClick={() => handleDeleteSession(session.id, session.clientName, session.dateIso, session.timeSlot)}
-                                                    disabled={deletingSessionId === session.id}
-                                                    className="p-2 rounded-full text-stone-300 hover:text-red-600 hover:bg-red-50 transition-colors cursor-pointer"
-                                                    title="Supprimer cette séance"
-                                                >
-                                                    <Trash2 className="w-4 h-4" />
-                                                </button>
-                                                )}
-                                            </div>
-                                            )}
-                                        </div>
-                                    </div>
-                                );
-                            })
-                        )}
-                    </div>
                 )}
                 {!loading && dishSummary.length > 0 && submittedCount > 0 && (
                     <div className="bg-white rounded-3xl p-5 sm:p-6 border border-stone-200 shadow-xs space-y-3">
@@ -1291,7 +1101,7 @@ export default function WeeklyOpsAdminDashboard() {
                         </h3>
                         <div className="overflow-x-auto">
                             <table className="w-full text-left text-xs">
-                                <thead className="text-stone-500 uppercase tracking-wider text-[10px] border-b border-stone-200">
+                                <thead className="text-stone-500 uppercase tracking-wider text-[11px] border-b border-stone-200">
                                     <tr>
                                         <th className="py-2 pr-3">Plat</th>
                                         <th className="py-2 px-3 text-center">Foyers</th>
@@ -1335,15 +1145,29 @@ export default function WeeklyOpsAdminDashboard() {
                         return (
                             <>
                                 <DialogHeader>
-                                    <DialogTitle className="font-serif text-xl font-bold text-left">
+                                    <DialogTitle className="font-serif font-semibold text-2xl leading-tight text-stone-900 text-left">
                                         {session.clientName || client.name}
                                     </DialogTitle>
-                                    <p className="text-xs text-stone-500 text-left">
-                                        {session.dayName} {session.dateIso.split('-').reverse().join('/')} · {session.timeSlot} · {session.dishCount} plats · {session.personCount || client.personCount} pers.
+                                    <p className="text-sm text-stone-500 text-left">
+                                        {session.dayName} {session.dateIso.split('-').reverse().join('/')} · {session.timeSlot}{arrivalTimeOf(session) ? ` · ${formatTimeFr(arrivalTimeOf(session)!)}` : ''} · {session.dishCount} plats · {session.personCount || client.personCount} pers.
                                     </p>
                                 </DialogHeader>
 
                                 <div className="space-y-4 py-2 text-xs">
+                                    <ClientContact client={client} onCopied={message => showToast(message, 'check')} />
+
+                                    <SessionExtras
+                                        session={session}
+                                        menuDishes={weekMenu?.recipes || []}
+                                        onSaved={(saved, message) => {
+                                            setSlotStatuses(prev => prev.map(st => st.session.id === saved.id
+                                                ? { ...st, session: { ...st.session, sessionNote: saved.sessionNote, arrivalTime: saved.arrivalTime, extraDishes: saved.extraDishes } }
+                                                : st));
+                                            showToast(message, 'check');
+                                        }}
+                                        onError={message => showToast(message, 'error')}
+                                    />
+
                                     {/* Who cooks it: Elisa assigns; a session created in the app can be moved */}
                                     {(isOwner && activeChefs.length > 0) || !session.gcalEventId ? (
                                         <div className="bg-stone-50 border border-stone-200 rounded-2xl p-3 space-y-2.5">
@@ -1498,7 +1322,7 @@ export default function WeeklyOpsAdminDashboard() {
                                                 <p className="font-bold text-stone-700">
                                                     {session.personCount} pers · {session.dishCount} plats
                                                     {(session.personCountOverride || session.dishCountOverride)
-                                                        ? <span className="ml-1.5 text-[10px] font-bold rounded-full border border-amber-300 bg-amber-50 text-amber-800 px-1.5 py-0.5">pour cette séance seulement</span>
+                                                        ? <span className="ml-1.5 text-[11px] font-bold rounded-full border border-amber-300 bg-amber-50 text-amber-800 px-1.5 py-0.5">pour cette séance seulement</span>
                                                         : <span className="ml-1.5 font-normal text-stone-500">(fiche client)</span>}
                                                 </p>
                                                 {!countDraft && (
@@ -1620,7 +1444,6 @@ export default function WeeklyOpsAdminDashboard() {
                                                         </button>
                                                     </div>
                                                 )}
-                                                <p className="text-[11px] text-stone-500">Pour sauter une seule semaine, supprimez juste cette séance (corbeille sur la carte). Pour changer le jour ou le créneau, une fois ou pour toutes les suivantes : « Changer le jour ou le créneau » ci-dessus.</p>
                                             </div>
                                         );
                                     })()}
@@ -1646,7 +1469,7 @@ export default function WeeklyOpsAdminDashboard() {
                                                 ))}
                                                 {selection.customDish && (
                                                     <li className="text-sm text-stone-800 bg-rose-50 border border-dashed border-[#E1567A]/50 rounded-xl p-2.5">
-                                                        <span className="block text-[10px] uppercase tracking-wider text-[#E1567A] font-bold">{chosen.length + 1}. Plat sur mesure</span>
+                                                        <span className="block text-[11px] uppercase tracking-wider text-[#E1567A] font-bold">{chosen.length + 1}. Plat sur mesure</span>
                                                         <span className="font-semibold whitespace-pre-wrap">{selection.customDish}</span>
                                                         {selection.customDishFrom && (
                                                             <span className="block text-[11px] text-stone-500">Repris du menu de la {getWeekBoundsForStart(selection.customDishFrom).weekLabel.toLowerCase()}</span>
@@ -1710,7 +1533,7 @@ export default function WeeklyOpsAdminDashboard() {
                                                 </a>
                                             )}
                                             {client.phone && (
-                                                <a href={getWhatsAppUrl(client)} target="_blank" rel="noopener noreferrer">
+                                                <a href={getWhatsAppUrl(client)} target="_blank" rel="noopener noreferrer" onClick={() => { if (!linkSends[client.id]) markLinkSent(client.id, true); }}>
                                                     <Button size="sm" variant="outline" className="rounded-full text-xs h-8 gap-1.5 text-emerald-700 border-emerald-300 hover:bg-emerald-50">
                                                         <MessageCircle className="w-3.5 h-3.5 text-emerald-600" /> WhatsApp
                                                     </Button>

@@ -215,3 +215,50 @@ body.hide-layout .fixed.top-0 {
 body.hide-layout .transition-all {
   padding-top: 0 !important;
 }
+/* ===========================================================================
+   App type scale (admin + client link). Two families, one scale, four weights.
+   - Playfair (serif): page titles and named things (dishes, clients, dialog titles)
+   - Geist (sans): everything else
+   Sizes: page 28–34 · card title 17 · body 14 · details 12 · labels/tags 11 (minimum)
+   Weights: 400 / 500 / 600 / 700 (700 for numbers and buttons)
+   =========================================================================== */
+@utility t-page-title {
+  font-family: var(--font-serif);
+  font-weight: 600;
+  font-size: 1.75rem;
+  line-height: 1.15;
+  letter-spacing: -0.01em;
+  color: var(--color-stone-900);
+  @media (width >= 40rem) {
+    font-size: 2.125rem;
+  }
+}
+
+/* Dish names, client names, dialog titles */
+@utility t-card-title {
+  font-family: var(--font-serif);
+  font-weight: 600;
+  font-size: 1.0625rem;
+  line-height: 1.3;
+  color: var(--color-stone-900);
+}
+
+/* Small uppercase label above a group (« Séances à facturer », « Ingrédients ») */
+@utility t-label {
+  font-family: var(--font-sans);
+  font-weight: 600;
+  font-size: 0.75rem;
+  line-height: 1rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-stone-500);
+}
+
+/* Secondary information under a title (date, counts, contact) */
+@utility t-meta {
+  font-family: var(--font-sans);
+  font-weight: 400;
+  font-size: 0.75rem;
+  line-height: 1.1rem;
+  color: var(--color-stone-500);
+}

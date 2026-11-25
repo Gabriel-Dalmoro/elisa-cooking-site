@@ -23,7 +23,7 @@ import RecipeBoxes from '@/components/admin/RecipeBoxes';
 import ScaledIngredients from '@/components/admin/ScaledIngredients';
 import GroceryListCard from '@/components/admin/GroceryListCard';
 import DishTitleEdit from '@/components/admin/DishTitleEdit';
-import { BookingSession, ClientProfile, ClientSelection, WeeklyDish } from '@/lib/types/cooking-ops';
+import { BookingSession, ClientProfile, ClientSelection, WeeklyDish, formatTimeFr } from '@/lib/types/cooking-ops';
 import { sheetRecipes, sheetGroceryInput, CUSTOM_DISH_RECIPE_ID } from '@/lib/grocery/fromSheet';
 import { buildGroceryList } from '@/lib/grocery/list';
 import { getWeekBoundsForStart } from '@/lib/dateUtils';
@@ -45,11 +45,6 @@ interface KitchenSheet {
 interface WakeLockSentinelLike {
     release: () => Promise<void>;
     addEventListener: (type: 'release', listener: () => void) => void;
-}
-
-function formatParisTime(iso?: string): string | null {
-    if (!iso) return null;
-    return new Date(iso).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Paris' });
 }
 
 export default function ChefCookingModePage({ params }: { params: Promise<{ sessionId: string }> }) {
@@ -264,7 +259,9 @@ export default function ChefCookingModePage({ params }: { params: Promise<{ sess
 
     const { session, client, selection, dishes, missingDishNames, versionLabels } = sheet;
     const displayName = client?.name || session.clientName;
-    const arrival = formatParisTime(session.startsAt);
+    // The time set in the app for this session, else the Google event's start
+    // Only a time a chef set for this session (none is shown otherwise)
+    const arrival = session.arrivalTime ? formatTimeFr(session.arrivalTime) : null;
     const allergiesAdded = selection?.allergiesAdded || [];
 
     // Recipe of one dish (ingredients scaled for this client + steps), with its edit button.
@@ -363,8 +360,8 @@ export default function ChefCookingModePage({ params }: { params: Promise<{ sess
     return (
         <div className="min-h-screen bg-[#FAFAF9] text-stone-800 pb-36 font-sans">
             <AdminPageHeader
-                title={`Cuisine : ${displayName}`}
-                subtitle={`${session.dayName} ${session.dateIso.split('-').reverse().join('/')} • ${session.timeSlot}${arrival ? ` • arrivée ${arrival}` : ''}`}
+                title={displayName}
+                meta={`${session.dayName} ${session.dateIso.split('-').reverse().join('/')} • ${session.timeSlot}${arrival ? ` • arrivée ${arrival}` : ''}`}
                 backHref="/admin/semaine"
                 backLabel="Retour au planning"
                 actionElement={
@@ -415,7 +412,7 @@ export default function ChefCookingModePage({ params }: { params: Promise<{ sess
                         {client.accessCode && (
                             <div className="flex items-center gap-2 bg-amber-50 border border-amber-300 rounded-2xl px-4 py-3">
                                 <Key className="w-5 h-5 text-amber-700 shrink-0" />
-                                <span className="text-base font-black text-stone-900 tracking-wide">Code d&apos;accès : {client.accessCode}</span>
+                                <span className="text-base font-bold text-stone-900 tracking-wide">Code d&apos;accès : {client.accessCode}</span>
                             </div>
                         )}
 
@@ -441,11 +438,19 @@ export default function ChefCookingModePage({ params }: { params: Promise<{ sess
                         </div>
                         <div className="flex flex-wrap gap-2 pt-1">
                             {client.allergies.map(al => (
-                                <span key={al} className="bg-white text-red-700 font-black text-xs px-3 py-1 rounded-full shadow-xs">
+                                <span key={al} className="bg-white text-red-700 font-bold text-xs px-3 py-1 rounded-full shadow-xs">
                                     🚫 {al}{allergiesAdded.includes(al) ? ' (ajoutée par le client)' : ''}
                                 </span>
                             ))}
                         </div>
+                    </div>
+                )}
+
+                {/* Note for this session only */}
+                {session.sessionNote && (
+                    <div className="bg-sky-50 border border-sky-200 rounded-3xl p-5 text-sm text-sky-950">
+                        <p className="t-label text-sky-800 mb-1">Pour cette séance</p>
+                        <p className="whitespace-pre-wrap">{session.sessionNote}</p>
                     </div>
                 )}
 
@@ -551,7 +556,7 @@ export default function ChefCookingModePage({ params }: { params: Promise<{ sess
                                 title={selection.customDish}
                                 override={selection.titleOverrides?.[CUSTOM_DISH_RECIPE_ID]}
                                 onSave={title => saveTitle(CUSTOM_DISH_RECIPE_ID, title)}
-                                className="text-base font-serif font-bold text-stone-900 whitespace-pre-wrap"
+                                className="text-base font-serif font-semibold text-stone-900 whitespace-pre-wrap"
                             />
                             {selection.customDishFrom && (
                                 <p className="text-xs text-stone-500">

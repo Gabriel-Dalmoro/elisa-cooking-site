@@ -470,12 +470,8 @@ export default function ClientDirectoryPage() {
         <div className="min-h-screen bg-[#FAFAF9] text-stone-800 pb-28 font-sans">
             {/* Standardized Header */}
             <AdminPageHeader
-                title={isChef ? 'Mes clients' : 'Répertoire & Préférences Clients'}
-                subtitle={isChef
-                    ? 'Les clients qu’Elisa vous a attribués : coordonnées, allergies, notes cuisine et liens de choix des plats.'
-                    : 'Consultez toutes les fiches clients, attribuez-les à vos chefs, gérez les allergies et envoyez les liens de choix.'}
+                title={isChef ? 'Mes clients' : 'Clients'}
                 backHref="/admin"
-                backLabel="Retour à l'admin"
                 actionElement={isOwner ? (
                     <div className="flex items-center gap-2">
                         <Button 
@@ -512,7 +508,7 @@ export default function ClientDirectoryPage() {
                             <Users className="w-6 h-6" />
                         </div>
                         <div>
-                            <div className="text-2xl font-bold font-serif text-stone-900">{totalClients}</div>
+                            <div className="text-2xl font-serif font-semibold text-stone-900">{totalClients}</div>
                             <div className="text-xs text-stone-500 font-semibold uppercase tracking-wider">Clients Enregistrés</div>
                         </div>
                     </div>
@@ -522,7 +518,7 @@ export default function ClientDirectoryPage() {
                             <ShieldAlert className="w-6 h-6" />
                         </div>
                         <div>
-                            <div className="text-2xl font-bold font-serif text-stone-900">{clientsWithAllergies}</div>
+                            <div className="text-2xl font-serif font-semibold text-stone-900">{clientsWithAllergies}</div>
                             <div className="text-xs text-stone-500 font-semibold uppercase tracking-wider">Régimes Spécifiques</div>
                         </div>
                     </div>
@@ -532,7 +528,7 @@ export default function ClientDirectoryPage() {
                             <ChefHat className="w-6 h-6" />
                         </div>
                         <div>
-                            <div className="text-2xl font-bold font-serif text-stone-900">100%</div>
+                            <div className="text-2xl font-serif font-semibold text-stone-900">100%</div>
                             <div className="text-xs text-stone-500 font-semibold uppercase tracking-wider">Fiches Personnalisées</div>
                         </div>
                     </div>
@@ -673,7 +669,7 @@ export default function ClientDirectoryPage() {
                     <div className="bg-white rounded-3xl border border-stone-200 shadow-xs overflow-hidden">
                         <div className="overflow-x-auto">
                             <table className="w-full text-left text-xs">
-                                <thead className="bg-stone-100/90 text-stone-700 font-bold border-b border-stone-200 uppercase tracking-wider text-[10px]">
+                                <thead className="bg-stone-100/90 text-stone-700 font-bold border-b border-stone-200 uppercase tracking-wider text-[11px]">
                                     <tr>
                                         <th className="py-3.5 px-4">Client</th>
                                         <th className="py-3.5 px-3">Formule & Foyer</th>
@@ -688,11 +684,11 @@ export default function ClientDirectoryPage() {
                                         <tr key={client.id} className="hover:bg-rose-50/20 transition-colors group">
                                             {/* Client Name */}
                                             <td className="py-3 px-4">
-                                                <div className="font-serif font-bold text-stone-900 text-sm">
+                                                <div className="font-serif font-semibold text-stone-900 text-sm">
                                                     {client.name}
                                                 </div>
                                                 {isOwner && chefs.length > 0 && (
-                                                    <span className={`mt-1 inline-flex items-center gap-1 text-[10px] font-bold rounded-full border px-2 py-0.5 ${chefColor(chefs, client.chefId).pill}`}>
+                                                    <span className={`mt-1 inline-flex items-center gap-1 text-[11px] font-bold rounded-full border px-2 py-0.5 ${chefColor(chefs, client.chefId).pill}`}>
                                                         <span className={`w-1.5 h-1.5 rounded-full ${chefColor(chefs, client.chefId).dot}`} />
                                                         {chefName(chefs, client.chefId)}
                                                     </span>
@@ -716,7 +712,7 @@ export default function ClientDirectoryPage() {
                                                 {client.allergies && client.allergies.length > 0 ? (
                                                     <div className="flex flex-wrap gap-1">
                                                         {client.allergies.map(al => (
-                                                            <span key={al} className="text-[10px] bg-red-50 text-red-700 border border-red-200 px-1.5 py-0.2 rounded-md font-bold">
+                                                            <span key={al} className="text-[11px] bg-red-50 text-red-700 border border-red-200 px-1.5 py-0.2 rounded-md font-bold">
                                                                 ⚠️ {al}
                                                             </span>
                                                         ))}
@@ -765,12 +761,12 @@ export default function ClientDirectoryPage() {
                                                     <span className="text-stone-400 text-[11px]">-</span>
                                                 )}
                                                 {client.accessCode && (
-                                                    <div className="text-[10px] text-stone-700 font-semibold">
+                                                    <div className="text-[11px] text-stone-700 font-semibold">
                                                         🔑 Code : {client.accessCode}
                                                     </div>
                                                 )}
                                                 {client.notes && (
-                                                    <div className="text-[10px] text-stone-500 truncate" title={client.notes}>
+                                                    <div className="text-[11px] text-stone-500 truncate" title={client.notes}>
                                                         📝 {client.notes}
                                                     </div>
                                                 )}
@@ -839,7 +835,7 @@ export default function ClientDirectoryPage() {
                                         {/* Client Header */}
                                         <div className="flex items-start justify-between gap-2">
                                             <div>
-                                                <h3 className="font-serif font-bold text-lg text-stone-900">
+                                                <h3 className="font-serif font-semibold text-lg text-stone-900">
                                                     {client.name}
                                                 </h3>
                                                 <div className="flex flex-wrap items-center gap-1.5 mt-1">
@@ -886,7 +882,7 @@ export default function ClientDirectoryPage() {
                                                     {client.allergies.map((al) => (
                                                         <span 
                                                             key={al}
-                                                            className="text-[10px] bg-red-50 text-red-700 border border-red-200 px-2 py-0.5 rounded-md font-bold flex items-center gap-1"
+                                                            className="text-[11px] bg-red-50 text-red-700 border border-red-200 px-2 py-0.5 rounded-md font-bold flex items-center gap-1"
                                                         >
                                                             ⚠️ {al}
                                                         </span>

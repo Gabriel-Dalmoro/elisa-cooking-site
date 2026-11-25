@@ -157,12 +157,12 @@ export default function InternalCalculator() {
                             <div className="bg-stone-900 text-white p-2.5 rounded-xl shadow-lg shadow-stone-900/10">
                                 <ChefHat className="w-5 h-5" />
                             </div>
-                            <span className="inline-flex items-center px-3 py-1 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-black tracking-widest uppercase border border-emerald-200">
+                            <span className="inline-flex items-center px-3 py-1 rounded-full bg-emerald-100 text-emerald-800 text-[11px] font-bold tracking-wider uppercase border border-emerald-200">
                                 Version 3.8
                             </span>
                         </div>
-                        <h1 className="text-3xl lg:text-4xl font-black text-stone-900 tracking-tight leading-none">
-                            Calcul de <span className="font-handwriting text-brand-rose transform -rotate-1 inline-block ml-1 text-4xl lg:text-5xl">Profitabilité.</span>
+                        <h1 className="text-3xl lg:text-4xl font-bold text-stone-900 tracking-tight leading-none">
+                            Calcul de <span className="font-serif italic text-brand-rose ml-1">Profitabilité.</span>
                         </h1>
                         <p className="text-stone-500 text-sm font-medium max-w-lg mt-1">
                             Simulateur interactif pour ajuster vos prix et garantir votre rentabilité.
@@ -206,7 +206,7 @@ export default function InternalCalculator() {
                     <div className="flex justify-between items-center mb-8 border-b-2 border-stone-900 pb-4">
                         <div className="flex items-center gap-3">
                             <ChefHat className="w-8 h-8 text-stone-900" />
-                            <h1 className="text-2xl font-black text-stone-900 uppercase tracking-tight">Elisa Batch Cooking</h1>
+                            <h1 className="text-2xl font-bold text-stone-900 uppercase tracking-tight">Elisa Batch Cooking</h1>
                         </div>
                         <div className="text-right">
                             <p className="text-stone-400 text-xs font-bold uppercase tracking-wider">Configuration Tarifaire</p>
@@ -219,43 +219,43 @@ export default function InternalCalculator() {
 
                     {/* 2. Global Params (Compact Row) */}
                     <div className="mb-6">
-                        <h3 className="text-xs font-black text-stone-400 uppercase tracking-widest mb-2 border-b border-stone-200 pb-1">Paramètres Généraux</h3>
+                        <h3 className="text-xs font-bold text-stone-400 uppercase tracking-wider mb-2 border-b border-stone-200 pb-1">Paramètres Généraux</h3>
                         <div className="flex gap-8">
                             <div className="flex items-center gap-2 bg-stone-50 px-4 py-2 rounded-lg border border-stone-100">
                                 <MapPin className="w-4 h-4 text-stone-400" />
                                 <span className="font-bold text-sm text-stone-600">Trajet Facturé:</span>
-                                <span className="font-black text-lg text-stone-900">{travelTime}h</span>
+                                <span className="font-bold text-lg text-stone-900">{travelTime}h</span>
                             </div>
                             <div className="flex items-center gap-2 bg-stone-50 px-4 py-2 rounded-lg border border-stone-100">
                                 <Users className="w-4 h-4 text-stone-400" />
                                 <span className="font-bold text-sm text-stone-600">Prix Extra/Pers:</span>
-                                <span className="font-black text-lg text-brand-rose">{extraPersonPrice}€</span>
+                                <span className="font-bold text-lg text-brand-rose">{extraPersonPrice}€</span>
                             </div>
                         </div>
                     </div>
 
                     {/* 3. Main Data: 3 Columns for All Recipes */}
                     <div className="mb-8">
-                        <h3 className="text-xs font-black text-stone-400 uppercase tracking-widest mb-3 border-b border-stone-200 pb-1">Grille Tarifaire Complète</h3>
+                        <h3 className="text-xs font-bold text-stone-400 uppercase tracking-wider mb-3 border-b border-stone-200 pb-1">Grille Tarifaire Complète</h3>
                         <div className="grid grid-cols-3 gap-6">
                             {tiers.map((tier, idx) => (
                                 <div key={idx} className="border-2 border-stone-100 rounded-xl p-4 bg-white break-inside-avoid shadow-sm">
                                     <div className="flex justify-between items-center mb-3 border-b border-stone-100 pb-2">
-                                        <Badge className="bg-stone-900 text-white text-sm font-black px-2 py-0.5 rounded-md">{tier.recipes} Recettes</Badge>
-                                        <div className="text-2xl font-black text-stone-900">{tier.basePrice}€</div>
+                                        <Badge className="bg-stone-900 text-white text-sm font-bold px-2 py-0.5 rounded-md">{tier.recipes} Recettes</Badge>
+                                        <div className="text-2xl font-bold text-stone-900">{tier.basePrice}€</div>
                                     </div>
                                     <div className="space-y-2">
                                         <div className="flex justify-between items-center bg-stone-50 p-1.5 rounded-lg">
-                                            <span className="text-[10px] font-bold text-stone-500 uppercase">Cuisine</span>
-                                            <span className="font-black text-base">{tier.cookingTime}h</span>
+                                            <span className="text-[11px] font-bold text-stone-500 uppercase">Cuisine</span>
+                                            <span className="font-bold text-base">{tier.cookingTime}h</span>
                                         </div>
                                         <div className="flex justify-between items-center bg-stone-50 p-1.5 rounded-lg">
-                                            <span className="text-[10px] font-bold text-stone-500 uppercase">Courses</span>
-                                            <span className="font-black text-base">{tier.shoppingTime}h</span>
+                                            <span className="text-[11px] font-bold text-stone-500 uppercase">Courses</span>
+                                            <span className="font-bold text-base">{tier.shoppingTime}h</span>
                                         </div>
                                         <div className="flex justify-between items-center bg-emerald-50 p-1.5 rounded-lg border border-emerald-100 mt-2">
-                                            <span className="text-[10px] font-bold text-emerald-700 uppercase">Taux Horaire*</span>
-                                            <span className="font-black text-base text-emerald-900">
+                                            <span className="text-[11px] font-bold text-emerald-700 uppercase">Taux Horaire*</span>
+                                            <span className="font-bold text-base text-emerald-900">
                                                 {((tier.basePrice * (1 - 0.24)) / (travelTime + tier.shoppingTime + tier.cookingTime)).toFixed(1)}€
                                             </span>
                                         </div>
@@ -270,7 +270,7 @@ export default function InternalCalculator() {
                     <div className="border-t-2 border-stone-900 pt-4 break-inside-avoid">
                         <div className="flex justify-between items-end">
                             <div className="max-w-xs">
-                                <h3 className="text-[10px] font-black text-stone-900 uppercase tracking-widest mb-2">Scénario Simulé</h3>
+                                <h3 className="text-[11px] font-bold text-stone-900 uppercase tracking-wider mb-2">Scénario Simulé</h3>
                                 <p className="text-xs text-stone-600 mb-1">Formule: <span className="font-bold text-stone-900">{results.tier.recipes} Recettes</span></p>
                                 <p className="text-xs text-stone-600 mb-1">Couverts: <span className="font-bold text-stone-900">{numPeople} Personnes</span></p>
                                 <p className="text-xs text-stone-600">Options: {isSubscription ? "Abo (-15%)" : "Standard"} {promoDiscount > 0 && `, Promo (-${promoDiscount}%)`}</p>
@@ -278,12 +278,12 @@ export default function InternalCalculator() {
 
                             <div className="flex gap-8 text-right items-end">
                                 <div>
-                                    <p className="text-[10px] font-bold text-stone-400 uppercase tracking-wider mb-1">Facture Client</p>
-                                    <p className="text-3xl font-black text-stone-900 leading-none">{Math.round(results.finalInvoiced)}€</p>
+                                    <p className="text-[11px] font-bold text-stone-400 uppercase tracking-wider mb-1">Facture Client</p>
+                                    <p className="text-3xl font-bold text-stone-900 leading-none">{Math.round(results.finalInvoiced)}€</p>
                                 </div>
                                 <div className="pl-8 border-l border-stone-200">
-                                    <p className="text-[10px] font-bold text-emerald-600 uppercase tracking-wider mb-1">Net Estimé</p>
-                                    <p className="text-4xl font-black text-emerald-600 leading-none">{Math.round(results.netRevenue)}€</p>
+                                    <p className="text-[11px] font-bold text-emerald-600 uppercase tracking-wider mb-1">Net Estimé</p>
+                                    <p className="text-4xl font-bold text-emerald-600 leading-none">{Math.round(results.netRevenue)}€</p>
                                     <p className="text-xs font-bold text-emerald-800/60 mt-1">{results.netHourlyRate.toFixed(1)}€ / h</p>
                                 </div>
                             </div>
@@ -299,16 +299,16 @@ export default function InternalCalculator() {
                         <section className="bg-white rounded-3xl shadow-sm border border-stone-100 p-6">
                             <div className="flex items-center gap-3 border-b border-stone-100 pb-4 mb-6">
                                 <div className="bg-stone-50 p-2 rounded-lg text-stone-500"><Clock className="w-5 h-5" /></div>
-                                <h2 className="text-sm font-black uppercase text-stone-400 tracking-widest">Paramètres Généraux</h2>
+                                <h2 className="text-sm font-bold uppercase text-stone-400 tracking-wider">Paramètres Généraux</h2>
                             </div>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                                 <div className="space-y-4">
                                     <div className="flex justify-between items-center">
                                         <div className="space-y-0.5">
                                             <Label className="font-bold text-stone-800">Trajet (Aller/Retour)</Label>
-                                            <p className="text-[10px] text-stone-400 font-medium max-w-[180px]">Temps perdu en déplacement non facturé.</p>
+                                            <p className="text-[11px] text-stone-400 font-medium max-w-[180px]">Temps perdu en déplacement non facturé.</p>
                                         </div>
-                                        <Badge variant="secondary" className="text-sm font-black px-2.5 py-0.5 bg-stone-100 text-stone-700 rounded-lg">{travelTime}h</Badge>
+                                        <Badge variant="secondary" className="text-sm font-bold px-2.5 py-0.5 bg-stone-100 text-stone-700 rounded-lg">{travelTime}h</Badge>
                                     </div>
                                     <Slider value={[travelTime]} onValueChange={(v) => setTravelTime(v[0])} max={2} step={0.25} className="py-2" />
                                 </div>
@@ -316,10 +316,10 @@ export default function InternalCalculator() {
                                     <div className="flex justify-between items-center">
                                         <div className="space-y-0.5">
                                             <Label className="font-bold text-stone-800">Prix Pers. Supplémentaire</Label>
-                                            <p className="text-[10px] text-stone-400 font-medium max-w-[180px]">Coût ajouté par personne au delà de 1.</p>
+                                            <p className="text-[11px] text-stone-400 font-medium max-w-[180px]">Coût ajouté par personne au delà de 1.</p>
                                         </div>
                                         <div className="flex flex-col items-end">
-                                            <Badge className="bg-brand-rose text-white text-sm font-black px-2.5 py-0.5 rounded-lg">{extraPersonPrice}€</Badge>
+                                            <Badge className="bg-brand-rose text-white text-sm font-bold px-2.5 py-0.5 rounded-lg">{extraPersonPrice}€</Badge>
                                             {extraPersonPrice !== LIVE_VALUES.extraPersonPrice && (<span className="text-[9px] font-bold text-amber-500 mt-1">Site: {LIVE_VALUES.extraPersonPrice}€</span>)}
                                         </div>
                                     </div>
@@ -332,29 +332,29 @@ export default function InternalCalculator() {
                         <section className="space-y-4">
                             <div className="flex items-center gap-3 border-b border-stone-200/60 pb-3">
                                 <div className="bg-stone-100 p-2 rounded-lg text-stone-500"><Utensils className="w-4 h-4" /></div>
-                                <h2 className="text-sm font-black uppercase text-stone-400 tracking-widest">Vos Formules</h2>
+                                <h2 className="text-sm font-bold uppercase text-stone-400 tracking-wider">Vos Formules</h2>
                             </div>
                             <div className="grid grid-cols-1 gap-4">
                                 {tiers.map((tier, idx) => (
                                     <div key={idx} className="bg-white rounded-2xl shadow-sm border border-stone-100 p-5 flex flex-col md:flex-row items-center gap-6 group hover:border-brand-rose/20 hover:shadow-md transition-all">
                                         <div className="flex flex-row md:flex-col items-center md:items-start justify-between w-full md:w-40 shrink-0 gap-2">
                                             <Badge className="bg-stone-900 text-white text-sm font-bold px-3 py-1 rounded-lg">{tier.recipes} Recettes</Badge>
-                                            <div className="text-[10px] font-bold text-stone-400 px-2 py-1 bg-stone-50 rounded-full border border-stone-100">Site: {LIVE_VALUES.tiers[tier.recipes as keyof typeof LIVE_VALUES.tiers]}€</div>
+                                            <div className="text-[11px] font-bold text-stone-400 px-2 py-1 bg-stone-50 rounded-full border border-stone-100">Site: {LIVE_VALUES.tiers[tier.recipes as keyof typeof LIVE_VALUES.tiers]}€</div>
                                         </div>
                                         <div className="grid grid-cols-3 gap-6 flex-1 w-full">
                                             <div className="space-y-2">
-                                                <Label className="text-[10px] font-bold text-stone-400 uppercase tracking-wider pl-1">Prix</Label>
+                                                <Label className="text-[11px] font-bold text-stone-400 uppercase tracking-wider pl-1">Prix</Label>
                                                 <div className="relative">
-                                                    <Input type="number" value={tier.basePrice || ''} onChange={(e) => updateTier(idx, 'basePrice', e.target.value === '' ? 0 : parseFloat(e.target.value))} className="font-black text-lg h-12 border-stone-200 bg-stone-50/50 rounded-xl text-center pl-6 pr-2 shadow-inner" />
+                                                    <Input type="number" value={tier.basePrice || ''} onChange={(e) => updateTier(idx, 'basePrice', e.target.value === '' ? 0 : parseFloat(e.target.value))} className="font-bold text-lg h-12 border-stone-200 bg-stone-50/50 rounded-xl text-center pl-6 pr-2 shadow-inner" />
                                                     <Euro className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-400" />
                                                 </div>
                                             </div>
                                             <div className="space-y-2">
-                                                <Label className="text-[10px] font-bold text-stone-400 uppercase tracking-wider pl-1 flex items-center gap-1">Cuisine <Clock className="w-3 h-3" /></Label>
+                                                <Label className="text-[11px] font-bold text-stone-400 uppercase tracking-wider pl-1 flex items-center gap-1">Cuisine <Clock className="w-3 h-3" /></Label>
                                                 <Input type="number" step="0.5" value={tier.cookingTime || ''} onChange={(e) => updateTier(idx, 'cookingTime', e.target.value === '' ? 0 : parseFloat(e.target.value))} className="font-bold text-lg h-12 border-stone-200 bg-white rounded-xl text-center" />
                                             </div>
                                             <div className="space-y-2">
-                                                <Label className="text-[10px] font-bold text-stone-400 uppercase tracking-wider pl-1 flex items-center gap-1">Courses <Wallet className="w-3 h-3" /></Label>
+                                                <Label className="text-[11px] font-bold text-stone-400 uppercase tracking-wider pl-1 flex items-center gap-1">Courses <Wallet className="w-3 h-3" /></Label>
                                                 <Input type="number" step="0.25" value={tier.shoppingTime || ''} onChange={(e) => updateTier(idx, 'shoppingTime', e.target.value === '' ? 0 : parseFloat(e.target.value))} className="font-bold text-lg h-12 border-stone-200 bg-white rounded-xl text-center" />
                                             </div>
                                         </div>
@@ -373,19 +373,19 @@ export default function InternalCalculator() {
                                 {/* 1. PROFIT FIRST (Top Card) */}
                                 <div className="bg-emerald-500 text-emerald-50 p-5 rounded-3xl shadow-xl shadow-emerald-200/50 transform scale-[1.02]">
                                     <div className="flex justify-between items-center mb-1">
-                                        <p className="text-[9px] font-black uppercase text-emerald-900/60 tracking-[0.1em]">Net en Poche</p>
+                                        <p className="text-[9px] font-bold uppercase text-emerald-900/60 tracking-[0.1em]">Net en Poche</p>
                                         <p className="text-[9px] font-bold text-emerald-900/40">(après 24% URSSAF)</p>
                                     </div>
 
                                     <div className="flex items-center justify-center gap-1 mb-2">
-                                        <span className="text-6xl font-black tracking-tighter text-white">{Math.round(results.netRevenue)}</span>
+                                        <span className="text-6xl font-bold tracking-tighter text-white">{Math.round(results.netRevenue)}</span>
                                         <span className="text-2xl font-bold opacity-80 translate-y-1 text-emerald-100">€</span>
                                     </div>
 
                                     <div className="h-px bg-emerald-900/10 w-full my-3"></div>
 
                                     <div className="flex items-center justify-center gap-2 text-emerald-900">
-                                        <span className="text-3xl font-black">{results.netHourlyRate.toFixed(1)}</span>
+                                        <span className="text-3xl font-bold">{results.netHourlyRate.toFixed(1)}</span>
                                         <span className="text-sm font-bold opacity-70">€ / heure</span>
                                     </div>
                                 </div>
@@ -394,12 +394,12 @@ export default function InternalCalculator() {
                                 <div className="flex justify-between items-center text-xs font-medium px-2">
                                     <div className="text-left">
                                         <span className="block text-stone-400 text-[9px] uppercase tracking-wider">Facture Client</span>
-                                        <span className="block text-lg font-black text-stone-900">{Math.round(results.finalInvoiced)}€</span>
+                                        <span className="block text-lg font-bold text-stone-900">{Math.round(results.finalInvoiced)}€</span>
                                     </div>
                                     <div className="h-8 w-px bg-stone-200"></div>
                                     <div className="text-right">
                                         <span className="block text-stone-400 text-[9px] uppercase tracking-wider">Temps Total</span>
-                                        <span className="block text-lg font-black text-stone-900">{results.totalTime.toFixed(1)}h</span>
+                                        <span className="block text-lg font-bold text-stone-900">{results.totalTime.toFixed(1)}h</span>
                                     </div>
                                 </div>
 
@@ -407,7 +407,7 @@ export default function InternalCalculator() {
                                 <div className="space-y-4 pt-4 border-t border-stone-100">
                                     <div className="space-y-3">
                                         <div className="space-y-2">
-                                            <Label className="text-[10px] text-stone-400 font-bold uppercase tracking-widest pl-1">Formule Choisie</Label>
+                                            <Label className="text-[11px] text-stone-400 font-bold uppercase tracking-wider pl-1">Formule Choisie</Label>
                                             <select value={selectedRecipes} onChange={(e) => setSelectedRecipes(Number(e.target.value))} className="w-full bg-stone-100 border border-stone-200 rounded-xl h-10 text-center text-sm font-bold text-stone-900 outline-none focus:ring-2 focus:ring-brand-gold cursor-pointer appearance-none hover:bg-stone-200 transition-colors">
                                                 <option value="3" className="text-stone-900">3 Recettes</option>
                                                 <option value="5" className="text-stone-900">5 Recettes</option>
@@ -416,8 +416,8 @@ export default function InternalCalculator() {
                                         </div>
                                         <div className="space-y-2">
                                             <div className="flex justify-between items-end">
-                                                <Label className="text-[10px] text-stone-400 font-bold uppercase tracking-widest pl-1">Nombre de Personnes</Label>
-                                                <div className="flex items-center gap-1.5 bg-stone-100 px-3 py-1 rounded-lg border border-stone-200"><Users className="w-3 h-3 text-brand-gold" /><span className="text-sm font-black text-stone-900">{numPeople}</span></div>
+                                                <Label className="text-[11px] text-stone-400 font-bold uppercase tracking-wider pl-1">Nombre de Personnes</Label>
+                                                <div className="flex items-center gap-1.5 bg-stone-100 px-3 py-1 rounded-lg border border-stone-200"><Users className="w-3 h-3 text-brand-gold" /><span className="text-sm font-bold text-stone-900">{numPeople}</span></div>
                                             </div>
                                             <Slider value={[numPeople]} onValueChange={(v) => setNumPeople(v[0])} min={2} max={6} step={1} className="py-2" />
                                         </div>
@@ -435,7 +435,7 @@ export default function InternalCalculator() {
                                         <div className={`p-2.5 rounded-xl border space-y-2 ${promoDiscount > 0 ? "bg-brand-gold/10 border-brand-gold/20" : "bg-stone-50 border-stone-100"}`}>
                                             <div className="flex justify-between items-center">
                                                 <span className={`text-xs font-bold ${promoDiscount > 0 ? "text-stone-900" : "text-stone-500"}`}>Vente Flash</span>
-                                                <Badge className={`text-[10px] font-black pointer-events-none h-5 ${promoDiscount > 0 ? 'bg-brand-gold text-stone-900' : 'bg-stone-200 text-stone-400'}`}>-{promoDiscount}%</Badge>
+                                                <Badge className={`text-[11px] font-bold pointer-events-none h-5 ${promoDiscount > 0 ? 'bg-brand-gold text-stone-900' : 'bg-stone-200 text-stone-400'}`}>-{promoDiscount}%</Badge>
                                             </div>
                                             <Slider
                                                 value={[promoDiscount]}

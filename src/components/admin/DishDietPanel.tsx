@@ -133,10 +133,10 @@ export default function DishDietPanel({ dish, clients, vault, onChange }: Props)
             {variants.map(v => (
                 <div key={v.id} className="bg-emerald-50/60 border border-emerald-200 rounded-2xl p-3 text-xs flex items-start justify-between gap-2">
                     <div className="min-w-0">
-                        <p className="text-[10px] font-bold uppercase tracking-wider text-emerald-700">
+                        <p className="text-[11px] font-bold uppercase tracking-wider text-emerald-700">
                             {v.kind === 'replacement' ? 'Remplacé' : 'Adapté'} · {v.diets.map(dietLabel).join(' + ')}
                         </p>
-                        <p className="font-serif font-bold text-stone-900 text-sm truncate">{v.name}</p>
+                        <p className="font-serif font-semibold text-stone-900 text-sm truncate">{v.name}</p>
                     </div>
                     <div className="flex items-center shrink-0">
                         <button type="button" onClick={() => setEditing(v)} aria-label="Modifier cette version" className="p-1.5 rounded-lg text-stone-500 hover:text-stone-900 hover:bg-white">
@@ -282,7 +282,7 @@ function VariantEditor({ variant, dishName, diets, vault, onCancel, onSave }: {
                                 value={draft.name}
                                 onChange={e => set({ name: e.target.value })}
                                 placeholder="Ex : Lasagnes de légumes sans gluten"
-                                className="w-full p-2.5 rounded-xl border border-stone-300 font-serif font-bold text-sm focus:ring-2 focus:ring-[#E1567A] focus:outline-none"
+                                className="w-full p-2.5 rounded-xl border border-stone-300 font-serif font-semibold text-sm focus:ring-2 focus:ring-[#E1567A] focus:outline-none"
                             />
                         </div>
                         <div>

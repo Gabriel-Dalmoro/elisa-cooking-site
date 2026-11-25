@@ -92,7 +92,7 @@ export default function AisleSection({ title, done, total, folded, onToggle, war
                 }`}
             >
                 <span className="flex-1 min-w-0">
-                    <span className={`block text-lg font-black leading-tight truncate ${
+                    <span className={`block text-lg font-bold leading-tight truncate ${
                         complete ? 'text-emerald-800' : warning ? 'text-amber-900' : 'text-white'
                     }`}>
                         {title}

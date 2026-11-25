@@ -8,6 +8,7 @@ import { alignSelectionToMenu } from './chosenDishes';
 import { withClientCounts } from './clientCounts';
 import { ensureSeriesSessions, listSeries, SessionSeries } from './db/series';
 import { getUpcomingCalendarBookings, matchEventToClient } from './googleCalendar';
+import { listLinkSends } from './db/linkSends';
 
 /**
  * Week-level operations shared by the planning, today and kitchen screens.
@@ -78,10 +79,11 @@ export async function loadWeekOverview(offsetWeeks: number, chefId?: string) {
     } catch (error) {
         console.warn('Recurring sessions unavailable:', error instanceof Error ? error.message : error);
     }
-    const [sessions, savedSelections, weekMenu] = await Promise.all([
+    const [sessions, savedSelections, weekMenu, linkSends] = await Promise.all([
         listSessions(startIso, endIso, chefId),
         getSelectionsForWeek(startIso),
-        getMenu(startIso)
+        getMenu(startIso),
+        listLinkSends(startIso)
     ]);
     // Choices lined up on the menu as it is now (a dish re-placed after clients chose keeps its place)
     const selections = savedSelections.map(s => alignSelectionToMenu(s, weekMenu.recipes));
@@ -104,6 +106,8 @@ export async function loadWeekOverview(offsetWeeks: number, chefId?: string) {
         clients,
         // The series behind this week's sessions (how often, until when)
         series: series.filter(sr => sessions.some(s => s.seriesId === sr.id)),
+        // « Lien envoyé » this week: clientId → when
+        linkSends: Object.fromEntries(Object.entries(linkSends).filter(([id]) => visibleIds.has(id))),
         slotStatuses: buildSlotStatuses(sessions, clients, selections.filter(s => visibleIds.has(s.clientId)))
     };
 }

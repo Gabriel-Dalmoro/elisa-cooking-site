@@ -41,7 +41,16 @@ async function toPublicClient(client: ClientProfile) {
 }
 
 function toPublicDish(dish: WeeklyDish, badge = '') {
-    return { id: dish.id, name: dish.name, category: dish.category, description: dish.description || '', ...(badge ? { badge } : {}) };
+    return {
+        id: dish.id,
+        name: dish.name,
+        category: dish.category,
+        description: dish.description || '',
+        // How it keeps (Elisa's estimate), so a client cooking ahead chooses well
+        freezable: typeof dish.freezable === 'boolean' ? dish.freezable : null,
+        fridgeDays: dish.fridgeDays || null,
+        ...(badge ? { badge } : {})
+    };
 }
 
 // "Cette semaine" / "Semaine prochaine": shown next to the dates so the client can't mix up two open weeks

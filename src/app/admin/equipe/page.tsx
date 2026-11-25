@@ -171,8 +171,7 @@ export default function TeamPage() {
     return (
         <div className="min-h-screen bg-[#FAFAF9] text-stone-800 pb-28 font-sans">
             <AdminPageHeader
-                title="Équipe & chefs"
-                subtitle="Créez l’accès de vos chefs. Chacun ne voit que les clients et les séances que vous lui attribuez : jamais les prix, les cartes cadeaux, ni vos notes privées."
+                title="Équipe"
                 actionElement={
                     <Button
                         size="sm"
@@ -196,7 +195,7 @@ export default function TeamPage() {
                                 <div className="flex items-center gap-3">
                                     <span className="w-3 h-3 rounded-full bg-[#E1567A]" />
                                     <div>
-                                        <p className="font-bold text-stone-900">{owner.displayName || 'Elisa'} <span className="text-[10px] font-black uppercase tracking-wider text-[#E1567A] ml-1">Fondatrice</span></p>
+                                        <p className="font-bold text-stone-900">{owner.displayName || 'Elisa'} <span className="text-[11px] font-bold uppercase tracking-wider text-[#E1567A] ml-1">Fondatrice</span></p>
                                         <p className="text-xs text-stone-500">Voit tout · {owner.clientCount} client{owner.clientCount > 1 ? 's' : ''} non attribué{owner.clientCount > 1 ? 's' : ''} (les siens)</p>
                                     </div>
                                 </div>
@@ -222,7 +221,7 @@ export default function TeamPage() {
                                                 <div>
                                                     <p className="font-bold text-stone-900 text-lg leading-tight">
                                                         {chef.displayName}
-                                                        {!chef.active && <span className="ml-2 text-[10px] font-black uppercase tracking-wider text-stone-500 bg-stone-100 border border-stone-200 rounded-full px-2 py-0.5">Désactivé</span>}
+                                                        {!chef.active && <span className="ml-2 text-[11px] font-bold uppercase tracking-wider text-stone-500 bg-stone-100 border border-stone-200 rounded-full px-2 py-0.5">Désactivé</span>}
                                                     </p>
                                                     <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-stone-600 mt-1">
                                                         {chef.city && <span className="flex items-center gap-1"><MapPin className="w-3.5 h-3.5 text-stone-400" />{chef.city}</span>}

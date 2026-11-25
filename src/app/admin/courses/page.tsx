@@ -216,9 +216,7 @@ export default function CombinedGroceryPage() {
         <div className="min-h-screen bg-[#FAFAF9] text-stone-800 pb-28 font-sans">
             <AdminPageHeader
                 title="Courses groupées"
-                subtitle="Vous faites les courses pour plusieurs clients en même temps ? Cochez-les : une seule liste, quantités additionnées, avec la part de chaque client."
                 backHref="/admin"
-                backLabel="Retour à l'admin"
             />
 
             <main className="max-w-3xl mx-auto px-4 space-y-6">
@@ -260,11 +258,11 @@ export default function CombinedGroceryPage() {
                                                 </span>
                                             </span>
                                             {canChoose ? (
-                                                <span className="text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-full px-2 py-0.5 shrink-0">
+                                                <span className="text-[11px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-full px-2 py-0.5 shrink-0">
                                                     ✓ Choix reçus
                                                 </span>
                                             ) : (
-                                                <span className="text-[10px] font-bold bg-stone-100 text-stone-500 border border-stone-200 rounded-full px-2 py-0.5 shrink-0">
+                                                <span className="text-[11px] font-bold bg-stone-100 text-stone-500 border border-stone-200 rounded-full px-2 py-0.5 shrink-0">
                                                     Pas encore de choix
                                                 </span>
                                             )}

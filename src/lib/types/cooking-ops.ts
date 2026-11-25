@@ -41,7 +41,43 @@ export interface BookingSession {
     personCountOverride?: number | null;
     dishCountOverride?: number | null;
     seriesDate?: string; // The date the series planned it for (kept when this one session is moved)
+    // Migration 011
+    sessionNote?: string; // for this session only (the client's notes are « for always »)
+    arrivalTime?: string; // « 14:00 », set in the app (beats the Google event's start time)
+    extraDishes?: ExtraDish[]; // dishes added for this session only, free
     createdAt: string;
+}
+
+/** A dish added to one session (e.g. offered after a mistake). Always free: it never changes the price. */
+export interface ExtraDish {
+    id: string; // « extra_xxxx »
+    name: string;
+    fromMenuDishId?: string; // picked from that week's menu (its recipe is copied below)
+    ingredients?: string;
+    instructions?: string[];
+    chefNotes?: string;
+}
+
+/** « 9:5 », « 14h », « 14h30 » → « 09:05 », « 14:00 », « 14:30 »; null if not a time. */
+export function cleanArrivalTime(v: unknown): string | null {
+    if (typeof v !== 'string') return null;
+    const m = v.trim().toLowerCase().match(/^(\d{1,2})\s*(?:[:h]\s*(\d{1,2})?)?$/);
+    if (!m) return null;
+    const h = Number(m[1]);
+    const min = m[2] ? Number(m[2]) : 0;
+    if (h > 23 || min > 59) return null;
+    return `${String(h).padStart(2, '0')}:${String(min).padStart(2, '0')}`;
+}
+
+/** « 14:00 » → « 14h », « 09:30 » → « 9h30 » (as written in French). */
+export function formatTimeFr(time: string): string {
+    const [h, m] = time.split(':');
+    return `${Number(h)}h${m && m !== '00' ? m : ''}`;
+}
+
+/** The arrival time to show: only one a chef set for this session (never guessed from the calendar). */
+export function arrivalTimeOf(session: Pick<BookingSession, 'arrivalTime'>): string | null {
+    return session.arrivalTime || null;
 }
 
 export interface WeeklyDish {
@@ -53,6 +89,9 @@ export interface WeeklyDish {
     instructions?: string[];
     chefNotes?: string;
     tags?: string[];
+    // How it keeps, shown to clients when they choose (estimates, set with the dish name)
+    freezable?: boolean | null; // null/undefined = not said yet
+    fridgeDays?: number | null; // ≈ days in the fridge
     // Diet-adapted menus (lib/diets.ts): versions of this dish for clients it doesn't suit,
     // and the diets Elisa checked the original is fine for (a wrong flag)
     variants?: DishVariant[];
@@ -129,4 +168,20 @@ export interface VaultRecipe {
     // Diet versions remembered from the menus it was on (migration 008)
     variants?: DishVariant[];
     dietOk?: string[];
+    // Migration 011
+    freezable?: boolean | null;
+    fridgeDays?: number | null;
+    seasons?: Season[];
+    chosenCount?: number; // times clients picked it (all weeks)
+}
+
+export const SEASONS = ['printemps', 'ete', 'automne', 'hiver'] as const;
+export type Season = typeof SEASONS[number];
+export const SEASON_LABELS: Record<Season, string> = { printemps: 'Printemps', ete: 'Été', automne: 'Automne', hiver: 'Hiver' };
+export const isSeason = (v: unknown): v is Season => typeof v === 'string' && (SEASONS as readonly string[]).includes(v);
+
+/** Days in the fridge: whole number 1–30, anything else = not set. */
+export function cleanFridgeDays(v: unknown): number | null {
+    const n = typeof v === 'string' ? Number(v) : v;
+    return typeof n === 'number' && Number.isInteger(n) && n >= 1 && n <= 30 ? n : null;
 }

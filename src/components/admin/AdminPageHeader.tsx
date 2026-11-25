@@ -7,43 +7,36 @@ import { Button } from '@/components/ui/button';
 
 interface AdminPageHeaderProps {
     title: string;
-    subtitle: string;
+    /** A short fact under the title (a date, a time). Explanations don't go here. */
+    meta?: string;
     backHref?: string;
     backLabel?: string;
     actionElement?: React.ReactNode;
 }
 
+/** Every admin page starts with this: title, optional one-line fact, actions, back button. */
 export default function AdminPageHeader({
     title,
-    subtitle,
+    meta,
     backHref = '/admin',
-    backLabel = "Retour à l'admin",
+    backLabel = 'Accueil',
     actionElement
 }: AdminPageHeaderProps) {
     return (
-        <div className="pt-10 sm:pt-14 pb-8 max-w-6xl mx-auto px-4 select-none">
-            <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
-                <div className="space-y-2">
-                    {/* Page Title */}
-                    <h1 className="text-3xl sm:text-4xl font-black text-stone-900 tracking-tight font-sans">
-                        {title}
-                    </h1>
-
-                    {/* Page Subtitle */}
-                    <p className="text-stone-500 text-xs sm:text-sm font-medium leading-relaxed max-w-2xl">
-                        {subtitle}
-                    </p>
+        <div className="pt-8 sm:pt-12 pb-6 max-w-6xl mx-auto px-4 select-none">
+            <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+                <div className="space-y-1">
+                    <h1 className="t-page-title">{title}</h1>
+                    {meta && <p className="text-sm text-stone-500">{meta}</p>}
                 </div>
 
-                {/* Right Action & Back Button */}
-                <div className="flex flex-wrap items-center gap-3 shrink-0 pt-1 sm:pt-0">
+                <div className="flex flex-wrap items-center gap-2 shrink-0">
                     {actionElement}
-
                     <Link href={backHref}>
                         <Button
                             variant="outline"
                             size="sm"
-                            className="rounded-full px-4 py-2 border-stone-200 hover:bg-stone-100 text-stone-700 font-bold text-xs flex items-center gap-2 shadow-xs transition-colors bg-white h-9"
+                            className="rounded-full px-4 border-stone-200 hover:bg-stone-100 text-stone-700 font-semibold text-xs flex items-center gap-1.5 bg-white h-9"
                         >
                             <ArrowLeft className="h-3.5 w-3.5 text-stone-500" />
                             {backLabel}
