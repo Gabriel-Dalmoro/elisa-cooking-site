@@ -96,14 +96,17 @@ export default function AdminDashboard({
     return (
         <div className="min-h-screen bg-[#FAFAF9] py-10 md:py-14 text-stone-900 font-sans">
             <div className="mx-auto px-4 max-w-5xl space-y-10">
-                <header className="flex justify-between items-end gap-3 border-b border-stone-200 pb-6">
-                    <div className="space-y-1.5">
-                        <p className="t-label text-[#E1567A]">{isOwner ? 'Administration' : 'Espace chef'}{today && <span className="text-stone-400"> · {today}</span>}</p>
+                <header className="border-b border-stone-200 pb-6 space-y-3 sm:space-y-1.5">
+                    {/* Phone: one centred line across the top · Desktop: above the greeting */}
+                    <p className="t-label text-[#E1567A] text-center sm:text-left whitespace-nowrap">
+                        {isOwner ? 'Administration' : 'Espace chef'}{today && <span className="text-stone-400"> · {today}</span>}
+                    </p>
+                    <div className="flex justify-between items-end gap-3">
                         <h1 className="t-page-title">Bonjour{firstName ? ` ${firstName}` : ''}</h1>
+                        <button onClick={handleLogout} className="flex items-center gap-1.5 text-xs font-semibold text-stone-500 hover:text-rose-600 transition-colors shrink-0 pb-1.5">
+                            <LogOut className="h-3.5 w-3.5" /> Déconnexion
+                        </button>
                     </div>
-                    <button onClick={handleLogout} className="flex items-center gap-1.5 text-xs font-semibold text-stone-500 hover:text-rose-600 transition-colors shrink-0 pb-1.5">
-                        <LogOut className="h-3.5 w-3.5" /> Déconnexion
-                    </button>
                 </header>
 
                 {refused && (
@@ -118,8 +121,9 @@ export default function AdminDashboard({
                     className="group relative overflow-hidden flex flex-col sm:flex-row sm:items-center justify-between gap-5 rounded-3xl bg-stone-900 text-white p-6 sm:p-8"
                 >
                     {/* Pink light coming in from the right */}
-                    <span aria-hidden className="absolute inset-0 bg-gradient-to-r from-stone-900 via-stone-900/80 to-[#E1567A]/70" />
-                    <span aria-hidden className="absolute -right-10 top-1/2 -translate-y-1/2 w-80 h-80 rounded-full bg-[#E1567A]/60 blur-3xl" />
+                    {/* Phone: black and pink meet in the middle · Desktop: pink grows strong on the right */}
+                    <span aria-hidden className="absolute inset-0 bg-gradient-to-r from-stone-900 from-35% to-[#E1567A]/80 sm:from-0% sm:via-stone-900/80 sm:to-[#E1567A]/70" />
+                    <span aria-hidden className="hidden sm:block absolute -right-10 top-1/2 -translate-y-1/2 w-80 h-80 rounded-full bg-[#E1567A]/60 blur-3xl" />
                     <span className="relative flex items-center gap-5">
                         <span className="w-12 h-12 rounded-2xl bg-white/10 ring-1 ring-white/15 flex items-center justify-center shrink-0">
                             <Navigation className="w-5 h-5 text-[#F4A0B5]" strokeWidth={1.75} />
@@ -129,7 +133,7 @@ export default function AdminDashboard({
                             <span className="block text-sm text-stone-300">Vos séances du jour, l&apos;itinéraire et les fiches cuisine.</span>
                         </span>
                     </span>
-                    <span className="relative self-start sm:self-auto flex items-center gap-2 rounded-full bg-white text-stone-900 text-sm font-semibold h-10 px-5 group-hover:gap-3 transition-all">
+                    <span className="relative self-center flex items-center justify-center gap-2 rounded-full bg-white text-stone-900 text-sm font-semibold h-10 px-5 group-hover:gap-3 transition-all">
                         Ouvrir <ArrowRight className="w-4 h-4 text-[#E1567A]" />
                     </span>
                 </Link>
