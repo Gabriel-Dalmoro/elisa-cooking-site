@@ -75,11 +75,9 @@ export function formatTimeFr(time: string): string {
     return `${Number(h)}h${m && m !== '00' ? m : ''}`;
 }
 
-/** The arrival time to show: the one set in the app, else the Google event's start (Paris time). */
-export function arrivalTimeOf(session: Pick<BookingSession, 'arrivalTime' | 'startsAt'>): string | null {
-    if (session.arrivalTime) return session.arrivalTime;
-    if (!session.startsAt) return null;
-    return new Intl.DateTimeFormat('fr-FR', { timeZone: 'Europe/Paris', hour: '2-digit', minute: '2-digit' }).format(new Date(session.startsAt));
+/** The arrival time to show: only one a chef set for this session (never guessed from the calendar). */
+export function arrivalTimeOf(session: Pick<BookingSession, 'arrivalTime'>): string | null {
+    return session.arrivalTime || null;
 }
 
 export interface WeeklyDish {

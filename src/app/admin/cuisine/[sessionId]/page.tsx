@@ -47,11 +47,6 @@ interface WakeLockSentinelLike {
     addEventListener: (type: 'release', listener: () => void) => void;
 }
 
-function formatParisTime(iso?: string): string | null {
-    if (!iso) return null;
-    return new Date(iso).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Paris' });
-}
-
 export default function ChefCookingModePage({ params }: { params: Promise<{ sessionId: string }> }) {
     const { sessionId } = use(params);
 
@@ -265,7 +260,8 @@ export default function ChefCookingModePage({ params }: { params: Promise<{ sess
     const { session, client, selection, dishes, missingDishNames, versionLabels } = sheet;
     const displayName = client?.name || session.clientName;
     // The time set in the app for this session, else the Google event's start
-    const arrival = session.arrivalTime ? formatTimeFr(session.arrivalTime) : formatParisTime(session.startsAt);
+    // Only a time a chef set for this session (none is shown otherwise)
+    const arrival = session.arrivalTime ? formatTimeFr(session.arrivalTime) : null;
     const allergiesAdded = selection?.allergiesAdded || [];
 
     // Recipe of one dish (ingredients scaled for this client + steps), with its edit button.

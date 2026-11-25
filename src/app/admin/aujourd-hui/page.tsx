@@ -79,10 +79,11 @@ export default function TodayOperationsPage() {
         loadData();
     }, [isoSelectedDate, loadData]);
 
-    // Filter sessions matching the selected date
+    // The day of whoever is logged in: Elisa sees her own sessions (not her chefs'),
+    // a chef only ever receives theirs
     const todaySessions = useMemo(() => {
-        return allSessions.filter(s => s.session.dateIso === isoSelectedDate);
-    }, [allSessions, isoSelectedDate]);
+        return allSessions.filter(s => s.session.dateIso === isoSelectedDate && (isChef || !s.session.assignedTo));
+    }, [allSessions, isoSelectedDate, isChef]);
 
     // Clients of the day who already chose: one combined grocery list for all of them
     const shoppableIds = todaySessions.filter(s => !s.isUnmatchedClient && s.selection).map(s => s.session.id);
@@ -484,7 +485,7 @@ export default function TodayOperationsPage() {
                         <div className="space-y-2">
                             <h4 className="text-xs font-bold uppercase tracking-wider text-stone-500 px-2 flex items-center gap-1.5">
                                 <Sun className="w-3.5 h-3.5 text-amber-500" />
-                                1. Matinée (09:00 - 12:00)
+                                Matin
                             </h4>
                             {morningSessions.length === 0
                                 ? renderSessionCard(undefined, 'Matin')
@@ -495,7 +496,7 @@ export default function TodayOperationsPage() {
                         <div className="space-y-2">
                             <h4 className="text-xs font-bold uppercase tracking-wider text-stone-500 px-2 flex items-center gap-1.5">
                                 <Moon className="w-3.5 h-3.5 text-indigo-500" />
-                                2. Après-midi (14:00 - 17:00)
+                                Après-midi
                             </h4>
                             {afternoonSessions.length === 0
                                 ? renderSessionCard(undefined, 'Après-midi')
